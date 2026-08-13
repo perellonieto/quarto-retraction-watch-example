@@ -2,12 +2,11 @@ project:
   type: website
 
 website:
-  title: "quarto website example"
+  title: "Retraction Watch Data Explorer"
   navbar:
     left:
       - href: index.qmd
         text: Home
-      - hello.qmd
       - retraction-dates.qmd
       - about.qmd
 
@@ -18,6 +17,3 @@ format:
       - brand
     css: styles.css
     toc: true
-
-
-

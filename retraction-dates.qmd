@@ -1,11 +1,12 @@
 ---
-title: "When where papers retracted?
+title: "Retraction Dates"
 format:
   html:
-    code-scatterplot of retracted papers
+    code-fold: true
+jupyter: python3
 ---
 
-For When where papers retracted? tration of a line plot on a polar axis, see @retraction-scatterplot.
+When where papers retracted? see @retraction-scatterplot.
 
 ```{python}
 #| label: retraction-scatterplot
@@ -19,8 +20,11 @@ csvfile = "retraction_watch.csv"
 
 df = pandas.read_csv(os.path.join(datafolder, csvfile))
 
-df['RetractionDate'] = pandas.to_datetime(df['RetractionDate'])
-df['OriginalPaperDate'] = pandas.to_datetime(df['OriginalPaperDate'])
+df.dropna(subset=['RetractionDate', 'OriginalPaperDate'], inplace=True)
+
+df.head()
+df['RetractionDate'] = pandas.to_datetime(df['RetractionDate'], format='mixed')
+df['OriginalPaperDate'] = pandas.to_datetime(df['OriginalPaperDate'], format='mixed')
 
 df.dropna(subset=['RetractionDate', 'OriginalPaperDate']).plot.scatter('OriginalPaperDate', 'RetractionDate', alpha=0.2, grid=True)
 ```
