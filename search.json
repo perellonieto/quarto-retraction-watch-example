@@ -1,0 +1,30 @@
+[
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site"
+  },
+  {
+    "objectID": "retraction-dates.html",
+    "href": "retraction-dates.html",
+    "title": "Retraction Dates",
+    "section": "",
+    "text": "When where papers retracted? see @retraction-scatterplot.\n\n\nCode\nimport pandas\nimport os\n\ndatafolder = \"retraction-watch-data/\"\ncsvfile = \"retraction_watch.csv\"\n\ndf = pandas.read_csv(os.path.join(datafolder, csvfile))\n\ndf.dropna(subset=['RetractionDate', 'OriginalPaperDate'], inplace=True)\n\ndf.head()\ndf['RetractionDate'] = pandas.to_datetime(df['RetractionDate'], format='mixed')\ndf['OriginalPaperDate'] = pandas.to_datetime(df['OriginalPaperDate'], format='mixed')\n\ndf.dropna(subset=['RetractionDate', 'OriginalPaperDate']).plot.scatter('OriginalPaperDate', 'RetractionDate', alpha=0.2, grid=True)\n\n\n\n\n\nA scatterplot of retracted papers"
+  },
+  {
+    "objectID": "initial_exploration_example.html",
+    "href": "initial_exploration_example.html",
+    "title": "Retraction Watch Data Explorer",
+    "section": "",
+    "text": "import pandas\nimport os\n\ndatafolder = \"retraction-watch-data/\"\ncsvfile = \"retraction_watch.csv\"\n\n\ndf = pandas.read_csv(os.path.join(datafolder, csvfile))\n\n\ndf.columns\n\nIndex(['Record ID', 'Title', 'Subject', 'Institution', 'Journal', 'Publisher',\n       'Country', 'Author', 'URLS', 'ArticleType', 'RetractionDate',\n       'RetractionDOI', 'RetractionPubMedID', 'OriginalPaperDate',\n       'OriginalPaperDOI', 'OriginalPaperPubMedID', 'RetractionNature',\n       'Reason', 'Paywalled', 'Notes', 'Unnamed: 20'],\n      dtype='str')\n\n\n\ndf['RetractionDate'] = pandas.to_datetime(df['RetractionDate'])\ndf['OriginalPaperDate'] = pandas.to_datetime(df['OriginalPaperDate'])\n\n\ndf.dropna(subset=['RetractionDate', 'OriginalPaperDate']).plot.scatter('OriginalPaperDate', 'RetractionDate', alpha=0.2, grid=True)"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "quarto website example",
+    "section": "",
+    "text": "This is a Quarto website.\nTo learn more about Quarto websites visit https://quarto.org/docs/websites."
+  }
+]
