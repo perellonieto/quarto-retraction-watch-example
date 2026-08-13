@@ -1,0 +1,6 @@
+jupyter
+numpy
+quarto
+matplotlib
+plotly
+pandas
