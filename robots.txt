@@ -1,0 +1,1 @@
+Sitemap: https://perellonieto.github.io/quarto-retraction-watch-example/sitemap.xml

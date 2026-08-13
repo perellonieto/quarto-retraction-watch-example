@@ -1,12 +1,5 @@
 [
   {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About",
-    "section": "",
-    "text": "About this site"
-  },
-  {
     "objectID": "retraction-dates.html",
     "href": "retraction-dates.html",
     "title": "Retraction Dates",
@@ -19,6 +12,13 @@
     "title": "Retraction Watch Data Explorer",
     "section": "",
     "text": "import pandas\nimport os\n\ndatafolder = \"retraction-watch-data/\"\ncsvfile = \"retraction_watch.csv\"\n\n\ndf = pandas.read_csv(os.path.join(datafolder, csvfile))\n\n\ndf.columns\n\nIndex(['Record ID', 'Title', 'Subject', 'Institution', 'Journal', 'Publisher',\n       'Country', 'Author', 'URLS', 'ArticleType', 'RetractionDate',\n       'RetractionDOI', 'RetractionPubMedID', 'OriginalPaperDate',\n       'OriginalPaperDOI', 'OriginalPaperPubMedID', 'RetractionNature',\n       'Reason', 'Paywalled', 'Notes', 'Unnamed: 20'],\n      dtype='str')\n\n\n\ndf['RetractionDate'] = pandas.to_datetime(df['RetractionDate'])\ndf['OriginalPaperDate'] = pandas.to_datetime(df['OriginalPaperDate'])\n\n\ndf.dropna(subset=['RetractionDate', 'OriginalPaperDate']).plot.scatter('OriginalPaperDate', 'RetractionDate', alpha=0.2, grid=True)"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site"
   },
   {
     "objectID": "index.html",
