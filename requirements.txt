@@ -4,3 +4,4 @@ quarto
 matplotlib
 plotly
 pandas
+kaleido
