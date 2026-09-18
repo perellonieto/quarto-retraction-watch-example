@@ -64,7 +64,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="site_libs/quarto-nav/headroom.min.js"></script>
 <script src="site_libs/clipboard/clipboard.min.js"></script>
 <script src="site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-6ac2aec46ad7f46b16024ee4409aa65c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-3e9b1289f5f353c49b617ce48ad2bc38.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -108,6 +108,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-label": "Search"
   }
 }</script>
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
 
 <link rel="stylesheet" href="styles.css">
@@ -162,19 +165,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<div id="3d67e7af-4373-4dd6-8443-a6824ce04304" class="cell" data-execution_count="4">
+<div id="3d67e7af-4373-4dd6-8443-a6824ce04304" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>datafolder <span class="op">=</span> <span class="st">"retraction-watch-data/"</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>csvfile <span class="op">=</span> <span class="st">"retraction_watch.csv"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="fb690523-69da-4c40-b012-1e185a36817d" class="cell" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pandas.read_csv(os.path.join(datafolder, csvfile))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="fb690523-69da-4c40-b012-1e185a36817d" class="cell" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pandas.read_csv(os.path.join(datafolder, csvfile), encoding<span class="op">=</span><span class="st">'iso-8859-1'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="1e39cd73-fdd5-4f71-b11b-059de43faac3" class="cell" data-execution_count="8">
+<div id="1e39cd73-fdd5-4f71-b11b-059de43faac3" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>df.columns</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="8">
+<div class="cell-output cell-output-display" data-execution_count="3">
 <pre><code>Index(['Record ID', 'Title', 'Subject', 'Institution', 'Journal', 'Publisher',
        'Country', 'Author', 'URLS', 'ArticleType', 'RetractionDate',
        'RetractionDOI', 'RetractionPubMedID', 'OriginalPaperDate',
@@ -183,16 +186,500 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       dtype='str')</code></pre>
 </div>
 </div>
-<div id="7a202ccd-ad44-4118-b771-500be52847d1" class="cell" data-execution_count="24">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'RetractionDate'</span>] <span class="op">=</span> pandas.to_datetime(df[<span class="st">'RetractionDate'</span>])</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'OriginalPaperDate'</span>] <span class="op">=</span> pandas.to_datetime(df[<span class="st">'OriginalPaperDate'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="d1ae8306-909c-48db-bf0c-ef36bea2f452" class="cell" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>df.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Record ID</th>
+<th data-quarto-table-cell-role="th">Title</th>
+<th data-quarto-table-cell-role="th">Subject</th>
+<th data-quarto-table-cell-role="th">Institution</th>
+<th data-quarto-table-cell-role="th">Journal</th>
+<th data-quarto-table-cell-role="th">Publisher</th>
+<th data-quarto-table-cell-role="th">Country</th>
+<th data-quarto-table-cell-role="th">Author</th>
+<th data-quarto-table-cell-role="th">URLS</th>
+<th data-quarto-table-cell-role="th">ArticleType</th>
+<th data-quarto-table-cell-role="th">...</th>
+<th data-quarto-table-cell-role="th">RetractionDOI</th>
+<th data-quarto-table-cell-role="th">RetractionPubMedID</th>
+<th data-quarto-table-cell-role="th">OriginalPaperDate</th>
+<th data-quarto-table-cell-role="th">OriginalPaperDOI</th>
+<th data-quarto-table-cell-role="th">OriginalPaperPubMedID</th>
+<th data-quarto-table-cell-role="th">RetractionNature</th>
+<th data-quarto-table-cell-role="th">Reason</th>
+<th data-quarto-table-cell-role="th">Paywalled</th>
+<th data-quarto-table-cell-role="th">Notes</th>
+<th data-quarto-table-cell-role="th">Unnamed: 20</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">0</th>
+<td>72186.0</td>
+<td>Social, economic and environmental vulnerabili...</td>
+<td>(B/T) Business - Economics;(BLS) Agriculture;(...</td>
+<td>Institute of Agricultural Education and Extens...</td>
+<td>Science of The Total Environment</td>
+<td>Elsevier</td>
+<td>Belgium;China;Czech Republic;Estonia;Iran;Neth...</td>
+<td>Saeedeh Nazari Nooghabi;Hossein Azadi;Luuk Fle...</td>
+<td>NaN</td>
+<td>Research Article;</td>
+<td>...</td>
+<td>10.1016/j.scitotenv.2026.182004</td>
+<td>42379914.0</td>
+<td>11/10/2021 0:00</td>
+<td>10.1016/j.scitotenv.2021.151519</td>
+<td>34774624.0</td>
+<td>Retraction</td>
+<td>Concerns/Issues about Authorship/Affiliation;I...</td>
+<td>No</td>
+<td>Saeedeh Nazari Nooghabi a, Hossein Azadi b c d...</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">1</th>
+<td>72183.0</td>
+<td>High-throughput screening of ancient forest pl...</td>
+<td>(HSC) Medicine - Drug Design;(HSC) Medicine - ...</td>
+<td>Henan Province International Collaboration Lab...</td>
+<td>Environment International</td>
+<td>Elsevier</td>
+<td>China;Denmark;India;Malaysia;Norway;Taiwan</td>
+<td>Yiyang Li;Nyuk Ling Ma;Huiling Chen;Jiateng Zh...</td>
+<td>NaN</td>
+<td>Research Article;</td>
+<td>...</td>
+<td>10.1016/j.envint.2023.108279</td>
+<td>0.0</td>
+<td>10/29/2023 0:00</td>
+<td>10.1016/j.envint.2023.108279</td>
+<td>37924601.0</td>
+<td>Retraction</td>
+<td>Compromised Peer Review;Objections by Author(s...</td>
+<td>No</td>
+<td>See also: https://pubpeer.com/publications/39A...</td>
+<td>NaN</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">2</th>
+<td>72181.0</td>
+<td>Nitrogen transformation in slightly polluted s...</td>
+<td>(BLS) Microbiology;(ENV) Ground/Surface Water;</td>
+<td>Key Laboratory for Technology in Rural Water M...</td>
+<td>Science of The Total Environment</td>
+<td>Elsevier</td>
+<td>China;South Korea;Sri Lanka;United States</td>
+<td>Yinfeng Xia;Lifang Zhu;Nan Geng;Debao Lu;Cundo...</td>
+<td>NaN</td>
+<td>Research Article;</td>
+<td>...</td>
+<td>10.1016/j.scitotenv.2026.182090</td>
+<td>42521574.0</td>
+<td>3/18/2022 0:00</td>
+<td>10.1016/j.scitotenv.2022.154623</td>
+<td>35307444.0</td>
+<td>Retraction</td>
+<td>Compromised Peer Review;Investigation by Journ...</td>
+<td>No</td>
+<td>See also: https://pubpeer.com/publications/9DF...</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">3</th>
+<td>72175.0</td>
+<td>Porous carbon polyhedrons with exclusive Cu-Nx...</td>
+<td>(PHY) Energy;(PHY) Materials Science;</td>
+<td>State Key Laboratory of Marine Resource Utiliz...</td>
+<td>International Journal of Hydrogen Energy</td>
+<td>Elsevier</td>
+<td>China</td>
+<td>Yalin Liu;Peng Rao;Mingjun Zhong;Ruisong Li;Ji...</td>
+<td>NaN</td>
+<td>Research Article;</td>
+<td>...</td>
+<td>10.1016/j.ijhydene.2026.156515</td>
+<td>0.0</td>
+<td>6/30/2021 0:00</td>
+<td>10.1016/j.ijhydene.2021.06.057</td>
+<td>0.0</td>
+<td>Retraction</td>
+<td>Concerns/Issues about Authorship/Affiliation;I...</td>
+<td>No</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">4</th>
+<td>72174.0</td>
+<td>The Existence of Solution for k-Dimensional Sy...</td>
+<td>(PHY) Mathematics;</td>
+<td>Department of Mathematics, Faculty of Science,...</td>
+<td>Mediterranean Journal of Mathematics</td>
+<td>Springer - Nature Publishing Group</td>
+<td>Iran</td>
+<td>Mohammad Esmael Samei;Vahid Hedayati;Ghorban K...</td>
+<td>NaN</td>
+<td>Research Article;</td>
+<td>...</td>
+<td>10.1007/s00009-021-01922-2</td>
+<td>0.0</td>
+<td>1/11/2020 0:00</td>
+<td>10.1007/s00009-019-1471-2</td>
+<td>0.0</td>
+<td>Retraction</td>
+<td>Euphemisms for Plagiarism;Objections by Author...</td>
+<td>No</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+</tbody>
+</table>
+
+<p>5 rows × 21 columns</p>
 </div>
-<div id="551e0cf5-72ae-4537-8330-20c14a13e32b" class="cell" data-execution_count="29">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>df.dropna(subset<span class="op">=</span>[<span class="st">'RetractionDate'</span>, <span class="st">'OriginalPaperDate'</span>]).plot.scatter(<span class="st">'OriginalPaperDate'</span>, <span class="st">'RetractionDate'</span>, alpha<span class="op">=</span><span class="fl">0.2</span>, grid<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div id="551e0cf5-72ae-4537-8330-20c14a13e32b" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>df.dropna(subset<span class="op">=</span>[<span class="st">'RetractionDate'</span>, <span class="st">'OriginalPaperDate'</span>], inplace<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="7a202ccd-ad44-4118-b771-500be52847d1" class="cell" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'RetractionDate'</span>] <span class="op">=</span> pandas.to_datetime(df[<span class="st">'RetractionDate'</span>], errors<span class="op">=</span><span class="st">'coerce'</span>, <span class="bu">format</span><span class="op">=</span><span class="st">'mixed'</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'OriginalPaperDate'</span>] <span class="op">=</span> pandas.to_datetime(df[<span class="st">'OriginalPaperDate'</span>], errors<span class="op">=</span><span class="st">'coerce'</span>, <span class="bu">format</span><span class="op">=</span><span class="st">'mixed'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="3be760b7-56b9-4a7f-ba3b-0108f528a0e9" class="cell" data-execution_count="7">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>df.plot.scatter(<span class="st">'OriginalPaperDate'</span>, <span class="st">'RetractionDate'</span>, alpha<span class="op">=</span><span class="fl">0.2</span>, grid<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="initial_exploration_example_files/figure-html/cell-6-output-1.png" class="img-fluid figure-img"></p>
+<p><img src="initial_exploration_example_files/figure-html/cell-8-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="43656ab5-e68f-4ecb-8156-92a323f00816" class="cell" data-execution_count="8">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">## This code adapted from Jonas Oppenlaender https://github.com/retractions/retractions.github.io/tree/master</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>AXIS_FONTSIZE <span class="op">=</span> <span class="dv">16</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>TICK_FONTSIZE <span class="op">=</span> <span class="dv">12</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>LABEL_FONTSIZE <span class="op">=</span> <span class="dv">14</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>PUBLISHERS <span class="op">=</span> {</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">'ACM'</span>: [<span class="st">'Association for Computing Machinery (ACM)'</span>],</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">'IEEE'</span>: [<span class="st">'IEEE: Institute of Electrical and Electronics Engineers'</span>],</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Elsevier'</span>: [<span class="st">'Elsevier'</span>, <span class="st">'Elsevier - Cell Press'</span>],</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Springer Nature'</span>: [<span class="st">'Springer'</span>, <span class="st">'Springer - Nature Publishing Group'</span>, <span class="st">'Springer - Biomed Central (BMC)'</span>],</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Wiley'</span>: [<span class="st">'Wiley'</span>],</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Taylor &amp; Francis'</span>: [<span class="st">'Taylor and Francis'</span>, <span class="st">'Taylor and Francis - Dove Press'</span>],</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">'SAGE'</span>: [<span class="st">'SAGE Publications'</span>],</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Hindawi'</span>: [<span class="st">'Hindawi'</span>],</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">'IOS Press'</span>: [<span class="st">'IOS Press (bought by Sage November 2023)'</span>],</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PLoS'</span>: [<span class="st">'PLoS'</span>],</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>PUBLISHER_COLORS <span class="op">=</span> {    <span class="st">'ACM'</span>: <span class="st">'blue'</span>,</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    <span class="st">'IEEE'</span>: <span class="st">'orange'</span>,</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Elsevier'</span>: <span class="st">'green'</span>,</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Springer Nature'</span>: <span class="st">'cyan'</span>,</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Wiley'</span>: <span class="st">'gold'</span>,</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Taylor &amp; Francis'</span>: <span class="st">'purple'</span>,</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>    <span class="st">'SAGE'</span>: <span class="st">'red'</span>,</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Hindawi'</span>: <span class="st">'brown'</span>,</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>    <span class="st">'IOS Press'</span>: <span class="st">'salmon'</span>,</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>    <span class="st">'PLoS'</span>: <span class="st">'grey'</span>,}</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_small_multiples(df, freq, log_scale, output_file, figsize<span class="op">=</span>(<span class="dv">20</span>, <span class="dv">8</span>)):</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Plot a 2x4 grid of bar charts, one per publisher.</span></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a><span class="co">    Parameters</span></span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a><span class="co">    ----------</span></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a><span class="co">    df : DataFrame with 'Publisher' and 'RetractionDate' columns.</span></span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a><span class="co">    freq : 'M' for monthly, 'Q' for quarterly.</span></span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a><span class="co">    log_scale : bool — use logarithmic y-axis.</span></span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a><span class="co">    output_file : str — path for the saved PDF figure.</span></span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a><span class="co">    figsize : tuple — overall figure size.</span></span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Compute period counts per publisher and determine global date range</span></span>
+<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a>    period_counts <span class="op">=</span> {}</span>
+<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>    all_min, all_max <span class="op">=</span> <span class="va">None</span>, <span class="va">None</span></span>
+<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> label, rw_names <span class="kw">in</span> PUBLISHERS.items():</span>
+<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>        pub_df <span class="op">=</span> df[df[<span class="st">'Publisher'</span>].isin(rw_names)]</span>
+<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>        counts <span class="op">=</span> pub_df[<span class="st">'RetractionDate'</span>].dt.to_period(freq).value_counts().sort_index()</span>
+<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>        period_counts[label] <span class="op">=</span> counts</span>
+<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">len</span>(counts) <span class="op">&gt;</span> <span class="dv">0</span>:</span>
+<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a>            pmin, pmax <span class="op">=</span> counts.index.<span class="bu">min</span>(), counts.index.<span class="bu">max</span>()</span>
+<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a>            all_min <span class="op">=</span> pmin <span class="cf">if</span> all_min <span class="kw">is</span> <span class="va">None</span> <span class="cf">else</span> <span class="bu">min</span>(all_min, pmin)</span>
+<span id="cb9-54"><a href="#cb9-54" aria-hidden="true" tabindex="-1"></a>            all_max <span class="op">=</span> pmax <span class="cf">if</span> all_max <span class="kw">is</span> <span class="va">None</span> <span class="cf">else</span> <span class="bu">max</span>(all_max, pmax)</span>
+<span id="cb9-55"><a href="#cb9-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-56"><a href="#cb9-56" aria-hidden="true" tabindex="-1"></a>    <span class="co"># plot all x-values</span></span>
+<span id="cb9-57"><a href="#cb9-57" aria-hidden="true" tabindex="-1"></a>    <span class="co"># full_range = pd.period_range(start=all_min, end=all_max, freq=freq)</span></span>
+<span id="cb9-58"><a href="#cb9-58" aria-hidden="true" tabindex="-1"></a>    <span class="co"># instead, enforce start date of 1997 (ACM-DL launched October 1997)</span></span>
+<span id="cb9-59"><a href="#cb9-59" aria-hidden="true" tabindex="-1"></a>    start_date <span class="op">=</span> pd.Period(<span class="st">'1997-01'</span>, freq<span class="op">=</span>freq)</span>
+<span id="cb9-60"><a href="#cb9-60" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Ensure we don't cut off data if the max date is somehow older than 1997 (unlikely but safe)</span></span>
+<span id="cb9-61"><a href="#cb9-61" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> all_max <span class="op">&lt;</span> start_date:</span>
+<span id="cb9-62"><a href="#cb9-62" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">"Warning: Data ends before 1997 start date."</span>)</span>
+<span id="cb9-63"><a href="#cb9-63" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb9-64"><a href="#cb9-64" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Create range from 1997 to the actual data end</span></span>
+<span id="cb9-65"><a href="#cb9-65" aria-hidden="true" tabindex="-1"></a>    full_range <span class="op">=</span> pd.period_range(start<span class="op">=</span>start_date, end<span class="op">=</span>all_max, freq<span class="op">=</span>freq)</span>
+<span id="cb9-66"><a href="#cb9-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-68"><a href="#cb9-68" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Reindex all publishers to the shared range</span></span>
+<span id="cb9-69"><a href="#cb9-69" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> label <span class="kw">in</span> period_counts:</span>
+<span id="cb9-70"><a href="#cb9-70" aria-hidden="true" tabindex="-1"></a>        period_counts[label] <span class="op">=</span> period_counts[label].reindex(full_range, fill_value<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb9-71"><a href="#cb9-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-72"><a href="#cb9-72" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Calculate global max for BOTH linear and log</span></span>
+<span id="cb9-73"><a href="#cb9-73" aria-hidden="true" tabindex="-1"></a>    global_ymax <span class="op">=</span> <span class="bu">max</span>(s.<span class="bu">max</span>() <span class="cf">for</span> s <span class="kw">in</span> period_counts.values())</span>
+<span id="cb9-74"><a href="#cb9-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-75"><a href="#cb9-75" aria-hidden="true" tabindex="-1"></a>    ncols <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb9-76"><a href="#cb9-76" aria-hidden="true" tabindex="-1"></a>    nrows <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb9-77"><a href="#cb9-77" aria-hidden="true" tabindex="-1"></a>    fig, axes <span class="op">=</span> plt.subplots(nrows, ncols, figsize<span class="op">=</span>(<span class="dv">20</span>, <span class="dv">8</span>), squeeze<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb9-78"><a href="#cb9-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-79"><a href="#cb9-79" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> idx, (label, counts) <span class="kw">in</span> <span class="bu">enumerate</span>(period_counts.items()):</span>
+<span id="cb9-80"><a href="#cb9-80" aria-hidden="true" tabindex="-1"></a>        row, col <span class="op">=</span> <span class="bu">divmod</span>(idx, ncols)</span>
+<span id="cb9-81"><a href="#cb9-81" aria-hidden="true" tabindex="-1"></a>        ax <span class="op">=</span> axes[row][col]</span>
+<span id="cb9-82"><a href="#cb9-82" aria-hidden="true" tabindex="-1"></a>        color <span class="op">=</span> PUBLISHER_COLORS[label]</span>
+<span id="cb9-83"><a href="#cb9-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-84"><a href="#cb9-84" aria-hidden="true" tabindex="-1"></a>        ax.bar(<span class="bu">range</span>(<span class="bu">len</span>(full_range)), counts.values, width<span class="op">=</span><span class="fl">0.8</span>, color<span class="op">=</span>color, alpha<span class="op">=</span><span class="fl">0.9</span>)</span>
+<span id="cb9-85"><a href="#cb9-85" aria-hidden="true" tabindex="-1"></a>        ax.set_title(label, fontsize<span class="op">=</span>AXIS_FONTSIZE, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span>
+<span id="cb9-86"><a href="#cb9-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-87"><a href="#cb9-87" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Target roughly 6-8 labels per plot, regardless of dataset length</span></span>
+<span id="cb9-88"><a href="#cb9-88" aria-hidden="true" tabindex="-1"></a>        total_bars <span class="op">=</span> <span class="bu">len</span>(full_range)</span>
+<span id="cb9-89"><a href="#cb9-89" aria-hidden="true" tabindex="-1"></a>        target_labels <span class="op">=</span> <span class="dv">7</span></span>
+<span id="cb9-90"><a href="#cb9-90" aria-hidden="true" tabindex="-1"></a>        step <span class="op">=</span> <span class="bu">max</span>(<span class="dv">1</span>, total_bars <span class="op">//</span> target_labels)</span>
+<span id="cb9-91"><a href="#cb9-91" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb9-92"><a href="#cb9-92" aria-hidden="true" tabindex="-1"></a>        tick_positions <span class="op">=</span> <span class="bu">list</span>(<span class="bu">range</span>(<span class="dv">0</span>, <span class="bu">len</span>(full_range), step))</span>
+<span id="cb9-93"><a href="#cb9-93" aria-hidden="true" tabindex="-1"></a>        tick_labels <span class="op">=</span> [full_range[i].start_time.strftime(<span class="st">'%Y-%m'</span>) <span class="cf">for</span> i <span class="kw">in</span> tick_positions]</span>
+<span id="cb9-94"><a href="#cb9-94" aria-hidden="true" tabindex="-1"></a>        ax.set_xticks(tick_positions)</span>
+<span id="cb9-95"><a href="#cb9-95" aria-hidden="true" tabindex="-1"></a>        ax.set_xticklabels(tick_labels, rotation<span class="op">=</span><span class="dv">45</span>, ha<span class="op">=</span><span class="st">'right'</span>, fontsize<span class="op">=</span>TICK_FONTSIZE)</span>
+<span id="cb9-96"><a href="#cb9-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-97"><a href="#cb9-97" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> log_scale:</span>
+<span id="cb9-98"><a href="#cb9-98" aria-hidden="true" tabindex="-1"></a>            ax.set_yscale(<span class="st">'log'</span>)</span>
+<span id="cb9-99"><a href="#cb9-99" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Set log limits: bottom at 0.5 or 1 to avoid log(0) issues, top to global max</span></span>
+<span id="cb9-100"><a href="#cb9-100" aria-hidden="true" tabindex="-1"></a>            ax.set_ylim(<span class="fl">0.5</span>, global_ymax <span class="op">*</span> <span class="dv">2</span>) </span>
+<span id="cb9-101"><a href="#cb9-101" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb9-102"><a href="#cb9-102" aria-hidden="true" tabindex="-1"></a>            ax.set_ylim(<span class="dv">0</span>, global_ymax <span class="op">*</span> <span class="fl">1.05</span>)</span>
+<span id="cb9-103"><a href="#cb9-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-104"><a href="#cb9-104" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Only show y-label on leftmost column</span></span>
+<span id="cb9-105"><a href="#cb9-105" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> col <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb9-106"><a href="#cb9-106" aria-hidden="true" tabindex="-1"></a>            ax.set_ylabel(<span class="st">'Retractions'</span>, fontsize<span class="op">=</span>AXIS_FONTSIZE)</span>
+<span id="cb9-107"><a href="#cb9-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-108"><a href="#cb9-108" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Hide unused subplots (if any)</span></span>
+<span id="cb9-109"><a href="#cb9-109" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> idx <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(PUBLISHERS), nrows <span class="op">*</span> ncols):</span>
+<span id="cb9-110"><a href="#cb9-110" aria-hidden="true" tabindex="-1"></a>        row, col <span class="op">=</span> <span class="bu">divmod</span>(idx, ncols)</span>
+<span id="cb9-111"><a href="#cb9-111" aria-hidden="true" tabindex="-1"></a>        axes[row][col].set_visible(<span class="va">False</span>)</span>
+<span id="cb9-112"><a href="#cb9-112" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-113"><a href="#cb9-113" aria-hidden="true" tabindex="-1"></a>    freq_label <span class="op">=</span> <span class="st">'Month'</span> <span class="cf">if</span> freq <span class="op">==</span> <span class="st">'M'</span> <span class="cf">else</span> <span class="st">'Quarter'</span></span>
+<span id="cb9-114"><a href="#cb9-114" aria-hidden="true" tabindex="-1"></a>    scale_label <span class="op">=</span> <span class="st">' (log)'</span> <span class="cf">if</span> log_scale <span class="cf">else</span> <span class="st">''</span></span>
+<span id="cb9-115"><a href="#cb9-115" aria-hidden="true" tabindex="-1"></a>    <span class="co"># fig.suptitle(f'Retractions Per {freq_label}{scale_label}', fontsize=14, fontweight='bold', y=1.0)</span></span>
+<span id="cb9-116"><a href="#cb9-116" aria-hidden="true" tabindex="-1"></a>    fig.tight_layout()</span>
+<span id="cb9-117"><a href="#cb9-117" aria-hidden="true" tabindex="-1"></a>    plt.savefig(output_file, <span class="bu">format</span><span class="op">=</span><span class="st">'eps'</span>, bbox_inches<span class="op">=</span><span class="st">'tight'</span>)</span>
+<span id="cb9-118"><a href="#cb9-118" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'Saved </span><span class="sc">{</span>output_file<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb9-119"><a href="#cb9-119" aria-hidden="true" tabindex="-1"></a>    plt.show()</span>
+<span id="cb9-120"><a href="#cb9-120" aria-hidden="true" tabindex="-1"></a>    plt.close()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="2cc1cce0-5f1e-4e69-8b9c-c16a167c14a2" class="cell" data-execution_count="9">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>plot_small_multiples(df, freq<span class="op">=</span><span class="st">'Q'</span>, log_scale<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>                      output_file<span class="op">=</span><span class="st">'entries-per-quarter-log-nonoverlap.eps'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The PostScript backend does not support transparency; partially transparent artists will be rendered opaque.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Saved entries-per-quarter-log-nonoverlap.eps</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="initial_exploration_example_files/figure-html/cell-10-output-3.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="0ad25488-f3df-4a6f-bd4b-3792c8723b4f" class="cell" data-execution_count="10">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Code converted from Matplotlib to Plotly by Claude, with some minor modifications by Miquel Perello Nieto</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> plotly.graph_objects <span class="im">as</span> go</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> plotly.subplots <span class="im">import</span> make_subplots</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_small_multiples_plotly(df, freq, log_scale, output_file, figsize<span class="op">=</span>(<span class="dv">20</span>, <span class="dv">8</span>)):</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Plot a 2x5 grid of bar charts, one per publisher.</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="co">    Parameters</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="co">    ----------</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="co">    df         : DataFrame with 'Publisher' and 'RetractionDate' columns.</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="co">    freq       : 'M' for monthly, 'Q' for quarterly.</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="co">    log_scale  : bool — use logarithmic y-axis.</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="co">    output_file: str — path for the saved PDF/PNG figure (extension determines format).</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="co">    figsize    : tuple — (width, height) in inches; converted to pixels at 96 dpi.</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ------------------------------------------------------------------</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 1. Compute period counts per publisher and determine global date range</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ------------------------------------------------------------------</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>    period_counts <span class="op">=</span> {}</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>    all_min, all_max <span class="op">=</span> <span class="va">None</span>, <span class="va">None</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> label, rw_names <span class="kw">in</span> PUBLISHERS.items():</span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>        pub_df <span class="op">=</span> df[df[<span class="st">"Publisher"</span>].isin(rw_names)]</span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>        counts <span class="op">=</span> (</span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>            pub_df[<span class="st">"RetractionDate"</span>]</span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>            .dt.to_period(freq)</span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>            .value_counts()</span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>            .sort_index()</span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>        period_counts[label] <span class="op">=</span> counts</span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">len</span>(counts) <span class="op">&gt;</span> <span class="dv">0</span>:</span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>            pmin, pmax <span class="op">=</span> counts.index.<span class="bu">min</span>(), counts.index.<span class="bu">max</span>()</span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>            all_min <span class="op">=</span> pmin <span class="cf">if</span> all_min <span class="kw">is</span> <span class="va">None</span> <span class="cf">else</span> <span class="bu">min</span>(all_min, pmin)</span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>            all_max <span class="op">=</span> pmax <span class="cf">if</span> all_max <span class="kw">is</span> <span class="va">None</span> <span class="cf">else</span> <span class="bu">max</span>(all_max, pmax)</span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Enforce start date of 1997 (ACM-DL launched October 1997)</span></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a>    start_date <span class="op">=</span> pd.Period(<span class="st">"1997-01"</span>, freq<span class="op">=</span>freq)</span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> all_max <span class="op">&lt;</span> start_date:</span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">"Warning: Data ends before 1997 start date."</span>)</span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a>    full_range <span class="op">=</span> pd.period_range(start<span class="op">=</span>start_date, end<span class="op">=</span>all_max, freq<span class="op">=</span>freq)</span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Reindex all publishers to the shared range</span></span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> label <span class="kw">in</span> period_counts:</span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a>        period_counts[label] <span class="op">=</span> period_counts[label].reindex(full_range, fill_value<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-52"><a href="#cb13-52" aria-hidden="true" tabindex="-1"></a>    global_ymax <span class="op">=</span> <span class="bu">max</span>(s.<span class="bu">max</span>() <span class="cf">for</span> s <span class="kw">in</span> period_counts.values())</span>
+<span id="cb13-53"><a href="#cb13-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-54"><a href="#cb13-54" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ------------------------------------------------------------------</span></span>
+<span id="cb13-55"><a href="#cb13-55" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 2. Build subplot grid</span></span>
+<span id="cb13-56"><a href="#cb13-56" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ------------------------------------------------------------------</span></span>
+<span id="cb13-57"><a href="#cb13-57" aria-hidden="true" tabindex="-1"></a>    ncols, nrows <span class="op">=</span> <span class="dv">5</span>, <span class="dv">2</span></span>
+<span id="cb13-58"><a href="#cb13-58" aria-hidden="true" tabindex="-1"></a>    publisher_items <span class="op">=</span> <span class="bu">list</span>(period_counts.items())</span>
+<span id="cb13-59"><a href="#cb13-59" aria-hidden="true" tabindex="-1"></a>    n_publishers <span class="op">=</span> <span class="bu">len</span>(publisher_items)</span>
+<span id="cb13-60"><a href="#cb13-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-61"><a href="#cb13-61" aria-hidden="true" tabindex="-1"></a>    <span class="co"># subplot_titles pads empty strings for unused cells so titles align</span></span>
+<span id="cb13-62"><a href="#cb13-62" aria-hidden="true" tabindex="-1"></a>    subplot_titles <span class="op">=</span> [label <span class="cf">for</span> label, _ <span class="kw">in</span> publisher_items]</span>
+<span id="cb13-63"><a href="#cb13-63" aria-hidden="true" tabindex="-1"></a>    subplot_titles <span class="op">+=</span> [<span class="st">""</span>] <span class="op">*</span> (nrows <span class="op">*</span> ncols <span class="op">-</span> n_publishers)</span>
+<span id="cb13-64"><a href="#cb13-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-65"><a href="#cb13-65" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> make_subplots(</span>
+<span id="cb13-66"><a href="#cb13-66" aria-hidden="true" tabindex="-1"></a>        rows<span class="op">=</span>nrows,</span>
+<span id="cb13-67"><a href="#cb13-67" aria-hidden="true" tabindex="-1"></a>        cols<span class="op">=</span>ncols,</span>
+<span id="cb13-68"><a href="#cb13-68" aria-hidden="true" tabindex="-1"></a>        subplot_titles<span class="op">=</span>subplot_titles,</span>
+<span id="cb13-69"><a href="#cb13-69" aria-hidden="true" tabindex="-1"></a>        horizontal_spacing<span class="op">=</span><span class="fl">0.06</span>,</span>
+<span id="cb13-70"><a href="#cb13-70" aria-hidden="true" tabindex="-1"></a>        vertical_spacing<span class="op">=</span><span class="fl">0.18</span>,</span>
+<span id="cb13-71"><a href="#cb13-71" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb13-72"><a href="#cb13-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-73"><a href="#cb13-73" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ------------------------------------------------------------------</span></span>
+<span id="cb13-74"><a href="#cb13-74" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 3. Add one Bar trace per publisher</span></span>
+<span id="cb13-75"><a href="#cb13-75" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ------------------------------------------------------------------</span></span>
+<span id="cb13-76"><a href="#cb13-76" aria-hidden="true" tabindex="-1"></a>    x_indices <span class="op">=</span> <span class="bu">list</span>(<span class="bu">range</span>(<span class="bu">len</span>(full_range)))</span>
+<span id="cb13-77"><a href="#cb13-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-78"><a href="#cb13-78" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Target ~7 tick labels regardless of dataset length</span></span>
+<span id="cb13-79"><a href="#cb13-79" aria-hidden="true" tabindex="-1"></a>    total_bars <span class="op">=</span> <span class="bu">len</span>(full_range)</span>
+<span id="cb13-80"><a href="#cb13-80" aria-hidden="true" tabindex="-1"></a>    step <span class="op">=</span> <span class="bu">max</span>(<span class="dv">1</span>, total_bars <span class="op">//</span> <span class="dv">7</span>)</span>
+<span id="cb13-81"><a href="#cb13-81" aria-hidden="true" tabindex="-1"></a>    tick_positions <span class="op">=</span> <span class="bu">list</span>(<span class="bu">range</span>(<span class="dv">0</span>, total_bars, step))</span>
+<span id="cb13-82"><a href="#cb13-82" aria-hidden="true" tabindex="-1"></a>    tick_labels <span class="op">=</span> [full_range[i].start_time.strftime(<span class="st">"%Y-%m"</span>) <span class="cf">for</span> i <span class="kw">in</span> tick_positions]</span>
+<span id="cb13-83"><a href="#cb13-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-84"><a href="#cb13-84" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> idx, (label, counts) <span class="kw">in</span> <span class="bu">enumerate</span>(publisher_items):</span>
+<span id="cb13-85"><a href="#cb13-85" aria-hidden="true" tabindex="-1"></a>        row, col <span class="op">=</span> <span class="bu">divmod</span>(idx, ncols)</span>
+<span id="cb13-86"><a href="#cb13-86" aria-hidden="true" tabindex="-1"></a>        row <span class="op">+=</span> <span class="dv">1</span>   <span class="co"># Plotly rows are 1-indexed</span></span>
+<span id="cb13-87"><a href="#cb13-87" aria-hidden="true" tabindex="-1"></a>        col <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb13-88"><a href="#cb13-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-89"><a href="#cb13-89" aria-hidden="true" tabindex="-1"></a>        fig.add_trace(</span>
+<span id="cb13-90"><a href="#cb13-90" aria-hidden="true" tabindex="-1"></a>            go.Bar(</span>
+<span id="cb13-91"><a href="#cb13-91" aria-hidden="true" tabindex="-1"></a>                x<span class="op">=</span>x_indices,</span>
+<span id="cb13-92"><a href="#cb13-92" aria-hidden="true" tabindex="-1"></a>                y<span class="op">=</span>counts.values,</span>
+<span id="cb13-93"><a href="#cb13-93" aria-hidden="true" tabindex="-1"></a>                marker_color<span class="op">=</span>PUBLISHER_COLORS[label],</span>
+<span id="cb13-94"><a href="#cb13-94" aria-hidden="true" tabindex="-1"></a>                marker_opacity<span class="op">=</span><span class="fl">0.9</span>,</span>
+<span id="cb13-95"><a href="#cb13-95" aria-hidden="true" tabindex="-1"></a>                width<span class="op">=</span><span class="fl">0.8</span>,</span>
+<span id="cb13-96"><a href="#cb13-96" aria-hidden="true" tabindex="-1"></a>                showlegend<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb13-97"><a href="#cb13-97" aria-hidden="true" tabindex="-1"></a>                name<span class="op">=</span>label,</span>
+<span id="cb13-98"><a href="#cb13-98" aria-hidden="true" tabindex="-1"></a>            ),</span>
+<span id="cb13-99"><a href="#cb13-99" aria-hidden="true" tabindex="-1"></a>            row<span class="op">=</span>row,</span>
+<span id="cb13-100"><a href="#cb13-100" aria-hidden="true" tabindex="-1"></a>            col<span class="op">=</span>col,</span>
+<span id="cb13-101"><a href="#cb13-101" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb13-102"><a href="#cb13-102" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-103"><a href="#cb13-103" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Axis keys are 'xaxis', 'xaxis2', … for subplot (1,1), (1,2), …</span></span>
+<span id="cb13-104"><a href="#cb13-104" aria-hidden="true" tabindex="-1"></a>        axis_suffix <span class="op">=</span> <span class="st">""</span> <span class="cf">if</span> idx <span class="op">==</span> <span class="dv">0</span> <span class="cf">else</span> <span class="bu">str</span>(idx <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb13-105"><a href="#cb13-105" aria-hidden="true" tabindex="-1"></a>        xaxis_key <span class="op">=</span> <span class="ss">f"xaxis</span><span class="sc">{</span>axis_suffix<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb13-106"><a href="#cb13-106" aria-hidden="true" tabindex="-1"></a>        yaxis_key <span class="op">=</span> <span class="ss">f"yaxis</span><span class="sc">{</span>axis_suffix<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb13-107"><a href="#cb13-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-108"><a href="#cb13-108" aria-hidden="true" tabindex="-1"></a>        fig.layout[xaxis_key].update(</span>
+<span id="cb13-109"><a href="#cb13-109" aria-hidden="true" tabindex="-1"></a>            tickvals<span class="op">=</span>tick_positions,</span>
+<span id="cb13-110"><a href="#cb13-110" aria-hidden="true" tabindex="-1"></a>            ticktext<span class="op">=</span>tick_labels,</span>
+<span id="cb13-111"><a href="#cb13-111" aria-hidden="true" tabindex="-1"></a>            tickangle<span class="op">=</span><span class="dv">45</span>,</span>
+<span id="cb13-112"><a href="#cb13-112" aria-hidden="true" tabindex="-1"></a>            tickfont<span class="op">=</span><span class="bu">dict</span>(size<span class="op">=</span>TICK_FONTSIZE),</span>
+<span id="cb13-113"><a href="#cb13-113" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb13-114"><a href="#cb13-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-115"><a href="#cb13-115" aria-hidden="true" tabindex="-1"></a>        y_axis_update <span class="op">=</span> <span class="bu">dict</span>(tickfont<span class="op">=</span><span class="bu">dict</span>(size<span class="op">=</span>TICK_FONTSIZE))</span>
+<span id="cb13-116"><a href="#cb13-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-117"><a href="#cb13-117" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> log_scale:</span>
+<span id="cb13-118"><a href="#cb13-118" aria-hidden="true" tabindex="-1"></a>            y_axis_update.update(</span>
+<span id="cb13-119"><a href="#cb13-119" aria-hidden="true" tabindex="-1"></a>                <span class="bu">type</span><span class="op">=</span><span class="st">"log"</span>,</span>
+<span id="cb13-120"><a href="#cb13-120" aria-hidden="true" tabindex="-1"></a>                <span class="bu">range</span><span class="op">=</span>[</span>
+<span id="cb13-121"><a href="#cb13-121" aria-hidden="true" tabindex="-1"></a>                    <span class="op">-</span><span class="fl">0.3</span>,                          <span class="co"># log10(0.5) ≈ -0.3</span></span>
+<span id="cb13-122"><a href="#cb13-122" aria-hidden="true" tabindex="-1"></a>                    np.log10(global_ymax <span class="op">*</span> <span class="dv">2</span>),  <span class="co"># headroom above max</span></span>
+<span id="cb13-123"><a href="#cb13-123" aria-hidden="true" tabindex="-1"></a>                ],</span>
+<span id="cb13-124"><a href="#cb13-124" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb13-125"><a href="#cb13-125" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb13-126"><a href="#cb13-126" aria-hidden="true" tabindex="-1"></a>            y_axis_update.update(</span>
+<span id="cb13-127"><a href="#cb13-127" aria-hidden="true" tabindex="-1"></a>                <span class="bu">type</span><span class="op">=</span><span class="st">"linear"</span>,</span>
+<span id="cb13-128"><a href="#cb13-128" aria-hidden="true" tabindex="-1"></a>                <span class="bu">range</span><span class="op">=</span>[<span class="dv">0</span>, global_ymax <span class="op">*</span> <span class="fl">1.05</span>],</span>
+<span id="cb13-129"><a href="#cb13-129" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb13-130"><a href="#cb13-130" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-131"><a href="#cb13-131" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Show y-axis label only on the leftmost column</span></span>
+<span id="cb13-132"><a href="#cb13-132" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> col <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb13-133"><a href="#cb13-133" aria-hidden="true" tabindex="-1"></a>            y_axis_update[<span class="st">"title"</span>] <span class="op">=</span> <span class="bu">dict</span>(</span>
+<span id="cb13-134"><a href="#cb13-134" aria-hidden="true" tabindex="-1"></a>                text<span class="op">=</span><span class="st">"Retractions"</span>, font<span class="op">=</span><span class="bu">dict</span>(size<span class="op">=</span>AXIS_FONTSIZE)</span>
+<span id="cb13-135"><a href="#cb13-135" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb13-136"><a href="#cb13-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-137"><a href="#cb13-137" aria-hidden="true" tabindex="-1"></a>        fig.layout[yaxis_key].update(<span class="op">**</span>y_axis_update)</span>
+<span id="cb13-138"><a href="#cb13-138" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-139"><a href="#cb13-139" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ------------------------------------------------------------------</span></span>
+<span id="cb13-140"><a href="#cb13-140" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 4. Global layout</span></span>
+<span id="cb13-141"><a href="#cb13-141" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ------------------------------------------------------------------</span></span>
+<span id="cb13-142"><a href="#cb13-142" aria-hidden="true" tabindex="-1"></a>    width_px  <span class="op">=</span> <span class="bu">int</span>(figsize[<span class="dv">0</span>] <span class="op">*</span> <span class="dv">96</span>)</span>
+<span id="cb13-143"><a href="#cb13-143" aria-hidden="true" tabindex="-1"></a>    height_px <span class="op">=</span> <span class="bu">int</span>(figsize[<span class="dv">1</span>] <span class="op">*</span> <span class="dv">96</span>)</span>
+<span id="cb13-144"><a href="#cb13-144" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-145"><a href="#cb13-145" aria-hidden="true" tabindex="-1"></a>    fig.update_layout(</span>
+<span id="cb13-146"><a href="#cb13-146" aria-hidden="true" tabindex="-1"></a>        width<span class="op">=</span>width_px,</span>
+<span id="cb13-147"><a href="#cb13-147" aria-hidden="true" tabindex="-1"></a>        height<span class="op">=</span>height_px,</span>
+<span id="cb13-148"><a href="#cb13-148" aria-hidden="true" tabindex="-1"></a>        bargap<span class="op">=</span><span class="fl">0.1</span>,</span>
+<span id="cb13-149"><a href="#cb13-149" aria-hidden="true" tabindex="-1"></a>        plot_bgcolor<span class="op">=</span><span class="st">"white"</span>,</span>
+<span id="cb13-150"><a href="#cb13-150" aria-hidden="true" tabindex="-1"></a>        paper_bgcolor<span class="op">=</span><span class="st">"white"</span>,</span>
+<span id="cb13-151"><a href="#cb13-151" aria-hidden="true" tabindex="-1"></a>        margin<span class="op">=</span><span class="bu">dict</span>(l<span class="op">=</span><span class="dv">50</span>, r<span class="op">=</span><span class="dv">20</span>, t<span class="op">=</span><span class="dv">60</span>, b<span class="op">=</span><span class="dv">60</span>),</span>
+<span id="cb13-152"><a href="#cb13-152" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb13-153"><a href="#cb13-153" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-154"><a href="#cb13-154" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Bold subplot titles (annotation objects created by make_subplots)</span></span>
+<span id="cb13-155"><a href="#cb13-155" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> annotation <span class="kw">in</span> fig.layout.annotations:</span>
+<span id="cb13-156"><a href="#cb13-156" aria-hidden="true" tabindex="-1"></a>        annotation.update(font<span class="op">=</span><span class="bu">dict</span>(size<span class="op">=</span>AXIS_FONTSIZE, color<span class="op">=</span><span class="st">"black"</span>), font_weight<span class="op">=</span><span class="st">"bold"</span>)</span>
+<span id="cb13-157"><a href="#cb13-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-158"><a href="#cb13-158" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ------------------------------------------------------------------</span></span>
+<span id="cb13-159"><a href="#cb13-159" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 5. Save and show</span></span>
+<span id="cb13-160"><a href="#cb13-160" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ------------------------------------------------------------------</span></span>
+<span id="cb13-161"><a href="#cb13-161" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Plotly write_image supports: .pdf .svg .png .jpeg .webp</span></span>
+<span id="cb13-162"><a href="#cb13-162" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Replace .eps with .pdf in output_file if you were saving EPS before</span></span>
+<span id="cb13-163"><a href="#cb13-163" aria-hidden="true" tabindex="-1"></a>    fig.write_image(output_file)</span>
+<span id="cb13-164"><a href="#cb13-164" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Saved </span><span class="sc">{</span>output_file<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb13-165"><a href="#cb13-165" aria-hidden="true" tabindex="-1"></a>    fig.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="ef7094ea-05c4-4057-b2cc-b3281e18dd68" class="cell" data-execution_count="12">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>plot_small_multiples_plotly(df, freq<span class="op">=</span><span class="st">'Q'</span>, log_scale<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>                      output_file<span class="op">=</span><span class="st">'entries-per-quarter-log-nonoverlap.svg'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Saved entries-per-quarter-log-nonoverlap.svg</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="initial_exploration_example_files/figure-html/cell-12-output-2.png" class="img-fluid figure-img"></p>
 </figure>
 </div>
 </div>
