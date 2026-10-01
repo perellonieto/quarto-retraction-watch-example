@@ -14,6 +14,7 @@ When where papers retracted? see @retraction-scatterplot.
 
 import pandas
 import os
+import matplotlib.pyplot as plt
 
 datafolder = "retraction-watch-data/"
 csvfile = "retraction_watch.csv"
@@ -26,5 +27,21 @@ df.head()
 df['RetractionDate'] = pandas.to_datetime(df['RetractionDate'], format='mixed')
 df['OriginalPaperDate'] = pandas.to_datetime(df['OriginalPaperDate'], format='mixed')
 
-df.dropna(subset=['RetractionDate', 'OriginalPaperDate']).plot.scatter('OriginalPaperDate', 'RetractionDate', alpha=0.2, grid=True)
+plot_df = df.dropna(subset=['RetractionDate', 'OriginalPaperDate', 'Country'])
+top_countries = plot_df['Country'].value_counts().head(10).index
+plot_df = plot_df[plot_df['Country'].isin(top_countries)]
+
+colors = dict(zip(top_countries, plt.cm.tab10.colors))
+ax = None
+for country, country_df in plot_df.groupby('Country'):
+  ax = country_df.plot.scatter(
+    'OriginalPaperDate',
+    'RetractionDate',
+    label=country,
+    color=colors[country],
+    alpha=0.6,
+    grid=True,
+    ax=ax,
+  )
+ax.legend(title='Country')
 ```

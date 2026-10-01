@@ -1,0 +1,945 @@
+---
+title: "Retraction Clean"
+format:
+  html:
+    code-fold: true
+---
+
+```{r}
+
+library(dplyr)
+library(tibble)
+library(tidyr)
+library(readr)
+library(lubridate)
+library(ggplot2)
+library(httr)
+library(readxl)
+library(tidyverse)
+library(janitor)
+
+files <- list.files(
+  "data/sjr_rankings",
+  pattern = "^scimagojr country rank .*\\.xlsx$",
+  full.names = TRUE
+)
+
+sjr_country_counts <- map_dfr(files, function(f) {
+
+  year <- str_extract(basename(f), "\\d{4}")
+
+  read_excel(f) %>%
+    mutate(Year = as.integer(year))
+})
+
+write_csv(
+  sjr_country_counts,
+  "data/scimagojr_country_rank_all_years.csv"
+)
+sjr_country_counts <- readr::read_csv("data/scimagojr_country_rank_all_years.csv")
+
+clean_data <- function(retraction_data, 
+                       oecd_countries,
+                       retraction_reason_conversion,
+                       long_df_by_countries=T
+){
+  
+  
+  # Cleaning reasons for retraction
+  retraction_data$Reason <- gsub('+', '', retraction_data$Reason, fixed=T)
+  # Remove trailing colon
+  retraction_data$Reason <- gsub(';$', ';', retraction_data$Reason)
+  # Unique all countries
+  all_country_names <- unique(unlist(strsplit(retraction_data$Country, ';')))
+  
+  
+  # Number of countries involved in each article
+  retraction_data$number_of_countries <- lapply(retraction_data$Country, function(x){
+    x <- strsplit(x, ';')
+    return(length(unlist(x)))
+  }) %>% unlist()
+  
+  # Cleaning Dates 
+  retraction_data$OriginalPaperDate <- gsub(' 0:00',
+                                            '', 
+                                            retraction_data$OriginalPaperDate)
+  retraction_data$OriginalPaperDate <- mdy(retraction_data$OriginalPaperDate)
+  
+  retraction_data$RetractionDate <- gsub(' 0:00',
+                                         '', 
+                                         retraction_data$RetractionDate)
+  retraction_data$RetractionDate <- mdy(retraction_data$RetractionDate)
+  
+  retraction_data <- retraction_data %>% 
+    mutate(retraction_year = format(RetractionDate, "%Y"),
+           publication_year = format(OriginalPaperDate, "%Y"))
+  
+  
+  grouped_reasons <- sapply(unique(retraction_reason_conversion$Group), function(x) {
+    # All the items which belong to this group
+    strs_to_check <- unique(retraction_reason_conversion$Reason[retraction_reason_conversion$Group == x])
+    
+    res <- lapply(retraction_data$Reason, function(y){
+      any(unlist(strsplit(y,';')) %in% strs_to_check)
+      
+    })
+    return(unlist(res))
+  }, simplify=F) %>% tibble::as_tibble() %>% mutate_all(as.numeric)
+  
+  retraction_data <- bind_cols(retraction_data,grouped_reasons)
+  
+  retraction_data$retracted_within_year <- case_when(
+    (retraction_data$RetractionDate - retraction_data$OriginalPaperDate)/365.25 <=1 ~ 'Within 1 year',
+    (retraction_data$RetractionDate - retraction_data$OriginalPaperDate)/365.25 >1~ 'After 1 year')
+  
+  retraction_data$retracted_within_two_years <- case_when(
+    (retraction_data$RetractionDate - retraction_data$OriginalPaperDate)/365.25 <=2 ~ 'Within 2 years',
+    (retraction_data$RetractionDate - retraction_data$OriginalPaperDate)/365.25 >2~ 'After 2 years')
+  
+  
+  # Reformatting Data for one 
+  # country per row. Please note
+  # this will mean duplicate retractions
+  # for papers with more than country 
+  # per paper
+  
+  if(long_df_by_countries==T){
+    retraction_data$paper_index <- 1:nrow(retraction_data)
+    retraction_data <- retraction_data %>%
+      # create row ID:
+      mutate(row = row_number()) %>%
+      # separate rows on " /":
+      separate_rows(Country, sep = ';') 
+    
+    retraction_data$oecd <- case_when(
+      retraction_data$Country %in% oecd_countries$Name ~ 'OECD',
+      TRUE ~ 'Non-OECD'
+    )
+    retraction_data$UK <- case_when(
+      retraction_data$Country =="United Kingdom" ~ 'UK',
+      TRUE ~ 'Non-UK'
+    )
+  }
+  
+  retraction_data <- retraction_data |>
+    group_by(`Record ID`) |>
+    mutate(international = if_any(Country, ~n_distinct(.) > 1)) %>%
+    ungroup()
+  
+  retraction_data$Mass_Retraction <- case_when(
+    retraction_data$Publisher=='IEEE: Institute of Electrical and Electronics Engineers'&
+      (retraction_data$publication_year %in% c(2009,2010,2011) | retraction_data$retraction_year %in% c(2009,2010,2011)) ~ 'IEEE Mass Retraction',
+    retraction_data$Publisher=='Hindawi'&
+      (retraction_data$retraction_year %in% c(2022,2023,2014)) ~ 'Hindawi Mass Retraction',
+    TRUE ~ 'Other')
+  retraction_data$Mass_Retraction <- factor(retraction_data$Mass_Retraction,
+                                            levels = c('IEEE Mass Retraction','Hindawi Mass Retraction','Other'))
+  
+  # retraction_data$hindawi_retr <- case_when(
+  #   retraction_data$Publisher=='Hindawi'&
+  #     (retraction_data$retraction_year %in% c(2022,2023,2014)) ~ 'Hindawi',
+  #   TRUE ~ 'Other')
+  
+  retraction_data$publication_year <- as.numeric(retraction_data$publication_year)
+  retraction_data$retraction_year <- as.numeric(retraction_data$retraction_year)
+  retraction_data$RetractionID = retraction_data["Record ID"]
+  return(retraction_data)
+  
+}
+
+retraction_data <- readr::read_csv('data/retraction_watch.csv')
+oecd_countries <- read_csv("data/oecd_countries.csv") %>%
+  mutate( # Rename mismatches
+    Name = recode(
+      Name,
+      "Korea" = "South Korea",
+      "Slovak Republic" = "Slovakia"
+    )
+  )
+retraction_reason_conversion <- readr::read_csv('data/retraction_reason_groupings.csv')
+# reason_lookup <- read_csv("data/retraction_reason_groupings.csv") %>%
+#   filter(Group != "Ungrouped") %>%
+#   distinct(Reason, Group)
+retraction_data <- clean_data(retraction_data, oecd_countries, retraction_reason_conversion)
+
+head(retraction_data)
+```
+
+Setting up the country groups of interest:
+
+```{r}
+country_groups <- c(
+  "United Kingdom",
+  "Other OECD",
+  "Rest of World"
+)
+
+retraction_data <- retraction_data %>%
+  mutate(
+    country_class = case_when(
+      Country == "United Kingdom" ~ "United Kingdom",
+      Country %in% oecd_countries$Name     ~ "Other OECD",
+      TRUE                        ~ "Rest of World"
+    )
+  )
+```
+
+Applying the same categorisation to the matched publication rate data:
+
+```{r}
+sjr_country_counts <- sjr_country_counts %>%
+  mutate(
+    country_class = case_when(
+      Country == "United Kingdom" ~ "United Kingdom",
+      Country %in% oecd_countries$Name     ~ "Other OECD",
+      TRUE                        ~ "Rest of World"
+    )
+  )
+
+publication_counts <- sjr_country_counts %>%
+  group_by(
+    publication_year = Year,
+    country_class
+  ) %>%
+  summarise(
+    total_papers = sum(Documents, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+# New analysis: between country explanation for rates
+
+We know that changes over time in both a) how retractions are reported, and b) retraction watch's data processing practice for them make temporal patterns complex to interpret. What is more robust is inter-country comparisons.
+
+```{r}
+scenarios <- tribble(
+  ~scenario,             ~exclude_mass, ~domestic_only,
+  "Raw",                 FALSE,         FALSE,
+  "No mass retractions", TRUE,          FALSE,
+  "Domestic only",       FALSE,         TRUE,
+  "Domestic + no mass",  TRUE,          TRUE
+)
+
+retraction_counts <-retraction_data %>%
+  distinct(RetractionID, .keep_all = TRUE) %>%
+  mutate(
+    country_class = case_when(
+      Country == "United Kingdom" ~ "United Kingdom",
+      Country %in% oecd_countries$Name     ~ "Other OECD",
+      TRUE                        ~ "Rest of World"
+    )
+  ) %>%
+  crossing(scenarios) %>%
+  filter(
+    !exclude_mass | Mass_Retraction == "Other",
+    !domestic_only | !international
+  ) %>%
+  count(
+    publication_year,
+    country_class,
+    scenario,
+    name = "retractions"
+  ) %>% na.omit
+```
+
+```{r}
+retraction_rates <- retraction_counts %>%
+  left_join(
+    publication_counts,
+    by = c("publication_year", "country_class")
+  ) %>%
+  mutate(
+    retraction_rate = retractions / total_papers,
+    retraction_rate_per_100k = 100000 * retraction_rate
+  )
+```
+
+```{r}
+p <- ggplot(
+  retraction_rates,
+  aes(
+    publication_year,
+    retraction_rate_per_100k,
+    colour = country_class
+  )
+) +
+  geom_line() +
+  facet_wrap(~scenario, ncol = 2) +
+  scale_x_continuous(
+    limits = c(2000, 2023),
+    breaks = seq(2000, 2023, by = 5)
+  ) +
+#  scale_y_log10(
+#  scale_y_continuous(
+#    limits = c(4, 600)
+#  ) +
+  labs(
+    y = "Country class retraction fraction, log10-scaling",
+    x = "Year",
+    colour = NULL
+  ) +
+  #scale_y_continuous(trans='log10') +
+  theme_bw()
+p
+```
+```{r}
+library(plotly)
+
+ggplotly(p) %>%
+  layout(xaxis = list(autorange = TRUE), yaxis = list(autorange = TRUE))
+```
+
+## Applying reasons
+
+```{r}
+reasons_long <- retraction_data %>%
+  filter(Mass_Retraction=="Other") %>%
+  select(RetractionID, publication_year, country_class, Reason) %>%
+  separate_rows(Reason, sep = ";") %>%
+  mutate(
+    Reason = str_trim(Reason)
+  ) %>%
+  na.omit
+  ## %>%
+  #filter(!Reason =="") %>%
+  ## left_join(retraction_reason_keep, by = "Reason")
+
+reason_flags <- reasons_long %>%
+  mutate(value = TRUE) %>%
+  distinct(RetractionID, publication_year, Reason, .keep_all = TRUE) %>%
+  pivot_wider(
+    id_cols = c(RetractionID, publication_year, country_class),
+    names_from = Reason,
+    values_from = value,
+    values_fill = FALSE,
+    names_prefix = "is_"
+  ) %>%
+  clean_names() %>%
+  mutate(
+    period = if_else(
+      publication_year < 2017,
+      "Pre-2017",
+      "Post-2017"
+    )
+  )
+```
+
+```{r}
+reason_summary <- reason_flags %>%
+  group_by(period,country_class) %>%
+  summarise(
+    across(
+      starts_with("is_"),
+      list(
+        proportion = ~mean(.x, na.rm = TRUE),
+        count = ~sum(.x, na.rm = TRUE)
+      )
+    )
+  )
+```
+
+```{r}
+reasons_compare_long <- reason_summary %>%
+  ungroup() %>%
+  pivot_longer(
+    -c(period, country_class),
+    names_to = c("flag", ".value"),
+    names_pattern = "(is_.*)_(proportion|count)"
+  )
+reasons_compare_wide <- reasons_compare_long %>%
+  select(period, country_class, flag, proportion, count) %>%
+  pivot_wider(
+    names_from = country_class,
+    values_from = c(proportion, count)
+  )
+```
+
+```{r}
+plot(reasons_compare_wide$`count_Other OECD`,
+     reasons_compare_wide$`count_United Kingdom`
+     )
+```
+```{r}
+plot_ly(data = retraction_rates, x = reasons_compare_wide$`count_Other OECD`,
+     y = reasons_compare_wide$`count_United Kingdom`
+     )
+```
+
+
+```{r}
+group_sizes <- reason_flags %>%
+  count(period, country_class, name = "n")
+
+reasons_compare_results <- reasons_compare_wide %>%
+  left_join(
+    group_sizes %>%
+      pivot_wider(
+        names_from = country_class,
+        values_from = n
+      ),
+    by = "period"
+  ) %>%
+  rowwise() %>%
+  mutate(
+    diff = `proportion_United Kingdom` - `proportion_Other OECD`,
+    p_value = prop.test(
+      x = c(`count_United Kingdom`, `count_Other OECD`),
+      n = c(`United Kingdom`, `Other OECD`)
+    )$p.value
+  ) %>%
+  mutate(
+    across(starts_with("p.value"), ~coalesce(.x, 0))
+  ) %>%
+  ungroup() %>%
+  mutate(
+    p_adj = p.adjust(p_value, method = "BH")
+  ) %>%
+  arrange(desc(abs(diff)))
+```
+
+```{r}
+results_lm_pre = lm(`count_United Kingdom` ~ `count_Other OECD` - 1, 
+    data = reasons_compare_results %>% filter(period=="Pre-2017"))
+results_lm_post = lm(`count_United Kingdom` ~ `count_Other OECD` - 1, 
+    data = reasons_compare_results %>% filter(period=="Post-2017"))
+ukoecd_ratio_pre=as.numeric(1/results_lm_pre$coefficients)
+ukoecd_ratio_post=as.numeric(1/results_lm_post$coefficients)
+```
+
+```{r}
+reasons_compare_results<- reasons_compare_results %>%
+  mutate(
+    significant = p_adj < 0.05,
+    low_count = ifelse(period=="Pre-2017",
+        ukoecd_ratio_pre*`count_United Kingdom` + `count_Other OECD` <500,
+        ukoecd_ratio_post*`count_United Kingdom` + `count_Other OECD` <500)
+#      pmin(`count_United Kingdom`,
+#           `count_Other OECD`) < 10
+  ) %>% 
+  mutate(
+    p_adj_filtered = NA_real_,
+    p_adj_filtered = replace(
+      p_adj_filtered,
+      !low_count,
+      p.adjust(p_value[!low_count], method = "BH")
+    )
+  ) %>%
+  mutate(significant_filtered = p_adj_filtered < 0.05)
+```
+
+```{r}
+plot_df <- reasons_compare_results %>%
+  mutate(
+    sig_class = case_when(
+      p_adj_filtered < 0.05 & !low_count ~ "Significant (adequate count)",
+      p_adj < 0.05 & low_count  ~ "Significant (low count)",
+      TRUE                      ~ "Not significant"
+    )
+  )
+boundary <- tibble(
+  x = c(0, 500),
+  y = (500 - x) / ukoecd_ratio_pre
+) %>%
+  filter(y >= 0)
+meanpred_pre <- tibble(
+  x = c(0, max(plot_df$`count_Other OECD`)),
+  y = (x) / ukoecd_ratio_pre
+)
+meanpred_post <- tibble(
+  x = c(0, max(plot_df$`count_Other OECD`)),
+  y = (x) / ukoecd_ratio_post
+)
+labels <- bind_rows(
+  meanpred_pre %>% slice_tail(n = 1) %>% mutate(label = "Pre-2017"),
+  meanpred_post %>% slice_tail(n = 1) %>% mutate(label = "Post-2017")
+)
+
+p <- plot_df %>%
+  ggplot(
+    aes(
+      x = `count_Other OECD`,
+      y = `count_United Kingdom`,
+      colour = sig_class,
+      shape = period
+    )
+  ) +
+  geom_line(
+    data = boundary,
+    aes(x = x, y = y),
+    inherit.aes = FALSE,
+    linetype = "dashed"
+  ) + 
+  geom_line(
+    data = meanpred_pre,
+    aes(x = x, y = y),
+    inherit.aes = FALSE
+  ) +
+  geom_line(
+    data = meanpred_post,
+    aes(x = x, y = y),
+    inherit.aes = FALSE
+  ) +
+  geom_text(
+    data = labels,
+    inherit.aes = FALSE,
+    aes(x = x, y = y, label = label),
+    hjust = 1,
+    vjust = -1
+  ) + 
+  geom_point(alpha = 0.7) +
+  scale_colour_manual(
+    values = c("grey70", "red", "orange")
+  ) +
+  labs(
+    x = "Count (Other OECD)",
+    y = "Count (United Kingdom)",
+    colour = "FDR < 0.05"
+  ) +
+  coord_cartesian(
+    xlim = c(0, NA),
+    ylim = c(0, NA)
+  ) +
+  theme_minimal()
+
+ggplotly(p)  %>%
+  layout(xaxis = list(autorange = TRUE), yaxis = list(autorange = TRUE))
+```
+
+```{r}
+library(tidytext)
+
+sig_results <- reasons_compare_results %>%
+  filter(!is.na(p_adj), p_adj_filtered < 0.05) %>%
+  filter(!low_count) %>%
+  select(
+    flag,
+    period,
+    proportion_united_kingdom = `proportion_United Kingdom`,
+    proportion_other_oecd = `proportion_Other OECD`,
+    diff
+  )
+
+sig_plot <- sig_results %>%
+  mutate(
+    flag = reorder_within(flag, abs(diff), period)
+  ) %>%
+  select(
+    period,
+    flag,
+    proportion_other_oecd,
+    proportion_united_kingdom
+  ) %>%
+  pivot_longer(
+    starts_with("proportion"),
+    names_to = "group",
+    values_to = "proportion"
+  )
+
+```
+
+```{r}
+p <- ggplot(sig_plot,
+       aes(proportion, flag)) +
+  geom_line(
+    aes(group = interaction(period, flag)),
+    colour = "grey80"
+  ) +
+  geom_point(aes(colour = group),
+             size = 3) +
+  facet_grid(
+    period ~ .,
+    scales = "free_y",
+    space = "free_y"
+  ) +
+  tidytext::scale_y_reordered()
+p
+```
+```{r}
+ggplotly(p)
+```
+## AI retractions by country and scenario
+
+```{r}
+publication_counts_bycountry <- sjr_country_counts %>%
+  group_by(
+    Country
+  ) %>%
+  summarise(
+    total_papers = sum(Documents, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+retraction_counts <-retraction_data %>%
+  distinct(RetractionID, .keep_all = TRUE) %>%
+    crossing(scenarios) %>%
+  filter(
+    !exclude_mass | Mass_Retraction == "Other",
+    !domestic_only | !international
+  ) %>%
+  count(
+#    publication_year,
+    Country,
+    scenario,
+    name = "retractions"
+  )
+
+retraction_ai_counts <-retraction_data %>%
+  filter(str_detect(
+    Reason,
+    "Computer-Aided Content|Computer-Generated Content"
+  )) %>%
+  distinct(RetractionID, .keep_all = TRUE) %>%
+    crossing(scenarios) %>%
+  filter(
+    !exclude_mass | Mass_Retraction == "Other",
+    !domestic_only | !international
+  ) %>%
+  count(
+#    publication_year,
+    Country,
+    scenario,
+    name = "ai_retractions"
+  )
+retraction_ai_rates <- retraction_ai_counts %>%
+  left_join(
+    retraction_counts,
+    by = c("Country", "scenario")
+  ) %>%
+  left_join(
+    publication_counts_bycountry,
+    by = "Country"
+  ) %>%
+  mutate(
+    ai_retraction_share = ai_retractions / retractions,
+    ai_retraction_share_pct = 100 * ai_retraction_share,
+    ai_retraction_rate = ai_retractions / total_papers,
+    ai_retraction_rate_per_100k = 100000 * ai_retraction_rate
+  )
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(forcats)
+
+plot_scenario <- function(dat, scenario_name,
+                          x="ai_retraction_rate_per_100k",
+                          xlab="AI Retractions per 100,000 papers (log scale)") {
+
+  plot_dat <- dat %>% #na.omit %>%
+    filter(scenario == scenario_name) %>%
+    arrange(.data[[x]]) %>%
+    mutate(
+      Country = factor(Country, levels = Country)
+    )
+
+  uk_dat <- plot_dat %>%
+    filter(Country == "United Kingdom")
+
+  non_uk_dat <- plot_dat %>%
+    filter(Country != "United Kingdom")
+
+  p <- ggplot(plot_dat,
+         aes(x = .data[[x]]+0.01, y = Country)) +
+    geom_point(colour = "grey50", alpha = 0.6) +
+    
+    geom_point(
+      data = uk_dat,
+      colour = "red",
+      size = 3
+    ) +
+    geom_text(
+      data = non_uk_dat,
+      aes(label = Country),
+      colour = "grey",
+      hjust = -0.1
+    ) +
+
+    geom_text(
+      data = uk_dat,
+      aes(label = Country),
+      colour = "red",
+      hjust = -0.1,
+      fontface = "bold"
+    ) +
+    scale_x_log10(
+      expand = expansion(mult = c(0.02, 0.2))
+    )+
+
+    labs(
+      title = scenario_name,
+      x = xlab,
+      y = NULL
+    ) +
+
+    theme_minimal() +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank()
+    )
+  return(p)
+}
+
+```
+
+```{r}
+for (s in unique(retraction_ai_rates$scenario)) {
+  p <- plot_scenario(retraction_ai_rates, s)
+  print(ggplotly(p))
+}
+```
+
+```{r}
+for (s in unique(retraction_ai_rates$scenario)) {
+  tmp= retraction_ai_rates %>% filter (retractions>10)
+  p <- plot_scenario(tmp, s,
+                      "ai_retraction_share_pct",
+                      "Fraction of all retractions that mention AI")
+  print(ggplotly(p))
+}
+```
+
+## Time series plot of AI retractions
+
+```{r}
+retraction_ai_counts_ts <-retraction_data %>%
+  filter(str_detect(
+    Reason,
+    "Computer-Aided Content|Computer-Generated Content"
+  )) %>%
+  distinct(RetractionID, .keep_all = TRUE) %>%
+    crossing(scenarios) %>%
+  filter(
+    !exclude_mass | Mass_Retraction == "Other",
+    !domestic_only | !international
+  ) %>%
+  count(
+    publication_year,
+    country_class,
+    scenario,
+    name = "ai_retractions"
+  )
+```
+
+```{r}
+p <- ggplot(
+  retraction_ai_counts_ts,
+  aes(
+    publication_year,
+    ai_retractions,
+    colour = country_class
+  )
+) +
+  geom_point() +
+  facet_wrap(~scenario, ncol = 2) +
+  scale_x_continuous(
+    limits = c(2000, 2025),
+    breaks = seq(2000, 2025, by = 5)
+  ) +
+  scale_y_log10() +
+  labs(
+    y = "AI Retractions (counts)",
+    x = "Year",
+    colour = NULL
+  ) +
+  theme_bw()
+
+ggplotly(p) %>%
+  layout(xaxis = list(autorange = TRUE), yaxis = list(autorange = TRUE))
+```
+
+```{r}
+# Denominator: all retractions
+total_counts <- retraction_data %>%
+  distinct(RetractionID, .keep_all = TRUE) %>%
+  crossing(scenarios) %>%
+  filter(
+    !exclude_mass | Mass_Retraction == "Other",
+    !domestic_only | !international
+  ) %>%
+  count(
+    publication_year,
+    country_class,
+    scenario,
+    name = "total_retractions"
+  )
+
+# Proportion
+retraction_ai_prop_ts <- retraction_ai_counts_ts %>%
+  left_join(
+    total_counts,
+    by = c("publication_year", "country_class", "scenario")
+  ) %>%
+  mutate(
+    prop_ai = ai_retractions / total_retractions
+  )
+```
+
+```{r}
+p <- ggplot(
+  retraction_ai_prop_ts,
+  aes(
+    publication_year,
+    prop_ai,
+    colour = country_class
+  )
+) +
+  geom_point() +
+  facet_wrap(~scenario, ncol = 2) +
+  scale_x_continuous(
+    limits = c(2000, 2025),
+    breaks = seq(2000, 2025, by = 5)
+  ) +
+  scale_y_log10() +
+  labs(
+    y = "AI Retractions (proportion)",
+    x = "Year",
+    colour = NULL
+  ) +
+  theme_bw()
+ 
+ggplotly(p) %>%
+  layout(xaxis = list(autorange = TRUE), yaxis = list(autorange = TRUE))
+```
+
+## Looking for interactions with is_international flag
+
+```{r}
+reasons_long_uk <- retraction_data %>%
+  filter(Mass_Retraction=="Other",
+         Country == "United Kingdom") %>%
+  select(RetractionID, publication_year, international, Reason) %>%
+  separate_rows(Reason, sep = ";") %>%
+  mutate(
+    Reason = str_trim(Reason)
+  ) %>%
+  na.omit
+  ## %>%
+  #filter(!Reason =="") %>%
+  ## left_join(retraction_reason_keep, by = "Reason")
+
+reason_flags_uk <- reasons_long_uk %>%
+  mutate(value = TRUE) %>%
+  distinct(RetractionID, publication_year, Reason, .keep_all = TRUE) %>%
+  pivot_wider(
+    id_cols = c(RetractionID, publication_year, international),
+    names_from = Reason,
+    values_from = value,
+    values_fill = FALSE,
+    names_prefix = "is_"
+  ) %>%
+  clean_names() %>%
+  mutate(
+    period = if_else(
+      publication_year < 2017,
+      "Pre-2017",
+      "Post-2017"
+    )
+  )
+
+reason_summary_uk <- reason_flags_uk %>%
+  group_by(period,international) %>%
+  summarise(
+    across(
+      starts_with("is_"),
+      list(
+        proportion = ~mean(.x, na.rm = TRUE),
+        count = ~sum(.x, na.rm = TRUE)
+      )
+    )
+  )
+```
+
+```{r}
+reasons_compare_long_uk <- reason_summary_uk %>%
+  ungroup() %>%
+  pivot_longer(
+    -c(period, international),
+    names_to = c("flag", ".value"),
+    names_pattern = "(is_.*)_(proportion|count)"
+  )
+reasons_compare_wide_uk <- reasons_compare_long_uk %>%
+  select(period, international, flag, proportion, count) %>%
+  pivot_wider(
+    names_from = international,
+    values_from = c(proportion, count)
+  )
+```
+
+```{r}
+group_sizes_uk <- reason_flags_uk %>%
+  count(period, international, name = "n")
+
+reasons_compare_results_uk <- reasons_compare_wide_uk %>%
+  left_join(
+    group_sizes_uk %>%
+      pivot_wider(
+        names_from = international,
+        values_from = n
+      ),
+    by = "period"
+  ) %>%
+  rowwise() %>%
+  mutate(
+    diff = `proportion_FALSE` - `proportion_TRUE`,
+    p_value = prop.test(
+      x = c(`count_FALSE`, `count_TRUE`),
+      n = c(`FALSE`, `TRUE`)
+    )$p.value
+  ) %>%
+  mutate(
+    across(starts_with("p.value"), ~coalesce(.x, 0))
+  ) %>%
+  ungroup() %>%
+  mutate(
+    p_adj = p.adjust(p_value, method = "BH")
+  ) %>%
+  arrange(desc(abs(diff)))
+```
+
+### Plot it
+
+```{r}
+
+sig_results_uk <- reasons_compare_results_uk %>%
+  filter(!is.na(p_adj), p_adj < 0.05,
+         count_FALSE + count_TRUE > 40 ) %>%
+  mutate(
+    flag = reorder_within(flag, abs(diff), period)
+  ) %>%
+  rename(
+  domestic = proportion_FALSE,
+  international = proportion_TRUE
+  ) %>%
+  select(
+    period,
+    flag,
+    domestic,
+    international
+  ) %>%
+  pivot_longer(
+    c(domestic, international),
+    names_to = "group",
+    values_to = "proportion"
+  )
+```
+
+```{r}
+p <- ggplot(sig_results_uk,
+       aes(proportion, flag)) +
+  geom_line(
+    aes(group = interaction(period, flag)),
+    colour = "grey80"
+  ) +
+  geom_point(aes(colour = group),
+             size = 3) +
+  facet_grid(
+    period ~ .,
+    scales = "free_y",
+    space = "free_y"
+  ) +
+  tidytext::scale_y_reordered()
+
+ggplotly(p)  %>%
+  layout(xaxis = list(autorange = TRUE), yaxis = list(autorange = TRUE))
+```
