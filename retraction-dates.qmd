@@ -16,7 +16,7 @@ import pandas
 import os
 import matplotlib.pyplot as plt
 
-datafolder = "retraction-watch-data/"
+datafolder = "data/"
 csvfile = "retraction_watch.csv"
 
 df = pandas.read_csv(os.path.join(datafolder, csvfile))

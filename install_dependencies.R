@@ -47,3 +47,4 @@ if (length(still_missing) > 0) {
 }
 
 message("All required R packages are installed.")
+
