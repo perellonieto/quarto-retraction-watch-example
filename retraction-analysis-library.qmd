@@ -1,0 +1,111 @@
+---
+title: "Retraction Analysis Library"
+format:
+  html:
+    code-fold: true
+---
+
+Descriptive analysis of retraction watch data, downloaded [here](https://www.crossref.org/labs/retraction-watch/).
+
+Now located [here](https://gitlab.com/crossref/retraction-watch-data). SJR Data located [here](https://github.com/Michael-E-Rose/SCImagoJournalRankIndicators).
+
+Explanation for the categories is [here](https://retractionwatch.com/retraction-watch-database-user-guide/retraction-watch-database-user-guide-appendix-b-reasons/)
+
+The evidence that "withdrawal" used to be a term is [here](https://web.archive.org/web/20240520103212/https://retractionwatch.com/retraction-watch-database-user-guide/retraction-watch-database-user-guide-appendix-b-reasons/). Still present at last crawl of 2024, and absent by the [first crawl of 2025](https://web.archive.org/web/20250124120100/https://retractionwatch.com/retraction-watch-database-user-guide/retraction-watch-database-user-guide-appendix-b-reasons/).
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+# Install the local library with: devtools::install("retractionwatch")
+# or load it during development with: devtools::load_all("retractionwatch")
+library(retractionwatch)
+library(plotly)
+
+# # Loading data
+
+sjr_country_counts <- build_sjr_country_counts("data/sjr_rankings")
+oecd_countries <- load_oecd_countries("data/oecd_countries.csv")
+retraction_data <- load_retraction_data("data/retraction_watch.csv", oecd_countries)
+publication_counts <- publication_counts_by_class(sjr_country_counts, oecd_countries)
+```
+
+# New analysis: between country explanation for rates
+
+We know that changes over time in both a) how retractions are reported, and b)
+retraction watch's data processing practice for them make temporal patterns
+complex to interpret. What is more robust is inter-country comparisons.
+
+```{r}
+retraction_rates <- compute_retraction_rates(retraction_data, publication_counts)
+ggplotly(print(plot_retraction_rates(retraction_rates)))
+```
+
+# Applying reasons: United Kingdom vs Other OECD
+
+```{r}
+reasons_compare_results <- retraction_data |>
+  reason_flags("country_class") |>
+  compare_reason_groups("country_class", "United Kingdom", "Other OECD")
+ratios <- group_count_ratios(reasons_compare_results, "United Kingdom", "Other OECD")
+reasons_compare_results <- flag_low_counts(reasons_compare_results, ratios)
+
+ggplotly(print(plot_reason_counts_scatter(reasons_compare_results, ratios)))
+```
+
+```{r}
+sig_plot <- significant_reasons_long(reasons_compare_results,
+                                     p_col = "p_adj_filtered",
+                                     exclude_low_count = TRUE)
+ggplotly(print(plot_significant_reasons(sig_plot)))
+```
+
+# AI retractions by country and scenario
+
+**TODO: plot each scenario separately by converting them to plotly objects using ggplotly() and then combining them with subplot()**
+
+```{r}
+retraction_ai_rates <- compute_ai_rates_by_country(retraction_data, sjr_country_counts)
+
+print(plot_all_scenarios(retraction_ai_rates))
+```
+
+###  AI retractions by country and scenario, filtered to countries with at least 10 retractions
+
+**TODO: plot each scenario separately by converting them to plotly objects using ggplotly() and then combining them with subplot()**
+
+```{r}
+print(plot_all_scenarios(subset(retraction_ai_rates, retractions > 10),
+                         x = "ai_retraction_share_pct",
+                         xlab = "Fraction of all retractions that mention AI"))
+```
+
+# Time series plot of AI retractions
+
+```{r}
+retraction_ai_counts_ts <- compute_ai_counts_ts(retraction_data)
+ggplotly(print(plot_ai_ts(retraction_ai_counts_ts)))
+```
+
+## Time series plot of AI retractions as a proportion of all retractions
+
+```{r}
+retraction_ai_prop_ts <- compute_ai_proportion_ts(retraction_data)
+ggplotly(print(plot_ai_ts(retraction_ai_prop_ts, "prop_ai", "AI Retractions (proportion)")))
+```
+
+# Looking for interactions with is_international flag (UK only)
+
+```{r}
+reasons_compare_results_uk <- retraction_data |>
+  subset(Country == "United Kingdom") |>
+  reason_flags("international") |>
+  compare_reason_groups("international", FALSE, TRUE)
+
+sig_results_uk <- significant_reasons_long(reasons_compare_results_uk,
+                                           group_a = FALSE, group_b = TRUE,
+                                           labels = c("domestic", "international"),
+                                           min_total_count = 40)
+ggplotly(print(plot_significant_reasons(sig_results_uk)))
+```

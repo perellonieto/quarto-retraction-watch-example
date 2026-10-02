@@ -1,0 +1,29 @@
+Package: retractionwatch
+Title: Analysis of Retraction Watch Data by Country Group
+Version: 0.0.0.9000
+Authors@R: 
+    person("Miquel", "Perello Nieto", , "mp15688@bristol.ac.uk", role = c("aut", "cre"))
+Description: Functions to load, clean and analyse the Retraction Watch
+    dataset together with SCImago country publication counts. Includes
+    retraction rates by country group under several filtering scenarios,
+    comparisons of retraction reasons between groups, and analyses of
+    AI-related retractions.
+License: MIT + file LICENSE
+Config/roxygen2/version: 8.1.0
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports:
+    dplyr,
+    ggplot2,
+    janitor,
+    lubridate,
+    purrr,
+    readr,
+    readxl,
+    rlang,
+    stats,
+    stringr,
+    tibble,
+    tidyr,
+    tidytext,
+    utils

@@ -8,7 +8,8 @@ website:
       - href: index.qmd
         text: Home
       - retraction-dates.qmd
-      - retraction-clean.qmd
+      - retraction-analysis.qmd
+      - retraction-analysis-library.qmd
       - about.qmd
 
 format:
