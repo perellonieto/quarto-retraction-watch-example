@@ -8,7 +8,9 @@ plot_scenario(
   dat,
   scenario_name,
   x = "ai_retraction_rate_per_100k",
-  xlab = "AI Retractions per 100,000 papers (log scale)"
+  xlab = "AI Retractions per 100,000 papers (log scale)",
+  label_size = 2.5,
+  label_gap = 2
 )
 }
 \arguments{
@@ -19,6 +21,10 @@ plot_scenario(
 \item{x}{Column to plot on the (log) x axis.}
 
 \item{xlab}{X axis label.}
+
+\item{label_size}{Size of the country labels, in mm (ggplot2 units).}
+
+\item{label_gap}{Number of spaces between each point and its label.}
 }
 \value{
 A ggplot object.

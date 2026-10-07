@@ -4,6 +4,7 @@ download-data:
 
 install-dependencies:
 	Rscript install_dependencies.R
+	Rscript -e 'devtools::document("retractionwatch"); devtools::install("retractionwatch", upgrade=FALSE, quiet=TRUE)'
 
 preview:
 	quarto preview

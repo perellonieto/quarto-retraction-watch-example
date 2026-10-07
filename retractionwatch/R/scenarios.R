@@ -7,11 +7,11 @@
 #' @export
 default_scenarios <- function() {
   tribble(
-    ~scenario,             ~exclude_mass, ~domestic_only,
-    "Raw",                 FALSE,         FALSE,
-    "No mass retractions", TRUE,          FALSE,
-    "Domestic only",       FALSE,         TRUE,
-    "Domestic + no mass",  TRUE,          TRUE
+    ~scenario,                            ~exclude_mass, ~domestic_only,
+    "All",                                FALSE,         FALSE,
+    "All without mass retractions",       TRUE,          FALSE,
+    "Domestic",                           FALSE,         TRUE,
+    "Domestic without mass retractions",  TRUE,          TRUE
   )
 }
 

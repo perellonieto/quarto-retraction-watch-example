@@ -5,13 +5,22 @@ authors:
     url: "https://people.maths.bris.ac.uk/~madjl/"
   - name: "Miquel Perello Nieto"
     url: "https://perellonieto.com"
-format: dashboard
+format:
+  dashboard:
+    orientation: columns
 ---
 
 ```{r}
+#| echo: false
+#| output: false
+ 
 # Install the local library with: devtools::install("retractionwatch")
 # or load it during development with: devtools::load_all("retractionwatch")
-library(retractionwatch)
+# At the moment we are using the development version
+devtools::install("retractionwatch")
+devtools::load_all("retractionwatch")
+# Once the package is installed, you can load it with library(retractionwatch)
+# library(retractionwatch)
 library(plotly)
 
 # # Loading data
@@ -22,28 +31,36 @@ retraction_data <- load_retraction_data("data/retraction_watch.csv", oecd_countr
 publication_counts <- publication_counts_by_class(sjr_country_counts, oecd_countries)
 ```
 
-## Row {height=60%}
+## Column {width=50%}
 
 ```{r}
+#| title: "Retraction rates by country"
+#| padding: 0px
 retraction_rates <- compute_retraction_rates(retraction_data, publication_counts)
-print(plot_retraction_rates(retraction_rates))
+ggplotly(plot_retraction_rates(retraction_rates)) %>% 
+    layout(xaxis = list(autorange = TRUE), yaxis = list(autorange = TRUE))
 ```
 
 ```{r}
+#| title: "Reasons for retraction by country"
+#| padding: 0px
 reasons_compare_results <- retraction_data |>
   reason_flags("country_class") |>
   compare_reason_groups("country_class", "United Kingdom", "Other OECD")
 ratios <- group_count_ratios(reasons_compare_results, "United Kingdom", "Other OECD")
 reasons_compare_results <- flag_low_counts(reasons_compare_results, ratios)
 
-print(plot_reason_counts_scatter(reasons_compare_results, ratios))
+ggplotly(plot_reason_counts_scatter(reasons_compare_results, ratios)) %>% 
+    layout(xaxis = list(autorange = TRUE), yaxis = list(autorange = TRUE))
 ```
 
-## Row {height="40%"}
+## Column {width="50%"}
 
 ```{r}
+#| title: "Significant reasons for retraction"
+#| padding: 0px
 sig_plot <- significant_reasons_long(reasons_compare_results,
                                      p_col = "p_adj_filtered",
                                      exclude_low_count = TRUE)
-print(plot_significant_reasons(sig_plot))
+ggplotly(plot_significant_reasons(sig_plot))
 ```

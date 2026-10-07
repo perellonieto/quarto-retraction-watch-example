@@ -60,6 +60,6 @@ load_retraction_data <- function(path = "data/retraction_watch.csv",
   retraction_reason_conversion <- readr::read_csv(reason_groupings_path,
                                                   show_col_types = FALSE)
   retraction_data %>%
-    clean_data(oecd_countries, retraction_reason_conversion) %>%
+    clean_retraction_data(oecd_countries, retraction_reason_conversion) %>%
     add_country_class(oecd_countries)
 }

@@ -101,42 +101,86 @@ plot_significant_reasons <- function(sig_long) {
 #' @param scenario_name Scenario to plot.
 #' @param x Column to plot on the (log) x axis.
 #' @param xlab X axis label.
+#' @param label_size Size of the country labels, in mm (ggplot2 units).
+#' @param label_gap Number of spaces between each point and its label.
 #' @return A ggplot object.
 #' @export
 plot_scenario <- function(dat, scenario_name,
                           x = "ai_retraction_rate_per_100k",
-                          xlab = "AI Retractions per 100,000 papers (log scale)") {
+                          xlab = "AI Retractions per 100,000 papers (log scale)",
+                          label_size = 2.5,
+                          label_gap = 2) {
   plot_dat <- dat %>%
     filter(scenario == scenario_name) %>%
     arrange(.data[[x]]) %>%
-    mutate(Country = factor(Country, levels = Country))
+    mutate(Country = factor(Country, levels = Country),
+           # Non-breaking spaces keep a gap between the point and its label
+           # (plotly collapses normal spaces and ignores nudges in pixels)
+           label = paste0(strrep(" ", label_gap), Country))
 
   uk_dat <- filter(plot_dat, Country == "United Kingdom")
   non_uk_dat <- filter(plot_dat, Country != "United Kingdom")
 
-  ggplot(plot_dat, aes(x = .data[[x]] + 0.01, y = Country)) +
-    geom_point(colour = "grey50", alpha = 0.6) +
-    geom_point(data = uk_dat, colour = "red", size = 3) +
-    geom_text(data = non_uk_dat, aes(label = Country), colour = "grey",
-              hjust = -0.1) +
-    geom_text(data = uk_dat, aes(label = Country), colour = "red",
-              hjust = -0.1, fontface = "bold") +
+  ggplot(plot_dat, aes(x = .data[[x]], y = Country)) +
+    geom_point(colour = "grey40", size = 1) +
+    geom_point(data = uk_dat, colour = "red", size = 1) +
+    geom_text(data = non_uk_dat, aes(label = label), colour = "grey40",
+              hjust = 0, vjust = 0.5, size = label_size) +
+    geom_text(data = uk_dat, aes(label = label), colour = "red",
+              hjust = 0, vjust = 0.5, fontface = "bold", size = label_size) +
     scale_x_log10(expand = expansion(mult = c(0.02, 0.2))) +
     labs(title = scenario_name, x = xlab, y = NULL) +
     theme_minimal() +
     theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
 }
 
+#' Height in pixels needed so that the country labels do not overlap
+#'
+#' Each country takes one unit on the y axis, so the height is the number of
+#' countries times the height of a line of text, plus the plot margins.
+#'
+#' @param n_countries Number of countries (rows) in the plot.
+#' @param label_size Size of the labels, in mm (ggplot2 units).
+#' @param line_spacing Line height relative to the font size.
+#' @param margins Pixels taken by the title, x axis and margins.
+#' @param min_height Minimum height in pixels.
+#' @return The height in pixels.
+#' @export
+scenario_plot_height <- function(n_countries, label_size = 2.5,
+                                 line_spacing = 1.3, margins = 110,
+                                 min_height = 300) {
+  font_px <- label_size * .pt * 96 / 72
+  # The discrete y axis adds 0.6 units of padding on each side
+  max(min_height, ceiling((n_countries + 0.2) * font_px * line_spacing + margins))
+}
+
 #' Plot every scenario with [plot_scenario()]
 #'
 #' @inheritParams plot_scenario
 #' @param ... Passed to [plot_scenario()].
-#' @return A named list of ggplot objects, one per scenario.
+#' @param interactive If `TRUE`, each plot is converted with
+#'   [plotly::ggplotly()] using a height from [scenario_plot_height()], and
+#'   the plots are returned as an [htmltools::tagList()] that renders
+#'   directly in Quarto/R Markdown.
+#' @return A named list of ggplot objects, one per scenario, or a tagList of
+#'   plotly widgets when `interactive = TRUE`.
 #' @export
-plot_all_scenarios <- function(dat, ...) {
+plot_all_scenarios <- function(dat, ..., label_size = 2.5, interactive = FALSE) {
   scenarios <- unique(dat$scenario)
-  stats::setNames(lapply(scenarios, function(s) plot_scenario(dat, s, ...)),
-                  scenarios)
+  plots <- stats::setNames(
+    lapply(scenarios, function(s) plot_scenario(dat, s, ..., label_size = label_size)),
+    scenarios
+  )
+  if (!interactive) {
+    return(plots)
+  }
+  widgets <- lapply(plots, function(p) {
+    widget <- plotly::ggplotly(p, height = scenario_plot_height(nrow(p$data), label_size))
+    # ggplotly() ignores hjust/vjust in geom_text, so place the labels to
+    # the right of the points explicitly
+    plotly::style(widget, textposition = "middle right")
+  })
+  do.call(htmltools::tagList, widgets)
 }
 
 #' Plot a yearly AI retraction measure by country class and scenario
@@ -160,5 +204,40 @@ plot_ai_ts <- function(data, y = "ai_retractions",
     ) +
     scale_y_log10() +
     labs(y = ylab, x = "Year", colour = NULL) +
+    theme_bw()
+}
+
+#' Plot the evolution of the top retraction reasons over time
+#'
+#' One line per reason ranked in the top `n_top` of at least one year,
+#' showing the proportion of that year's retractions citing the reason.
+#'
+#' @inheritParams compute_top_reasons_over_time
+#' @return A ggplot object.
+#' @export
+plot_retraction_reasons_over_time <- function(retraction_data,
+                                              n_top = 3,
+                                              year_col = "retraction_year",
+                                              min_retractions_per_year = 100,
+                                              year_limits = NULL,
+                                              exclude_reasons = NULL) {
+  compute_top_reasons_over_time(
+    retraction_data,
+    n_top = n_top,
+    year_col = year_col,
+    min_retractions_per_year = min_retractions_per_year,
+    year_limits = year_limits,
+    exclude_reasons = exclude_reasons
+  ) %>%
+    ggplot(aes(year, proportion, colour = Reason)) +
+    geom_line() +
+    geom_point(size = 1) +
+    scale_y_continuous(labels = scales::label_percent()) +
+    labs(
+      x = "Year",
+      y = "Proportion of retractions citing the reason",
+      colour = NULL,
+      title = paste0("Top ", n_top, " retraction reasons of each year")
+    ) +
     theme_bw()
 }

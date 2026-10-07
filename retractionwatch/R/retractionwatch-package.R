@@ -20,5 +20,6 @@ utils::globalVariables(c(
   "ai_retraction_share", "ai_retraction_rate", "ai_retraction_share_pct",
   "ai_retraction_rate_per_100k", "retraction_rate_per_100k", "period",
   "value", "flag", "proportion", "count", "p_value", "p_adj", "p_adj_filtered",
-  "low_count", "sig_class", "diff", "group", "x", "y", "label", "n", "."
+  "low_count", "sig_class", "diff", "group", "x", "y", "label", "n", ".",
+  "year", "total"
 ))

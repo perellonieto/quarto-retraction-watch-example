@@ -4,15 +4,23 @@
 \alias{plot_all_scenarios}
 \title{Plot every scenario with \code{\link[=plot_scenario]{plot_scenario()}}}
 \usage{
-plot_all_scenarios(dat, ...)
+plot_all_scenarios(dat, ..., label_size = 2.5, interactive = FALSE)
 }
 \arguments{
 \item{dat}{Output of \code{\link[=compute_ai_rates_by_country]{compute_ai_rates_by_country()}}.}
 
 \item{...}{Passed to \code{\link[=plot_scenario]{plot_scenario()}}.}
+
+\item{label_size}{Size of the country labels, in mm (ggplot2 units).}
+
+\item{interactive}{If \code{TRUE}, each plot is converted with
+\code{\link[plotly:ggplotly]{plotly::ggplotly()}} using a height from \code{\link[=scenario_plot_height]{scenario_plot_height()}}, and
+the plots are returned as an \code{\link[htmltools:tagList]{htmltools::tagList()}} that renders
+directly in Quarto/R Markdown.}
 }
 \value{
-A named list of ggplot objects, one per scenario.
+A named list of ggplot objects, one per scenario, or a tagList of
+plotly widgets when \code{interactive = TRUE}.
 }
 \description{
 Plot every scenario with \code{\link[=plot_scenario]{plot_scenario()}}
