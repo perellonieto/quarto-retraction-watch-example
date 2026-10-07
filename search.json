@@ -46,14 +46,28 @@
     "href": "retraction-analysis-library.html",
     "title": "Retraction Analysis Library",
     "section": "",
-    "text": "Descriptive analysis of retraction watch data, downloaded here.\nNow located here. SJR Data located here.\nExplanation for the categories is here\nThe evidence that “withdrawal” used to be a term is here. Still present at last crawl of 2024, and absent by the first crawl of 2025.\nLoading required package: ggplot2\n\n\n\nAttaching package: 'plotly'\n\n\nThe following object is masked from 'package:ggplot2':\n\n    last_plot\n\n\nThe following object is masked from 'package:stats':\n\n    filter\n\n\nThe following object is masked from 'package:graphics':\n\n    layout\n\n\nNew names:\n• `` -&gt; `...21`\n\n\nWarning: 1 failed to parse.\nWarning: 1 failed to parse."
+    "text": "Descriptive analysis of retraction watch data, downloaded here.\nNow located here. SJR Data located here.\nExplanation for the categories is here\nThe evidence that “withdrawal” used to be a term is here. Still present at last crawl of 2024, and absent by the first crawl of 2025.\n── pak::local_install_deps() ───────────────────────────────────────────────────\n\n\nℹ Loading metadata database\n\n\n✔ Loading metadata database ... done\n\n\n\n\n\n \n\n\n→ Package library at '/Users/mp15688/Library/R/arm64/4.6/library' and '/Library/Frameworks/R.framework/Versions/4.6/Resources/library'.\n\n\n→ Will download 1 package with unknown size.\n\n\nℹ No downloads are needed\n\n\n✔ 84 deps: kept 82 [9.6s]\n\n\n── R CMD build ─────────────────────────────────────────────────────────────────\n* checking for file ‘/Users/mp15688/git/quarto-retraction-watch-example/retractionwatch/DESCRIPTION’ ... OK\n* preparing ‘retractionwatch’:\n* checking DESCRIPTION meta-information ... OK\n* checking for LF line-endings in source and make files and shell scripts\n* checking for empty or unneeded directories\n* building ‘retractionwatch_0.0.0.9000.tar.gz’\n\n── R CMD INSTALL ───────────────────────────────────────────────────────────────\nRunning /Library/Frameworks/R.framework/Resources/bin/R CMD INSTALL \\\n  /var/folders/r3/rpflsr5s3v51n0l0qpjxf3ym0000gq/T//RtmpiETtmW/retractionwatch_0.0.0.9000.tar.gz \\\n  --install-tests \n* installing to library ‘/Users/mp15688/Library/R/arm64/4.6/library’\n* installing *source* package ‘retractionwatch’ ...\n** this is package ‘retractionwatch’ version ‘0.0.0.9000’\n** using staged installation\n** R\n** byte-compile and prepare package for lazy loading\n** help\n*** installing help indices\n** building package indices\n** testing if installed package can be loaded from temporary location\n** testing if installed package can be loaded from final location\n** testing if installed package keeps a record of temporary installation path\n* DONE (retractionwatch)\n\n\nℹ Loading retractionwatch\n\n\nLoading required package: ggplot2\n\n\n\nAttaching package: 'plotly'\n\n\nThe following object is masked from 'package:ggplot2':\n\n    last_plot\n\n\nThe following object is masked from 'package:retractionwatch':\n\n    last_plot\n\n\nThe following object is masked from 'package:stats':\n\n    filter\n\n\nThe following object is masked from 'package:graphics':\n\n    layout\n\n\nNew names:\n• `` -&gt; `...21`\n\n\nWarning: 1 failed to parse.\nWarning: 1 failed to parse."
+  },
+  {
+    "objectID": "retraction-analysis-library.html#in-the-oecd",
+    "href": "retraction-analysis-library.html#in-the-oecd",
+    "title": "Retraction Analysis Library",
+    "section": "In the OECD",
+    "text": "In the OECD"
+  },
+  {
+    "objectID": "retraction-analysis-library.html#in-the-uk",
+    "href": "retraction-analysis-library.html#in-the-uk",
+    "title": "Retraction Analysis Library",
+    "section": "In the UK",
+    "text": "In the UK"
   },
   {
     "objectID": "retraction-analysis-library.html#time-series-plot-of-ai-retractions-as-a-proportion-of-all-retractions",
     "href": "retraction-analysis-library.html#time-series-plot-of-ai-retractions-as-a-proportion-of-all-retractions",
     "title": "Retraction Analysis Library",
     "section": "Time series plot of AI retractions as a proportion of all retractions",
-    "text": "Time series plot of AI retractions as a proportion of all retractions\n\n\nWarning: Removed 8 rows containing missing values or values outside the scale range\n(`geom_point()`)."
+    "text": "Time series plot of AI retractions as a proportion of all retractions"
   },
   {
     "objectID": "initial_exploration_example.html",
