@@ -17,7 +17,9 @@ required_packages <- c(
   "tidytext",
   "tidyverse",
   "pandoc",
-  "plotly"
+  "plotly",
+  "testthat",
+  "covr"
 )
 
 missing_packages <- required_packages[

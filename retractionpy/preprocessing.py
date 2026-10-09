@@ -15,4 +15,10 @@ def clean_dataset(df):
     
     df['RetractionDate'] = pandas.to_datetime(df['RetractionDate'], errors='coerce', format='mixed')
     df['OriginalPaperDate'] = pandas.to_datetime(df['OriginalPaperDate'], errors='coerce', format='mixed')
+    df["Record ID"] = df["Record ID"].astype(int)
+    df["RetractionID"] = df["Record ID"]
+
+    df["Involved countries"] = df.Country
+    df["Country"] = df.Country.str.split(";")
+    df = df.explode("Country", ignore_index=True)
     return df

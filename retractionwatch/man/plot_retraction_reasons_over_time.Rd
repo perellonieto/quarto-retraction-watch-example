@@ -10,14 +10,16 @@ plot_retraction_reasons_over_time(
   year_col = "retraction_year",
   min_retractions_per_year = 100,
   year_limits = NULL,
-  exclude_reasons = NULL
+  exclude_reasons = NULL,
+  reasons_list = NULL
 )
 }
 \arguments{
 \item{retraction_data}{Output of \code{\link[=load_retraction_data]{load_retraction_data()}}. Rows are
 de-duplicated by \verb{Record ID}, so the one-row-per-country format is fine.}
 
-\item{n_top}{Number of top reasons selected in each year.}
+\item{n_top}{Number of top reasons selected in each year, or \code{NULL} to
+keep every reason.}
 
 \item{year_col}{Year column to use, \code{"retraction_year"} or
 \code{"publication_year"}.}
@@ -29,11 +31,15 @@ as their top reasons are dominated by noise.}
 
 \item{exclude_reasons}{Optional character vector of reasons to ignore
 (e.g. administrative notices).}
+
+\item{reasons_list}{Optional character vector of reasons to return. A
+reason in the list that is never cited gets a proportion of 0.}
 }
 \value{
 A ggplot object.
 }
 \description{
-One line per reason ranked in the top \code{n_top} of at least one year,
-showing the proportion of that year's retractions citing the reason.
+One line per reason ranked in the top \code{n_top} of at least one year (every
+reason if \code{n_top = NULL}), restricted to \code{reasons_list} if given, showing
+the proportion of all that year's retractions citing the reason.
 }

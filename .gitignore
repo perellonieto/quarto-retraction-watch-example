@@ -220,3 +220,6 @@ __marimo__/
 /.quarto/
 **/*.quarto_ipynb
 .Rproj.user
+
+# Ignore data
+data

@@ -17,7 +17,9 @@
 #' @param clean_reasons If `TRUE`, removes `+` characters from `Reason`.
 #' @param parse_dates If `TRUE`, parses `OriginalPaperDate` and
 #'   `RetractionDate` and adds `publication_year` and `retraction_year`.
-#' @param add_reason_groups If `TRUE`, adds one 0/1 column per reason group.
+#' @param add_reason_groups If `TRUE`, adds one 0/1 column per reason group
+#'   and a `ReasonGroups` column with the paper's groups separated by `;`
+#'   (`NA` if none of its reasons belongs to a group).
 #' @param add_retraction_delay If `TRUE`, adds `retracted_within_year` and
 #'   `retracted_within_two_years`. Requires parsed dates.
 #' @param add_international If `TRUE`, adds the `international` flag.
@@ -107,15 +109,24 @@ parse_retraction_dates <- function(retraction_data) {
 }
 
 # Adds one 0/1 column per reason group, set to 1 if any of the paper's
-# reasons belongs to that group
+# reasons belongs to that group, and a `ReasonGroups` column listing those
+# groups separated by ';' (NA if none of the reasons belongs to a group)
 add_reason_group_flags <- function(retraction_data, retraction_reason_conversion) {
   reasons_per_paper <- strsplit(retraction_data$Reason, ';')
   grouped_reasons <- sapply(unique(retraction_reason_conversion$Group), function(group) {
     group_reasons <- unique(retraction_reason_conversion$Reason[retraction_reason_conversion$Group == group])
     vapply(reasons_per_paper, function(reasons) any(reasons %in% group_reasons), logical(1))
   }, simplify = FALSE) %>%
-    as_tibble() %>%
-    mutate_all(as.numeric)
+    as_tibble()
+
+  groups <- names(grouped_reasons)
+  in_group <- as.matrix(grouped_reasons)
+  reason_groups <- apply(in_group, 1, function(row) paste(groups[row], collapse = ';'))
+  reason_groups[reason_groups == ''] <- NA_character_
+
+  grouped_reasons <- grouped_reasons %>%
+    mutate_all(as.numeric) %>%
+    mutate(ReasonGroups = reason_groups)
   bind_cols(retraction_data, grouped_reasons)
 }
 

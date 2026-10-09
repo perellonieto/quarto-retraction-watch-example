@@ -35,7 +35,9 @@ split into one row per country and \code{oecd}/\code{UK} flags are added.}
 \item{parse_dates}{If \code{TRUE}, parses \code{OriginalPaperDate} and
 \code{RetractionDate} and adds \code{publication_year} and \code{retraction_year}.}
 
-\item{add_reason_groups}{If \code{TRUE}, adds one 0/1 column per reason group.}
+\item{add_reason_groups}{If \code{TRUE}, adds one 0/1 column per reason group
+and a \code{ReasonGroups} column with the paper's groups separated by \verb{;}
+(\code{NA} if none of its reasons belongs to a group).}
 
 \item{add_retraction_delay}{If \code{TRUE}, adds \code{retracted_within_year} and
 \code{retracted_within_two_years}. Requires parsed dates.}

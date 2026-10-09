@@ -13,35 +13,73 @@ When where papers retracted? see @retraction-scatterplot.
 #| fig-cap: "A scatterplot of retracted papers"
 
 import pandas
-import os
-import matplotlib.pyplot as plt
 
-datafolder = "data/"
-csvfile = "retraction_watch.csv"
+import retractionpy
+from retractionpy.load import read_dataset
+from retractionpy.preprocessing import clean_dataset
+from retractionpy.visualisations import plot_scatter_retraction_dates
 
-df = pandas.read_csv(os.path.join(datafolder, csvfile))
+df_oecd_countries = pandas.read_csv("data/oecd_countries.csv")
+oecd_countries_list = df_oecd_countries["Name"].to_list()
 
-df.dropna(subset=['RetractionDate', 'OriginalPaperDate'], inplace=True)
+df = clean_dataset(read_dataset())
+#plot_scatter_retraction_dates(df[(df["Country"].isin(oecd_countries_list)) & (df["RetractionDate"] > pandas.Timestamp("2000-01-01"))])
+plot_scatter_retraction_dates(df[(df["Country"].isin(oecd_countries_list))])
 
-df.head()
-df['RetractionDate'] = pandas.to_datetime(df['RetractionDate'], format='mixed')
-df['OriginalPaperDate'] = pandas.to_datetime(df['OriginalPaperDate'], format='mixed')
+##import pandas
+##import os
+##import matplotlib.pyplot as plt
+##pandas.options.plotting.backend = "plotly"
+##
+##datafolder = "data/"
+##csvfile = "retraction_watch.csv"
+##
+##df = pandas.read_csv(os.path.join(datafolder, csvfile))
+##
+##df.dropna(subset=['RetractionDate', 'OriginalPaperDate'], inplace=True)
+##
+##df.head()
+##df['RetractionDate'] = pandas.to_datetime(df['RetractionDate'], format='mixed')
+##df['OriginalPaperDate'] = pandas.to_datetime(df['OriginalPaperDate'], format='mixed')
+##
+##plot_df = df.dropna(subset=['RetractionDate', 'OriginalPaperDate', 'Country'])
+##top_countries = plot_df['Country'].value_counts().head(10).index
+##plot_df = plot_df[plot_df['Country'].isin(top_countries)]
+##
+##colors = dict(zip(top_countries, plt.cm.tab10.colors))
+##ax = None
+##
+###for country, country_df in plot_df.groupby('Country'):
+###  ax = country_df.plot.scatter(
+###    'OriginalPaperDate',
+###    'RetractionDate',
+###    labels=country,
+###    color=colors[country],
+###    #alpha=0.6,
+###    #grid=True,
+###    ax=ax,
+###  )
+##ax.legend(title='Country')
+```
 
-plot_df = df.dropna(subset=['RetractionDate', 'OriginalPaperDate', 'Country'])
-top_countries = plot_df['Country'].value_counts().head(10).index
-plot_df = plot_df[plot_df['Country'].isin(top_countries)]
+```{python}
+import rpy2
+from rpy2.robjects.packages import importr, data
 
-colors = dict(zip(top_countries, plt.cm.tab10.colors))
-ax = None
-for country, country_df in plot_df.groupby('Country'):
-  ax = country_df.plot.scatter(
-    'OriginalPaperDate',
-    'RetractionDate',
-    label=country,
-    color=colors[country],
-    alpha=0.6,
-    grid=True,
-    ax=ax,
-  )
-ax.legend(title='Country')
+utils = importr('utils')
+base = importr('base')
+
+utils.chooseCRANmirror(ind=1)
+utils.install_packages('retractionwatch')
+
+retractionwatch = importr('retractionwatch')
+
+retractionwatch.load_retraction_data("data/retraction_watch.csv")
+
+sjr_country_counts = retractionwatch.build_sjr_country_counts("data/sjr_rankings")
+oecd_countries = retractionwatch.load_oecd_countries("data/oecd_countries.csv")
+retraction_data = retractionwatch.load_retraction_data("data/retraction_watch.csv")
+publication_counts = retractionwatch.publication_counts_by_class(sjr_country_counts, oecd_countries)
+
+print(oecd_countries)
 ```

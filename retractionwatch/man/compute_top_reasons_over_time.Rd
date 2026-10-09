@@ -10,14 +10,16 @@ compute_top_reasons_over_time(
   year_col = "retraction_year",
   min_retractions_per_year = 100,
   year_limits = NULL,
-  exclude_reasons = NULL
+  exclude_reasons = NULL,
+  reasons_list = NULL
 )
 }
 \arguments{
 \item{retraction_data}{Output of \code{\link[=load_retraction_data]{load_retraction_data()}}. Rows are
 de-duplicated by \verb{Record ID}, so the one-row-per-country format is fine.}
 
-\item{n_top}{Number of top reasons selected in each year.}
+\item{n_top}{Number of top reasons selected in each year, or \code{NULL} to
+keep every reason.}
 
 \item{year_col}{Year column to use, \code{"retraction_year"} or
 \code{"publication_year"}.}
@@ -29,6 +31,9 @@ as their top reasons are dominated by noise.}
 
 \item{exclude_reasons}{Optional character vector of reasons to ignore
 (e.g. administrative notices).}
+
+\item{reasons_list}{Optional character vector of reasons to return. A
+reason in the list that is never cited gets a proportion of 0.}
 }
 \value{
 A tibble with columns \code{year}, \code{Reason}, \code{n} (retractions citing
@@ -39,5 +44,8 @@ Computes, for each year, the proportion of retractions that cite each
 retraction reason. A retraction citing several reasons counts once for
 each of them, so proportions within a year can add up to more than one.
 The reasons kept are those ranked in the top \code{n_top} of at least one
-year; their proportions are then returned for every year.
+year (all reasons if \code{n_top = NULL}), restricted to \code{reasons_list} if
+given; their proportions are then returned for every year. Proportions
+are always relative to all the retractions of the year, so they do not
+depend on which reasons are kept.
 }

@@ -56,9 +56,9 @@ load_oecd_countries <- function(path = "data/oecd_countries.csv") {
 load_retraction_data <- function(path = "data/retraction_watch.csv",
                                  oecd_countries = load_oecd_countries(),
                                  reason_groupings_path = "data/retraction_reason_groupings.csv") {
-  retraction_data <- readr::read_csv(path, show_col_types = FALSE)
+  retraction_data <- readr::read_csv(path, show_col_types = FALSE, col_types = RETRACTION_DATA_TYPES)
   retraction_reason_conversion <- readr::read_csv(reason_groupings_path,
-                                                  show_col_types = FALSE)
+                                                  show_col_types = FALSE, col_types = RETRACTION_REASON_GROUPINGS_TYPES)
   retraction_data %>%
     clean_retraction_data(oecd_countries, retraction_reason_conversion) %>%
     add_country_class(oecd_countries)

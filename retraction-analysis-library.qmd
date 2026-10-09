@@ -42,23 +42,74 @@ publication_counts <- publication_counts_by_class(sjr_country_counts, oecd_count
 #  add_country_class(oecd_countries)
 ```
 
-# Top 3 retraction reasons of each year
-
-## In the OECD
-
-```{r}
-retraction_data_oecd <- retraction_data |>
-  subset(Country %in% oecd_countries$Name)
-ggplotly(plot_retraction_reasons_over_time(retraction_data_oecd, year_limits = c(2000, 2026), n_top = 3))
-```
+# Top 2 retraction reasons of each year (2000-2025) in the OECD and UK
 
 ## In the UK
 
 ```{r}
 retraction_data_uk <- retraction_data |>
   subset(Country == "United Kingdom")
-ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = c(2000, 2026), n_top = 3))
+ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = c(2000, 2026), n_top = 2, min_retractions_per_year = 20))
 ```
+
+## In the OECD without the UK
+
+```{r}
+retraction_data_oecd <- retraction_data |>
+  subset((Country %in% oecd_countries$Name) & (Country != "United Kingdom"))
+ggplotly(plot_retraction_reasons_over_time(retraction_data_oecd, year_limits = c(2000, 2026), n_top = 2, min_retractions_per_year = 80))
+```
+
+```{r}
+top_overlaping_reasons <- find_top_overlapping_reasons(retraction_data_uk, retraction_data_oecd, 
+                                                       year_limits = c(2000, 2026), n_top = 2, min_retractions_per_year = 20)
+print(top_overlaping_reasons)
+```
+
+## Top 2 reasons each year common in both UK and the rest of the OECD
+
+In the UK
+
+```{r}
+ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = c(2000, 2026), n_top = NULL, reasons_list = top_overlaping_reasons$overlapping))
+```
+
+In the rest of the OECD
+
+```{r}
+ggplotly(plot_retraction_reasons_over_time(retraction_data_oecd, year_limits = c(2000, 2026), n_top = NULL, reasons_list = top_overlaping_reasons$overlapping))
+```
+
+## Top 2 reasons in the UK but not in the rest
+
+In the UK
+
+```{r}
+ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = c(2000, 2026), n_top = NULL, reasons_list = top_overlaping_reasons$only_in_a))
+```
+
+In the rest of the OECD
+
+```{r}
+ggplotly(plot_retraction_reasons_over_time(retraction_data_oecd, year_limits = c(2000, 2026), n_top = NULL, reasons_list = top_overlaping_reasons$only_in_a))
+```
+
+
+## Top 2 reasons each year in the OCED but not in the UK
+
+In the UK
+
+```{r}
+ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = c(2000, 2026), n_top = NULL, reasons_list = top_overlaping_reasons$only_in_b))
+```
+
+In the rest of the OECD
+
+```{r}
+ggplotly(plot_retraction_reasons_over_time(retraction_data_oecd, year_limits = c(2000, 2026), n_top = NULL, reasons_list = top_overlaping_reasons$only_in_b))
+```
+
+
 
 # New analysis: between country explanation for rates
 
@@ -68,8 +119,7 @@ complex to interpret. What is more robust is inter-country comparisons.
 
 ```{r}
 retraction_rates <- compute_retraction_rates(retraction_data, publication_counts)
-ggplotly(plot_retraction_rates(retraction_rates)) %>% 
-    layout(xaxis = list(autorange = TRUE), yaxis = list(autorange = TRUE))
+autorange_axes(ggplotly(plot_retraction_rates(retraction_rates)))
 ```
 
 # Applying reasons: United Kingdom vs Other OECD
@@ -126,14 +176,14 @@ plot_all_scenarios(subset(retraction_ai_rates, Country %in% oecd_countries$Name)
 
 ```{r}
 retraction_ai_counts_ts <- compute_ai_counts_ts(retraction_data)
-ggplotly(plot_ai_ts(retraction_ai_counts_ts))
+autorange_axes(ggplotly(plot_ai_ts(retraction_ai_counts_ts)))
 ```
 
 ## Time series plot of AI retractions as a proportion of all retractions
 
 ```{r}
 retraction_ai_prop_ts <- compute_ai_proportion_ts(retraction_data)
-ggplotly(plot_ai_ts(retraction_ai_prop_ts, "prop_ai", "AI Retractions (proportion)"))
+autorange_axes(ggplotly(plot_ai_ts(retraction_ai_prop_ts, "prop_ai", "AI Retractions (proportion)")))
 ```
 
 # Looking for interactions with is_international flag (UK only)

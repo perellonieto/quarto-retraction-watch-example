@@ -210,11 +210,15 @@ significant_reasons_long <- function(results, group_a = "United Kingdom",
 #' retraction reason. A retraction citing several reasons counts once for
 #' each of them, so proportions within a year can add up to more than one.
 #' The reasons kept are those ranked in the top `n_top` of at least one
-#' year; their proportions are then returned for every year.
+#' year (all reasons if `n_top = NULL`), restricted to `reasons_list` if
+#' given; their proportions are then returned for every year. Proportions
+#' are always relative to all the retractions of the year, so they do not
+#' depend on which reasons are kept.
 #'
 #' @param retraction_data Output of [load_retraction_data()]. Rows are
 #'   de-duplicated by `Record ID`, so the one-row-per-country format is fine.
-#' @param n_top Number of top reasons selected in each year.
+#' @param n_top Number of top reasons selected in each year, or `NULL` to
+#'   keep every reason.
 #' @param year_col Year column to use, `"retraction_year"` or
 #'   `"publication_year"`.
 #' @param min_retractions_per_year Years with fewer retractions are dropped,
@@ -222,6 +226,8 @@ significant_reasons_long <- function(results, group_a = "United Kingdom",
 #' @param year_limits Optional length-2 vector with the first and last year.
 #' @param exclude_reasons Optional character vector of reasons to ignore
 #'   (e.g. administrative notices).
+#' @param reasons_list Optional character vector of reasons to return. A
+#'   reason in the list that is never cited gets a proportion of 0.
 #' @return A tibble with columns `year`, `Reason`, `n` (retractions citing
 #'   the reason), `total` (retractions that year) and `proportion`.
 #' @export
@@ -230,7 +236,74 @@ compute_top_reasons_over_time <- function(retraction_data,
                                           year_col = "retraction_year",
                                           min_retractions_per_year = 100,
                                           year_limits = NULL,
-                                          exclude_reasons = NULL) {
+                                          exclude_reasons = NULL,
+                                          reasons_list = NULL) {
+  counts <- yearly_reason_counts(retraction_data, year_col,
+                                 min_retractions_per_year, year_limits,
+                                 exclude_reasons)
+  if (is.null(n_top) && !is.null(reasons_list)) {
+    reasons <- reasons_list
+  } else {
+    reasons <- top_reasons_per_year(counts$reason_counts, n_top)
+    if (!is.null(reasons_list)) {
+      reasons <- intersect(reasons, reasons_list)
+    }
+  }
+
+  # Years in which a selected reason does not appear get a proportion of 0
+  counts$reason_counts %>%
+    filter(Reason %in% reasons) %>%
+    tidyr::complete(year = counts$totals$year, Reason = reasons,
+                    fill = list(n = 0L)) %>%
+    select(-total) %>%
+    left_join(counts$totals, by = "year") %>%
+    mutate(proportion = n / total) %>%
+    arrange(year, desc(proportion))
+}
+
+#' Top retraction reasons shared, or not, by two datasets
+#'
+#' Selects in each dataset the reasons ranked in the top `n_top` of at least
+#' one year (as in [compute_top_reasons_over_time()]) and compares the two
+#' sets of reasons.
+#'
+#' @param retraction_data_a,retraction_data_b Two outputs of
+#'   [load_retraction_data()], or subsets of it (e.g. one per country group).
+#' @inheritParams compute_top_reasons_over_time
+#' @return A list with three sorted character vectors:
+#'   * `overlapping`: top reasons in both datasets.
+#'   * `only_in_a`: top reasons in `retraction_data_a` but not in
+#'     `retraction_data_b`.
+#'   * `only_in_b`: top reasons in `retraction_data_b` but not in
+#'     `retraction_data_a`.
+#' @export
+find_top_overlapping_reasons <- function(retraction_data_a,
+                                         retraction_data_b,
+                                         n_top = 3,
+                                         year_col = "retraction_year",
+                                         min_retractions_per_year = 100,
+                                         year_limits = NULL,
+                                         exclude_reasons = NULL) {
+  top_reasons <- lapply(list(retraction_data_a, retraction_data_b), function(data) {
+    counts <- yearly_reason_counts(data, year_col, min_retractions_per_year,
+                                   year_limits, exclude_reasons)
+    top_reasons_per_year(counts$reason_counts, n_top)
+  })
+
+  list(
+    overlapping = sort(intersect(top_reasons[[1]], top_reasons[[2]])),
+    only_in_a = sort(setdiff(top_reasons[[1]], top_reasons[[2]])),
+    only_in_b = sort(setdiff(top_reasons[[2]], top_reasons[[1]]))
+  )
+}
+
+# Number of retractions citing each reason per year (`reason_counts`, with
+# columns year, Reason, n, total) and number of retractions per year
+# (`totals`). Rows are de-duplicated by Record ID, and years with fewer than
+# `min_retractions_per_year` retractions are dropped.
+yearly_reason_counts <- function(retraction_data, year_col,
+                                 min_retractions_per_year, year_limits,
+                                 exclude_reasons) {
   retractions <- retraction_data %>%
     distinct(`Record ID`, year = .data[[year_col]], Reason) %>%
     filter(!is.na(year))
@@ -243,7 +316,7 @@ compute_top_reasons_over_time <- function(retraction_data,
     count(year, name = "total") %>%
     filter(total >= min_retractions_per_year)
 
-  reason_props <- retractions %>%
+  reason_counts <- retractions %>%
     separate_rows(Reason, sep = ";") %>%
     mutate(Reason = str_trim(Reason)) %>%
     filter(Reason != "", !Reason %in% exclude_reasons) %>%
@@ -251,18 +324,18 @@ compute_top_reasons_over_time <- function(retraction_data,
     count(year, Reason) %>%
     inner_join(totals, by = "year")
 
-  top_reasons <- reason_props %>%
+  list(reason_counts = reason_counts, totals = totals)
+}
+
+# Reasons ranked in the top `n_top` of at least one year (all reasons if
+# `n_top` is NULL)
+top_reasons_per_year <- function(reason_counts, n_top) {
+  if (is.null(n_top)) {
+    return(unique(reason_counts$Reason))
+  }
+  reason_counts %>%
     group_by(year) %>%
     slice_max(n, n = n_top, with_ties = FALSE) %>%
     pull(Reason) %>%
     unique()
-
-  # Years in which a top reason does not appear get a proportion of 0
-  reason_props %>%
-    filter(Reason %in% top_reasons) %>%
-    tidyr::complete(year = totals$year, Reason, fill = list(n = 0L)) %>%
-    select(-total) %>%
-    left_join(totals, by = "year") %>%
-    mutate(proportion = n / total) %>%
-    arrange(year, desc(proportion))
 }

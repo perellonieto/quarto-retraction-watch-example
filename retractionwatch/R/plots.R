@@ -21,6 +21,25 @@ plot_retraction_rates <- function(retraction_rates, year_limits = c(2000, 2023))
     theme_bw()
 }
 
+#' Autorange every axis of a plotly figure
+#'
+#' [plotly::ggplotly()] creates one axis per facet row/column (`xaxis`,
+#' `xaxis2`, `yaxis`, `yaxis2`, ...), so `layout(xaxis = ..., yaxis = ...)`
+#' only affects the first ones. This sets `autorange` on all of them, so
+#' every subplot rescales when traces are toggled in the legend.
+#'
+#' @param widget A plotly figure, e.g. the output of [plotly::ggplotly()].
+#' @return The plotly figure with every axis autoranged.
+#' @export
+autorange_axes <- function(widget) {
+  widget <- plotly::plotly_build(widget)
+  axes <- grep("^[xy]axis[0-9]*$", names(widget$x$layout), value = TRUE)
+  for (axis in axes) {
+    widget$x$layout[[axis]]$autorange <- TRUE
+  }
+  widget
+}
+
 #' Scatter plot of reason counts in two groups coloured by significance
 #'
 #' Shows a dashed boundary below which reasons are considered low count and,
@@ -209,8 +228,9 @@ plot_ai_ts <- function(data, y = "ai_retractions",
 
 #' Plot the evolution of the top retraction reasons over time
 #'
-#' One line per reason ranked in the top `n_top` of at least one year,
-#' showing the proportion of that year's retractions citing the reason.
+#' One line per reason ranked in the top `n_top` of at least one year (every
+#' reason if `n_top = NULL`), restricted to `reasons_list` if given, showing
+#' the proportion of all that year's retractions citing the reason.
 #'
 #' @inheritParams compute_top_reasons_over_time
 #' @return A ggplot object.
@@ -220,14 +240,24 @@ plot_retraction_reasons_over_time <- function(retraction_data,
                                               year_col = "retraction_year",
                                               min_retractions_per_year = 100,
                                               year_limits = NULL,
-                                              exclude_reasons = NULL) {
+                                              exclude_reasons = NULL,
+                                              reasons_list = NULL) {
+  title <- if (!is.null(n_top)) {
+    paste0("Top ", n_top, " retraction reasons of each year")
+  } else if (!is.null(reasons_list)) {
+    "Selected retraction reasons"
+  } else {
+    "All retraction reasons"
+  }
+
   compute_top_reasons_over_time(
     retraction_data,
     n_top = n_top,
     year_col = year_col,
     min_retractions_per_year = min_retractions_per_year,
     year_limits = year_limits,
-    exclude_reasons = exclude_reasons
+    exclude_reasons = exclude_reasons,
+    reasons_list = reasons_list
   ) %>%
     ggplot(aes(year, proportion, colour = Reason)) +
     geom_line() +
@@ -237,7 +267,7 @@ plot_retraction_reasons_over_time <- function(retraction_data,
       x = "Year",
       y = "Proportion of retractions citing the reason",
       colour = NULL,
-      title = paste0("Top ", n_top, " retraction reasons of each year")
+      title = title
     ) +
     theme_bw()
 }
