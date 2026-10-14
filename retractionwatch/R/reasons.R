@@ -1,8 +1,9 @@
 #' One row per retraction with a logical column per retraction reason
 #'
-#' Mass retractions are excluded. Each reason becomes an `is_<reason>` column
-#' (names cleaned with [janitor::clean_names()]) and a `period` column splits
-#' papers published before and after `split_year`.
+#' Mass retractions are excluded. Each reason becomes an `is_<Reason>` column,
+#' keeping the original reason text (e.g. `` `is_Error in Data` ``) so that
+#' [compare_reason_groups()] can report it unchanged, and a `period` column
+#' splits papers published before and after `split_year`.
 #'
 #' @param data Cleaned retraction data.
 #' @param group_col Name of the column defining the groups to compare
@@ -16,6 +17,7 @@ reason_flags <- function(data, group_col = "country_class", split_year = 2017) {
     select(RetractionID, publication_year, all_of(group_col), Reason) %>%
     separate_rows(Reason, sep = ";") %>%
     mutate(Reason = str_trim(Reason)) %>%
+    filter(Reason != "") %>%
     stats::na.omit() %>%
     mutate(value = TRUE) %>%
     distinct(RetractionID, publication_year, Reason, .keep_all = TRUE) %>%
@@ -26,7 +28,7 @@ reason_flags <- function(data, group_col = "country_class", split_year = 2017) {
       values_fill = FALSE,
       names_prefix = "is_"
     ) %>%
-    clean_names() %>%
+    rename(retraction_id = RetractionID) %>%
     mutate(
       period = if_else(
         publication_year < split_year,
@@ -70,7 +72,8 @@ compare_reason_groups <- function(flags, group_col = "country_class",
     pivot_longer(
       -c(period, all_of(group_col)),
       names_to = c("flag", ".value"),
-      names_pattern = "(is_.*)_(proportion|count)"
+      # Drop the `is_` prefix so `flag` holds the original reason
+      names_pattern = "^is_(.*)_(proportion|count)$"
     ) %>%
     select(period, all_of(group_col), flag, proportion, count) %>%
     pivot_wider(
@@ -241,6 +244,10 @@ compute_top_reasons_over_time <- function(retraction_data,
   counts <- yearly_reason_counts(retraction_data, year_col,
                                  min_retractions_per_year, year_limits,
                                  exclude_reasons)
+  # Accept a list of reasons too, e.g. list("Error in Data", "Removed")
+  if (!is.null(reasons_list)) {
+    reasons_list <- as.character(unlist(reasons_list))
+  }
   if (is.null(n_top) && !is.null(reasons_list)) {
     reasons <- reasons_list
   } else {
@@ -259,6 +266,53 @@ compute_top_reasons_over_time <- function(retraction_data,
     left_join(counts$totals, by = "year") %>%
     mutate(proportion = n / total) %>%
     arrange(year, desc(proportion))
+}
+
+#' Yearly proportion of retractions citing each reason, per country
+#'
+#' For each country in `country_list` and each year between `yearmin` and
+#' `yearmax`, computes the proportion of that country's retractions citing
+#' each reason in `reasons`, as in [compute_top_reasons_over_time()].
+#' Proportions are relative to all the retractions of the country in the
+#' year, so a retraction citing several reasons counts once for each of
+#' them. A paper with authors in several countries counts for each country.
+#' Years without retractions in a country are not returned.
+#'
+#' @param retraction_data Output of [load_retraction_data()].
+#' @param country_list Character vector of countries, or a data frame with a
+#'   `Country` column (e.g. a [dplyr::count()] of retractions by country).
+#' @param reasons Character vector (or list) of reasons to return, or `NULL`
+#'   for every reason. A reason never cited gets a proportion of 0.
+#' @param yearmin,yearmax First and last year (inclusive).
+#' @inheritParams compute_top_reasons_over_time
+#' @return A tibble with columns `Country`, `year`, `Reason`, `n`
+#'   (retractions citing the reason), `total` (retractions that year) and
+#'   `proportion`.
+#' @export
+calculate_proportion_of_retractions_per_year <- function(retraction_data,
+                                                         country_list,
+                                                         reasons = NULL,
+                                                         yearmin = NULL,
+                                                         yearmax = NULL,
+                                                         year_col = "retraction_year") {
+  if (is.data.frame(country_list)) {
+    country_list <- country_list$Country
+  }
+  year_limits <- c(
+    if (is.null(yearmin)) -Inf else yearmin,
+    if (is.null(yearmax)) Inf else yearmax
+  )
+
+  bind_rows(lapply(stats::setNames(country_list, country_list), function(country) {
+    compute_top_reasons_over_time(
+      filter(retraction_data, Country == country),
+      n_top = NULL,
+      year_col = year_col,
+      min_retractions_per_year = 0,
+      year_limits = year_limits,
+      reasons_list = reasons
+    )
+  }), .id = "Country")
 }
 
 #' Top retraction reasons shared, or not, by two datasets

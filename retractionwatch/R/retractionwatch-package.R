@@ -36,5 +36,5 @@ utils::globalVariables(c(
   "ai_retraction_rate_per_100k", "retraction_rate_per_100k", "period",
   "value", "flag", "proportion", "count", "p_value", "p_adj", "p_adj_filtered",
   "low_count", "sig_class", "diff", "group", "x", "y", "label", "n", ".",
-  "year", "total"
+  "year", "total", "proportion_a", "proportion_b", "difference"
 ))

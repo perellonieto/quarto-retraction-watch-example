@@ -98,6 +98,16 @@ test_that("reasons_list is combined with n_top, and unseen reasons get 0", {
   expect_equal(unseen$proportion, 0)
 })
 
+test_that("reasons_list can be given as a list", {
+  from_vector <- compute_top_reasons_over_time(retractions_b, n_top = NULL,
+                                               min_retractions_per_year = 1,
+                                               reasons_list = c("R2", "R4"))
+  from_list <- compute_top_reasons_over_time(retractions_b, n_top = NULL,
+                                             min_retractions_per_year = 1,
+                                             reasons_list = list("R2", "R4"))
+  expect_equal(from_list, from_vector)
+})
+
 test_that("plot_retraction_reasons_over_time() plots only the listed reasons", {
   p <- plot_retraction_reasons_over_time(retractions_b, n_top = NULL,
                                          min_retractions_per_year = 1,
@@ -115,4 +125,47 @@ test_that("find_top_overlapping_reasons() with n_top = NULL compares all reasons
   expect_equal(result$overlapping, c("R1", "R2"))
   expect_equal(result$only_in_a, "R3")
   expect_equal(result$only_in_b, "R4")
+})
+
+test_that("compare_reason_groups() keeps the original reason names in flag", {
+  data <- tibble::tibble(
+    RetractionID = 1:4,
+    publication_year = c(2010, 2010, 2020, 2020),
+    country_class = c("A", "B", "A", "B"),
+    Reason = c("Error in Data;", "Error in Data;Removed;",
+               "Concerns/Issues About Data;", "Removed;"),
+    Mass_Retraction = "Other"
+  )
+
+  # prop.test() warns about the small counts of this toy example
+  results <- suppressWarnings(
+    data %>%
+      reason_flags("country_class") %>%
+      compare_reason_groups(group_a = "A", group_b = "B")
+  )
+
+  expect_setequal(unique(results$flag),
+                  c("Error in Data", "Concerns/Issues About Data", "Removed"))
+})
+
+test_that("calculate_proportion_of_retractions_per_year() splits by country and year", {
+  data <- rbind(
+    cbind(make_retractions(c("R1;R2;", "R1;", "R3;"), 2020), Country = "A"),
+    cbind(make_retractions(c("R1;", "R3;"), 2021), Country = "A"),
+    cbind(make_retractions(c("R2;", "R2;"), 2020), Country = "B"),
+    cbind(make_retractions("R1;", 2010), Country = "B"),
+    cbind(make_retractions("R1;", 2020), Country = "C")
+  )
+  data$`Record ID` <- seq_len(nrow(data))
+
+  result <- calculate_proportion_of_retractions_per_year(
+    data, country_list = tibble::tibble(Country = c("A", "B")),
+    reasons = c("R1", "R2"), yearmin = 2015, yearmax = 2021
+  ) %>%
+    dplyr::arrange(Country, year, Reason)
+
+  expect_equal(result$Country, c("A", "A", "A", "A", "B", "B"))
+  expect_equal(result$year, c(2020, 2020, 2021, 2021, 2020, 2020))
+  expect_equal(result$Reason, c("R1", "R2", "R1", "R2", "R1", "R2"))
+  expect_equal(result$proportion, c(2 / 3, 1 / 3, 1 / 2, 0, 0, 1))
 })

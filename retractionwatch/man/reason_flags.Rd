@@ -18,7 +18,8 @@ reason_flags(data, group_col = "country_class", split_year = 2017)
 A wide tibble of reason flags.
 }
 \description{
-Mass retractions are excluded. Each reason becomes an \verb{is_<reason>} column
-(names cleaned with \code{\link[janitor:clean_names]{janitor::clean_names()}}) and a \code{period} column splits
-papers published before and after \code{split_year}.
+Mass retractions are excluded. Each reason becomes an \verb{is_<Reason>} column,
+keeping the original reason text (e.g. \code{`is_Error in Data`}) so that
+\code{\link[=compare_reason_groups]{compare_reason_groups()}} can report it unchanged, and a \code{period} column
+splits papers published before and after \code{split_year}.
 }

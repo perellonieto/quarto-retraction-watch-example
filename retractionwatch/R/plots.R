@@ -90,7 +90,8 @@ plot_reason_counts_scatter <- function(results, ratios,
               inherit.aes = FALSE) +
     geom_text(data = line_labels, aes(x = x, y = y, label = label),
               inherit.aes = FALSE, hjust = 1, vjust = -1) +
-    geom_point(alpha = 0.7) +
+    # `text` is ignored by ggplot2 but shown in the ggplotly() hover text
+    suppressWarnings(geom_point(aes(text = paste("flag:", .data$flag)), alpha = 0.7)) +
     scale_colour_manual(values = c("grey70", "red", "orange")) +
     labs(
       x = paste0("Count (", group_b, ")"),
@@ -268,6 +269,63 @@ plot_retraction_reasons_over_time <- function(retraction_data,
       y = "Proportion of retractions citing the reason",
       colour = NULL,
       title = title
+    ) +
+    theme_bw()
+}
+
+#' Plot the difference in the yearly proportions of retraction reasons
+#'
+#' For each reason in `reasons_list`, plots the proportion of `data_a`
+#' retractions citing the reason minus the proportion of `data_b`
+#' retractions citing it, year by year. Proportions are computed with
+#' [compute_top_reasons_over_time()], so they are relative to all the
+#' retractions of the year in each dataset. Positive values mean the reason
+#' is cited more often in `data_a`. Only years present in both datasets are
+#' shown.
+#'
+#' @param data_a,data_b Two outputs of [load_retraction_data()], or subsets
+#'   of it (e.g. one per country group).
+#' @param reasons_list Character vector (or list) of the reasons to compare.
+#' @param labels Names of the two datasets used in the axis label and title.
+#' @inheritParams compute_top_reasons_over_time
+#' @return A ggplot object.
+#' @export
+plot_reason_proportion_differences <- function(data_a,
+                                               data_b,
+                                               reasons_list,
+                                               labels = c("Group A", "Group B"),
+                                               year_col = "retraction_year",
+                                               year_limits = NULL,
+                                               min_retractions_per_year = 0) {
+  proportions <- lapply(list(data_a, data_b), function(data) {
+    compute_top_reasons_over_time(
+      data,
+      n_top = NULL,
+      year_col = year_col,
+      min_retractions_per_year = min_retractions_per_year,
+      year_limits = year_limits,
+      reasons_list = reasons_list
+    ) %>%
+      select(year, Reason, proportion)
+  })
+
+  # Only years present in both datasets can be compared
+  differences <- inner_join(proportions[[1]], proportions[[2]],
+                            by = c("year", "Reason"),
+                            suffix = c("_a", "_b")) %>%
+    mutate(difference = proportion_a - proportion_b)
+
+  ggplot(differences, aes(year, difference, colour = Reason)) +
+    geom_hline(yintercept = 0, linetype = "dashed", colour = "grey50") +
+    geom_line() +
+    geom_point(size = 1) +
+    scale_y_continuous(labels = scales::label_percent()) +
+    labs(
+      x = "Year",
+      y = paste0("Proportion difference (", labels[1], " - ", labels[2], ")"),
+      colour = NULL,
+      title = paste0("Difference in yearly proportions of retraction reasons: ",
+                     labels[1], " vs ", labels[2])
     ) +
     theme_bw()
 }

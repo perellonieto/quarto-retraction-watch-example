@@ -60,6 +60,8 @@ retraction_data_oecd <- retraction_data |>
 ggplotly(plot_retraction_reasons_over_time(retraction_data_oecd, year_limits = c(2000, 2026), n_top = 2, min_retractions_per_year = 80))
 ```
 
+## Top reasons that are shared and non-shared across UK and the rest of the OECD
+
 ```{r}
 top_overlaping_reasons <- find_top_overlapping_reasons(retraction_data_uk, retraction_data_oecd, 
                                                        year_limits = c(2000, 2026), n_top = 2, min_retractions_per_year = 20)
@@ -124,14 +126,22 @@ autorange_axes(ggplotly(plot_retraction_rates(retraction_rates)))
 
 # Applying reasons: United Kingdom vs Other OECD
 
+Statistical comparison of the retraction reasons between the UK and the rest of the OECD excluding the mass retractions. The for each period (pre and post 2017) and retraction reason, computes the proportion and count of retractions in the UK and the OECD, the difference in proportions, a two-sample proportion test p-value and its Benjamini-Hochberg adjustment.
+
 ```{r}
 reasons_compare_results <- retraction_data |>
   reason_flags("country_class") |>
-  compare_reason_groups("country_class", "United Kingdom", "Other OECD")
+  compare_reason_groups(group_col = "country_class", group_a = "United Kingdom", group_b = "Other OECD")
 ratios <- group_count_ratios(reasons_compare_results, "United Kingdom", "Other OECD")
 reasons_compare_results <- flag_low_counts(reasons_compare_results, ratios)
 
 ggplotly(plot_reason_counts_scatter(reasons_compare_results, ratios))
+```
+
+```{r}
+print("Reason flags ")
+print(reason_flags(retraction_data, "country_class"))
+print(reasons_compare_results)
 ```
 
 ```{r}
@@ -199,4 +209,132 @@ sig_results_uk <- significant_reasons_long(reasons_compare_results_uk,
                                            labels = c("domestic", "international"),
                                            min_total_count = 40)
 ggplotly(plot_significant_reasons(sig_results_uk))
+```
+
+
+# Retraction reasons by journal of significant adequate counts
+
+```{r}
+alpha <- 0.05
+low_count <- 500
+
+filtered_reasons <- reasons_compare_results %>%
+  filter(p_adj_filtered < alpha & !low_count, period == "Post-2017")
+
+print(filtered_reasons$flag)
+
+retraction_data_uk_post2017 <- retraction_data_uk %>%
+  filter(publication_year >= 2017)
+
+retraction_data_uk_post2017_significant <- retraction_data_uk_post2017 %>%
+  separate_rows(Reason, sep = ";") %>%
+  mutate(Reason = str_trim(Reason)) %>%
+  filter(Reason != "", Reason %in% filtered_reasons$flag)
+
+print(retraction_data_uk_post2017_significant)
+
+#retraction_data_oecd <- retraction_data |>
+#  subset((Country %in% oecd_countries$Name) & (Country != "United Kingdom"))
+#
+#retraction_data_oecd_post2017 <- retraction_data_oecd %>%
+#  filter(publication_year >= 2017)
+
+#plot_proportion_differences_over_time(retraction_data_uk, retraction_data_oecd)
+```
+
+```{r}
+#ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = c(2000, 2026), n_top = NULL, min_retractions_per_year = 0, reasons_list = as.vector(filtered_reasons$flag)))
+#ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = c(2000, 2026), n_top = NULL, min_retractions_per_year = 0, reasons_list = c("Error in Data", "Removed")))
+
+# With the new changes, the selected reasons could be directly filtered.
+selected_reasons <- c("Investigation by Journal/Publisher", "Unreliable Results and/or Conclusions", "Investigation by Third Party", "Compromised Peer Review", "Concerns/Issues about Referencing/Attributions", "Duplication of Content through Error by Journal/Publisher")
+
+selected_reasons <- filtered_reasons$flag
+
+ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = c(2017, 2026), n_top = NULL, min_retractions_per_year = 0, reasons_list = selected_reasons))
+
+ggplotly(plot_retraction_reasons_over_time(retraction_data_oecd, year_limits = c(2017, 2026), n_top = NULL, min_retractions_per_year = 0, reasons_list = selected_reasons))
+```
+# Difference in yearly proportions of retraction reasons (UK - OECD)
+
+```{r}
+ggplotly(plot_reason_proportion_differences(retraction_data_uk, retraction_data_oecd,
+                                            reasons_list = selected_reasons,
+                                            labels = c("UK", "OECD"),
+                                            year_limits = c(2017, 2026)))
+```
+
+```{r}
+print(oecd_countries)
+print(retraction_data_oecd)
+```
+# Top 10 OECD countries (without the UK) by number of retractions since 2017
+
+```{r}
+# A paper with authors in several countries counts once for each of them
+top_10_oecd_countries <- retraction_data |>
+  filter(retraction_year >= 2017) |>
+  filter(Country %in% oecd_countries$Name) |>
+  distinct(`Record ID`, Country) |>
+  count(Country, name = "retractions", sort = TRUE) |>
+  slice_head(n = 10)
+
+print(top_10_oecd_countries)
+```
+
+```{r}
+top_10_oecd_countries
+```
+
+```{r}
+significant_reasons_per_country_and_year <- calculate_proportion_of_retractions_per_year(retraction_data, country_list = top_10_oecd_countries, reasons = selected_reasons, yearmin = 2017, yearmax = 2026)
+```
+
+```{r}
+first_reason <- unique(significant_reasons_per_country_and_year$Reason)[1]
+
+ggplot(significant_reasons_per_country_and_year |> filter(Reason == first_reason),
+       aes(x = year, y = proportion, colour = Country)) +
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = first_reason,
+       x = "Year",
+       y = "Proportion of retractions",
+       colour = "Country") +
+  theme_minimal()
+```
+
+```{r}
+ggplotly(ggplot(significant_reasons_per_country_and_year |> filter(Reason == first_reason),
+       aes(x = factor(year), y = factor(Country, levels = rev(top_10_oecd_countries$Country)),
+           fill = proportion)) +
+  geom_tile(colour = "white") +
+  geom_text(aes(label = scales::percent(proportion, accuracy = 1)), size = 3) +
+  scale_fill_viridis_c(labels = scales::percent, option = "magma", direction = -1) +
+  labs(title = first_reason,
+       x = "Year",
+       y = "Country",
+       fill = "Proportion of\nretractions") +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
+)
+```
+
+```{r}
+for (reason in unique(significant_reasons_per_country_and_year$Reason))
+{
+ggplot(significant_reasons_per_country_and_year |> filter(Reason == reason),
+       aes(x = factor(year), y = factor(Country, levels = rev(top_10_oecd_countries$Country)),
+           fill = proportion)) +
+  geom_tile(colour = "white") +
+  geom_text(aes(label = scales::percent(proportion, accuracy = 1)), size = 3) +
+  scale_fill_viridis_c(labels = scales::percent, option = "magma", direction = -1) +
+  labs(title = reason,
+       x = "Year",
+       y = "Country",
+       fill = "Proportion of\nretractions") +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
+}
 ```
