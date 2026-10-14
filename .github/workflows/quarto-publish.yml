@@ -46,7 +46,7 @@ jobs:
       # From https://github.com/r-lib/actions/tree/v2-branch/setup-r
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
-      - name: Install deb packages required for the R dependencies:
+      - name: Install deb packages required for the R dependencies
         run: sudo apt install -y libcurl4-openssl-dev libfontconfig1-dev libuv1-dev
       - name: Install R dependencies
         run: make install-dependencies
