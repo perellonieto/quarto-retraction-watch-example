@@ -71,7 +71,7 @@ clean_retraction_data <- function(retraction_data,
     retraction_data$publication_year <- as.numeric(retraction_data$publication_year)
     retraction_data$retraction_year <- as.numeric(retraction_data$retraction_year)
   }
-  retraction_data$RetractionID = retraction_data["Record ID"]
+  retraction_data$RetractionID <- retraction_data["Record ID"]
   retraction_data
 }
 
@@ -152,13 +152,15 @@ split_by_country <- function(retraction_data, oecd_countries) {
   retraction_data <- retraction_data %>%
     mutate(row = row_number()) %>%
     separate_rows(Country, sep = ';')
-  retraction_data$oecd <- case_when(
-    retraction_data$Country %in% oecd_countries$Name ~ 'OECD',
-    TRUE ~ 'Non-OECD')
-  retraction_data$UK <- case_when(
-    retraction_data$Country == "United Kingdom" ~ 'UK',
-    TRUE ~ 'Non-UK')
-  retraction_data
+  # Country classes (UK / Other OECD / Rest of World) are assigned
+  # per paper after cleaning; see "Setting up the country groups"
+  #retraction_data$oecd <- case_when(
+  #  retraction_data$Country %in% oecd_countries$Name ~ 'OECD',
+  #  TRUE ~ 'Non-OECD')
+  #retraction_data$UK <- case_when(
+  #  retraction_data$Country == "United Kingdom" ~ 'UK',
+  #  TRUE ~ 'Non-UK')
+  #retraction_data
 }
 
 # TRUE if the paper involves more than one country. Only meaningful after

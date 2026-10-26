@@ -165,6 +165,7 @@ ggplotly(plot_significant_reasons(sig_plot))
 
 ```{r}
 retraction_ai_rates <- compute_ai_rates_by_country(retraction_data_nomass, sjr_country_counts)
+print(retraction_ai_rates)
 
 plot_all_scenarios(retraction_ai_rates, interactive = TRUE)
 ```

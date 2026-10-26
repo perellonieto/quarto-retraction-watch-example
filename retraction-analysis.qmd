@@ -627,6 +627,8 @@ retraction_ai_rates <- retraction_ai_counts %>%
     ai_retraction_rate = ai_retractions / total_papers,
     ai_retraction_rate_per_100k = 100000 * ai_retraction_rate
   )
+
+print(retraction_ai_rates)
 ```
 
 ```{r}
