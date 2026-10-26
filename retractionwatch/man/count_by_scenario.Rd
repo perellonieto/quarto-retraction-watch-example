@@ -25,6 +25,8 @@ be listed explicitly where wanted).}
 A tibble of counts.
 }
 \description{
-Keeps one row per \code{RetractionID}, replicates the data for every scenario,
-applies each scenario's filters and counts rows by the grouping columns.
+Replicates the data for every scenario, applies each scenario's filters and
+counts the distinct \code{RetractionID}s by the grouping columns. A paper with
+authors in several countries counts once for each of its countries (or
+country classes), not only for the first one listed.
 }

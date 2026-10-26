@@ -110,6 +110,8 @@ clean_data <- function(retraction_data,
       mutate(row = row_number()) %>%
       # separate rows on " /":
       separate_rows(Country, sep = ';') 
+      # Country classes (UK/ Other OECD / Rest of World) are assigned
+      # per paper after cleaning; see "Setting up the country groups" below.
     
     retraction_data$oecd <- case_when(
       retraction_data$Country %in% oecd_countries$Name ~ 'OECD',
@@ -130,7 +132,7 @@ clean_data <- function(retraction_data,
     retraction_data$Publisher=='IEEE: Institute of Electrical and Electronics Engineers'&
       (retraction_data$publication_year %in% c(2009,2010,2011) | retraction_data$retraction_year %in% c(2009,2010,2011)) ~ 'IEEE Mass Retraction',
     retraction_data$Publisher=='Hindawi'&
-      (retraction_data$retraction_year %in% c(2022,2023,2014)) ~ 'Hindawi Mass Retraction',
+      (retraction_data$retraction_year %in% c(2022,2023,2024)) ~ 'Hindawi Mass Retraction', # MPN: changed 2014 for 2024
     TRUE ~ 'Other')
   retraction_data$Mass_Retraction <- factor(retraction_data$Mass_Retraction,
                                             levels = c('IEEE Mass Retraction','Hindawi Mass Retraction','Other'))
@@ -142,7 +144,7 @@ clean_data <- function(retraction_data,
   
   retraction_data$publication_year <- as.numeric(retraction_data$publication_year)
   retraction_data$retraction_year <- as.numeric(retraction_data$retraction_year)
-  retraction_data$RetractionID = retraction_data["Record ID"]
+  retraction_data$RetractionID <- retraction_data["Record ID"]
   return(retraction_data)
   
 }
@@ -165,36 +167,48 @@ retraction_data <- clean_data(retraction_data, oecd_countries, retraction_reason
 head(retraction_data)
 ```
 
-Setting up the country groups of interest:
+Setting up the country groups of interest. These are defined **per paper**, once, here, and reused throughout:
+
+* "United Kingdom": any paper with at least one UK author
+* "Other OECD": any other paper with at least one author from another OECD country
+* "Rest of World": everything else
+
+`retraction_data` has one row per (paper, country), so every row of a paper carries the same `country_class`. Do not recompute it from `Country` later on.
+
 
 ```{r}
+# Ordered by precedence: a paper takes the first class any of its countries falls in
 country_groups <- c(
   "United Kingdom",
   "Other OECD",
   "Rest of World"
 )
 
-retraction_data <- retraction_data %>%
-  mutate(
-    country_class = case_when(
-      Country == "United Kingdom" ~ "United Kingdom",
-      Country %in% oecd_countries$Name     ~ "Other OECD",
-      TRUE                        ~ "Rest of World"
-    )
+# Class of a single country
+country_to_class <- function(country) {
+  case_when(
+    country == "United Kingdom"      ~ "United Kingdom",
+    country %in% oecd_countries$Name ~ "Other OECD",
+    TRUE                             ~ "Rest of World"
   )
+}
+
+# Class of a paper, given all of its countries
+paper_country_class <- function(countries) {
+  country_groups[min(match(country_to_class(countries), country_groups))]
+}
+
+retraction_data <- retraction_data %>%
+  group_by(RetractionID) %>%
+  mutate(country_class = paper_country_class(Country)) %>%
+  ungroup()
 ```
 
-Applying the same categorisation to the matched publication rate data:
+Applying the same categorisation to the matched publication rate data. SJR only gives per-country totals, so here the class is per country, and documents with several countries are counted once for each country.
 
 ```{r}
 sjr_country_counts <- sjr_country_counts %>%
-  mutate(
-    country_class = case_when(
-      Country == "United Kingdom" ~ "United Kingdom",
-      Country %in% oecd_countries$Name     ~ "Other OECD",
-      TRUE                        ~ "Rest of World"
-    )
-  )
+ mutate(country_class = country_to_class(Country))
 
 publication_counts <- sjr_country_counts %>%
   group_by(
@@ -212,6 +226,11 @@ publication_counts <- sjr_country_counts %>%
 We know that changes over time in both a) how retractions are reported, and b) retraction watch's data processing practice for them make temporal patterns complex to interpret. What is more robust is inter-country comparisons.
 
 ```{r}
+print("Debuging checks")
+print(summary(retraction_data))
+```
+
+```{r}
 scenarios <- tribble(
   ~scenario,             ~exclude_mass, ~domestic_only,
   "Raw",                 FALSE,         FALSE,
@@ -222,13 +241,6 @@ scenarios <- tribble(
 
 retraction_counts <-retraction_data %>%
   distinct(RetractionID, .keep_all = TRUE) %>%
-  mutate(
-    country_class = case_when(
-      Country == "United Kingdom" ~ "United Kingdom",
-      Country %in% oecd_countries$Name     ~ "Other OECD",
-      TRUE                        ~ "Rest of World"
-    )
-  ) %>%
   crossing(scenarios) %>%
   filter(
     !exclude_mass | Mass_Retraction == "Other",
@@ -570,7 +582,7 @@ publication_counts_bycountry <- sjr_country_counts %>%
   )
 
 retraction_counts <-retraction_data %>%
-  distinct(RetractionID, .keep_all = TRUE) %>%
+  distinct(RetractionID, Country, .keep_all = TRUE) %>%
     crossing(scenarios) %>%
   filter(
     !exclude_mass | Mass_Retraction == "Other",
@@ -588,7 +600,7 @@ retraction_ai_counts <-retraction_data %>%
     Reason,
     "Computer-Aided Content|Computer-Generated Content"
   )) %>%
-  distinct(RetractionID, .keep_all = TRUE) %>%
+  distinct(RetractionID, Country, .keep_all = TRUE) %>%
     crossing(scenarios) %>%
   filter(
     !exclude_mass | Mass_Retraction == "Other",
@@ -700,6 +712,77 @@ for (s in unique(retraction_ai_rates$scenario)) {
 
 ## Time series plot of AI retractions
 
+
+```{r}
+## Original code copied from the rmarkdown
+
+scenarios <- tribble(
+  ~scenario,             ~exclude_mass, ~domestic_only,
+  "Raw",                 FALSE,         FALSE,
+  "No mass retractions", TRUE,          FALSE,
+  "Domestic only",       FALSE,         TRUE,
+  "Domestic + no mass",  TRUE,          TRUE
+)
+
+publication_counts_bycountry <- sjr_country_counts %>%
+  group_by(
+    Country
+  ) %>%
+  summarise(
+    total_papers = sum(Documents, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+retraction_counts <-retraction_data %>%
+  distinct(RetractionID, .keep_all = TRUE) %>%
+    crossing(scenarios) %>%
+  filter(
+    !exclude_mass | Mass_Retraction == "Other",
+    !domestic_only | !international
+  ) %>%
+  count(
+#    publication_year,
+    Country,
+    scenario,
+    name = "retractions"
+  )
+
+retraction_ai_counts <-retraction_data %>%
+  filter(str_detect(
+    Reason,
+    "Computer-Aided Content|Computer-Generated Content"
+  )) %>%
+  distinct(RetractionID, .keep_all = TRUE) %>%
+    crossing(scenarios) %>%
+  filter(
+    !exclude_mass | Mass_Retraction == "Other",
+    !domestic_only | !international
+  ) %>%
+  count(
+#    publication_year,
+    Country,
+    scenario,
+    name = "ai_retractions"
+  )
+retraction_ai_rates <- retraction_ai_counts %>%
+  left_join(
+    retraction_counts,
+    by = c("Country", "scenario")
+  ) %>%
+  left_join(
+    publication_counts_bycountry,
+    by = "Country"
+  ) %>%
+  mutate(
+    ai_retraction_share = ai_retractions / retractions,
+    ai_retraction_share_pct = 100 * ai_retraction_share,
+    ai_retraction_rate = ai_retractions / total_papers,
+    ai_retraction_rate_per_100k = 100000 * ai_retraction_rate
+  )
+
+## Original code ends here
+```
+
 ```{r}
 retraction_ai_counts_ts <-retraction_data %>%
   filter(str_detect(
@@ -806,7 +889,8 @@ ggplotly(p) %>%
 ```{r}
 reasons_long_uk <- retraction_data %>%
   filter(Mass_Retraction=="Other",
-         Country == "United Kingdom") %>%
+         country_class == "United Kingdom") %>%
+  distinct(RetractionID, .keep_all = TRUE) %>%
   select(RetractionID, publication_year, international, Reason) %>%
   separate_rows(Reason, sep = ";") %>%
   mutate(

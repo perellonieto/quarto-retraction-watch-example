@@ -16,7 +16,9 @@ plot_scenario(
 \arguments{
 \item{dat}{Output of \code{\link[=compute_ai_rates_by_country]{compute_ai_rates_by_country()}}.}
 
-\item{scenario_name}{Scenario to plot.}
+\item{scenario_name}{Scenario to plot. If several are given, the countries
+are ordered within each scenario and the plot has no title, ready to be
+faceted by \code{scenario} (as done by \code{\link[=plot_all_scenarios]{plot_all_scenarios()}}).}
 
 \item{x}{Column to plot on the (log) x axis.}
 

@@ -51,8 +51,14 @@ jobs:
       - name: Install R dependencies
         run: make install-dependencies
 
+      # Local runs with act (make ci-local) only render; they never publish
+      - name: Render (local act run only)
+        if: ${{ env.ACT }}
+        run: quarto render
+
       # NOTE: If Publishing to GitHub Pages, set the permissions correctly (see top of this yaml)
-      - name: Publish to GitHub Pages (and render) 
+      - name: Publish to GitHub Pages (and render)
+        if: ${{ !env.ACT }}
         uses: quarto-dev/quarto-actions/publish@v2
         with:
           target: gh-pages

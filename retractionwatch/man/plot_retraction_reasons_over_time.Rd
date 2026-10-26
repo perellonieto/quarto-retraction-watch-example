@@ -11,7 +11,8 @@ plot_retraction_reasons_over_time(
   min_retractions_per_year = 100,
   year_limits = NULL,
   exclude_reasons = NULL,
-  reasons_list = NULL
+  reasons_list = NULL,
+  exclude_mass_retractions = FALSE
 )
 }
 \arguments{

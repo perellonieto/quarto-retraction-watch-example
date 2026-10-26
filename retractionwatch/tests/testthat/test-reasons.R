@@ -169,3 +169,38 @@ test_that("calculate_proportion_of_retractions_per_year() splits by country and 
   expect_equal(result$Reason, c("R1", "R2", "R1", "R2", "R1", "R2"))
   expect_equal(result$proportion, c(2 / 3, 1 / 3, 1 / 2, 0, 0, 1))
 })
+
+test_that("calculate_proportion_of_retractions_per_year_by_publisher() splits by publisher and year", {
+  data <- rbind(
+    cbind(make_retractions(c("R1;R2;", "R1;", "R3;"), 2020), Publisher = "P1"),
+    cbind(make_retractions(c("R1;", "R3;"), 2021), Publisher = "P1"),
+    cbind(make_retractions(c("R2;", "R2;"), 2020), Publisher = "P2"),
+    cbind(make_retractions("R1;", 2010), Publisher = "P2"),
+    cbind(make_retractions("R1;", 2020), Publisher = "P3")
+  )
+  data$`Record ID` <- seq_len(nrow(data))
+
+  result <- calculate_proportion_of_retractions_per_year_by_publisher(
+    data, publisher_list = tibble::tibble(Publisher = c("P1", "P2")),
+    reasons = c("R1", "R2"), yearmin = 2015, yearmax = 2021
+  ) %>%
+    dplyr::arrange(Publisher, year, Reason)
+
+  expect_equal(result$Publisher, c("P1", "P1", "P1", "P1", "P2", "P2"))
+  expect_equal(result$year, c(2020, 2020, 2021, 2021, 2020, 2020))
+  expect_equal(result$Reason, c("R1", "R2", "R1", "R2", "R1", "R2"))
+  expect_equal(result$proportion, c(2 / 3, 1 / 3, 1 / 2, 0, 0, 1))
+})
+
+test_that("count_number_of_retractions_per_column() counts distinct papers per value", {
+  # Paper 1 has two author countries, so it appears twice
+  data <- tibble::tibble(`Record ID` = c(1, 1, 2, 3, 4),
+                         Country = c("A", "B", "A", "A", "B"),
+                         Publisher = c("P1", "P1", "P2", "P2", "P2"))
+
+  result <- count_number_of_retractions_per_column(data, "Publisher")
+
+  expect_equal(names(result), c("Publisher", "retractions"))
+  expect_equal(result$Publisher, c("P2", "P1"))
+  expect_equal(result$retractions, c(3, 1))
+})

@@ -315,6 +315,70 @@ calculate_proportion_of_retractions_per_year <- function(retraction_data,
   }), .id = "Country")
 }
 
+#' Yearly proportion of retractions citing each reason, per publisher
+#'
+#' For each publisher in `publisher_list` and each year between `yearmin` and
+#' `yearmax`, computes the proportion of that publisher's retractions citing
+#' each reason in `reasons`, as in [compute_top_reasons_over_time()].
+#' Proportions are relative to all the retractions of the publisher in the
+#' year, so a retraction citing several reasons counts once for each of
+#' them. Years without retractions for a publisher are not returned.
+#'
+#' @param retraction_data Output of [load_retraction_data()].
+#' @param publisher_list Character vector of publishers, or a data frame with
+#'   a `Publisher` column (e.g. the output of
+#'   [count_number_of_retractions_per_column()] for `"Publisher"`).
+#' @param reasons Character vector (or list) of reasons to return, or `NULL`
+#'   for every reason. A reason never cited gets a proportion of 0.
+#' @param yearmin,yearmax First and last year (inclusive).
+#' @inheritParams compute_top_reasons_over_time
+#' @return A tibble with columns `Publisher`, `year`, `Reason`, `n`
+#'   (retractions citing the reason), `total` (retractions that year) and
+#'   `proportion`.
+#' @export
+calculate_proportion_of_retractions_per_year_by_publisher <- function(retraction_data,
+                                                                      publisher_list,
+                                                                      reasons = NULL,
+                                                                      yearmin = NULL,
+                                                                      yearmax = NULL,
+                                                                      year_col = "retraction_year") {
+  if (is.data.frame(publisher_list)) {
+    publisher_list <- publisher_list$Publisher
+  }
+  year_limits <- c(
+    if (is.null(yearmin)) -Inf else yearmin,
+    if (is.null(yearmax)) Inf else yearmax
+  )
+
+  bind_rows(lapply(stats::setNames(publisher_list, publisher_list), function(publisher) {
+    compute_top_reasons_over_time(
+      filter(retraction_data, Publisher == publisher),
+      n_top = NULL,
+      year_col = year_col,
+      min_retractions_per_year = 0,
+      year_limits = year_limits,
+      reasons_list = reasons
+    )
+  }), .id = "Publisher")
+}
+
+#' Number of retracted papers per value of a column
+#'
+#' A paper can appear in several rows (e.g. one per author country), so each
+#' `Record ID` is counted once per value of the column.
+#'
+#' @param retraction_data Output of [load_retraction_data()].
+#' @param column_name Column to count by, e.g. `"Publisher"` or `"Journal"`.
+#' @return A tibble with one row per value of `column_name` and a column
+#'   `retractions` with the number of distinct `Record ID`s, sorted from the
+#'   most to the least retractions.
+#' @export
+count_number_of_retractions_per_column <- function(retraction_data, column_name) {
+  retraction_data %>%
+    distinct(.data$`Record ID`, .data[[column_name]]) %>%
+    count(.data[[column_name]], name = "retractions", sort = TRUE)
+}
+
 #' Top retraction reasons shared, or not, by two datasets
 #'
 #' Selects in each dataset the reasons ranked in the top `n_top` of at least

@@ -17,8 +17,10 @@ default_scenarios <- function() {
 
 #' Count unique retractions under each scenario
 #'
-#' Keeps one row per `RetractionID`, replicates the data for every scenario,
-#' applies each scenario's filters and counts rows by the grouping columns.
+#' Replicates the data for every scenario, applies each scenario's filters and
+#' counts the distinct `RetractionID`s by the grouping columns. A paper with
+#' authors in several countries counts once for each of its countries (or
+#' country classes), not only for the first one listed.
 #'
 #' @param data Cleaned retraction data.
 #' @param ... Columns to count by (in addition to `scenario`, which should
@@ -30,12 +32,12 @@ default_scenarios <- function() {
 count_by_scenario <- function(data, ..., scenarios = default_scenarios(),
                               name = "retractions") {
   data %>%
-    distinct(RetractionID, .keep_all = TRUE) %>%
     crossing(scenarios) %>%
     filter(
       !exclude_mass | Mass_Retraction == "Other",
       !domestic_only | !international
     ) %>%
+    distinct(RetractionID, scenario, ...) %>%
     count(..., name = name)
 }
 

@@ -4,7 +4,13 @@
 \alias{plot_all_scenarios}
 \title{Plot every scenario with \code{\link[=plot_scenario]{plot_scenario()}}}
 \usage{
-plot_all_scenarios(dat, ..., label_size = 2.5, interactive = FALSE)
+plot_all_scenarios(
+  dat,
+  ...,
+  label_size = 2.5,
+  interactive = FALSE,
+  ncol = NULL
+)
 }
 \arguments{
 \item{dat}{Output of \code{\link[=compute_ai_rates_by_country]{compute_ai_rates_by_country()}}.}
@@ -17,10 +23,16 @@ plot_all_scenarios(dat, ..., label_size = 2.5, interactive = FALSE)
 \code{\link[plotly:ggplotly]{plotly::ggplotly()}} using a height from \code{\link[=scenario_plot_height]{scenario_plot_height()}}, and
 the plots are returned as an \code{\link[htmltools:tagList]{htmltools::tagList()}} that renders
 directly in Quarto/R Markdown.}
+
+\item{ncol}{If not \code{NULL}, combine all the scenarios into one figure with
+this number of columns: a ggplot faceted by scenario or, when
+\code{interactive = TRUE}, a \code{\link[plotly:subplot]{plotly::subplot()}} where each row is as tall as
+its tallest scenario.}
 }
 \value{
 A named list of ggplot objects, one per scenario, or a tagList of
-plotly widgets when \code{interactive = TRUE}.
+plotly widgets when \code{interactive = TRUE}. With \code{ncol}, a single ggplot or
+plotly figure.
 }
 \description{
 Plot every scenario with \code{\link[=plot_scenario]{plot_scenario()}}

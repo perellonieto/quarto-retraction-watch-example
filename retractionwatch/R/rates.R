@@ -87,6 +87,8 @@ compute_ai_counts_ts <- function(retraction_data, scenarios = default_scenarios(
 #' @return A tibble with `ai_retractions`, `total_retractions` and `prop_ai`.
 #' @export
 compute_ai_proportion_ts <- function(retraction_data, scenarios = default_scenarios()) {
+  # An international paper counts once for each of its country classes, both
+  # here and in the AI counts, so `prop_ai` compares like with like
   total_counts <- retraction_data %>%
     count_by_scenario(publication_year, country_class, scenario,
                       scenarios = scenarios, name = "total_retractions")
