@@ -457,67 +457,81 @@ plot_reason_proportion_differences <- function(data_a,
     theme_bw()
 }
 
-#' Plot the average difference in the yearly proportions of retraction reasons
+#' Forest plot of the yearly proportions of retraction reasons in two datasets
 #'
-#' Summarises [plot_reason_proportion_differences()] with one bar per reason
-#' in `reasons_list`: the bar is the mean, across years, of the proportion of
-#' `data_a` retractions citing the reason minus the proportion of `data_b`
-#' retractions citing it. Every year counts the same, whatever its number of
-#' retractions. Error bars show the year-to-year variation of the
-#' difference. Positive values mean the reason is cited more often in
-#' `data_a`. Only years present in both datasets are used.
+#' Summarises [plot_reason_proportion_differences()] with one row per reason
+#' in `reasons_list` and dataset: the point is the mean, across years, of the
+#' yearly proportion of the dataset's retractions citing the reason, and the
+#' whiskers span the interquartile range (25th to 75th percentile) of those
+#' yearly proportions. Proportions are computed as in
+#' [compute_top_reasons_over_time()], every year counts the same, whatever
+#' its number of retractions, and only years present in both datasets are
+#' used. Reasons are sorted by their mean proportion in `data_a`.
 #'
 #' @inheritParams plot_reason_proportion_differences
-#' @param error Error bars to draw: `"se"` (standard error of the mean across
-#'   years) or `"sd"` (standard deviation across years).
-#' @return A ggplot object. Its data has one row per reason with columns
-#'   `Reason`, `mean_difference`, `error` and `n_years`.
+#' @return A ggplot object. Its data has one row per reason and dataset with
+#'   columns `Reason`, `group` (from `labels`), `mean_proportion`, `q25`,
+#'   `q75`, `n_years` and `y` (the vertical position of the row).
 #' @export
-plot_mean_reason_proportion_differences <- function(data_a,
-                                                    data_b,
-                                                    reasons_list,
-                                                    labels = c("Group A", "Group B"),
-                                                    year_col = "retraction_year",
-                                                    year_limits = NULL,
-                                                    min_retractions_per_year = 0,
-                                                    error = c("se", "sd")) {
-  error <- match.arg(error)
-  mean_differences <- yearly_reason_proportion_differences(
+plot_reason_proportions_forest <- function(data_a,
+                                           data_b,
+                                           reasons_list,
+                                           labels = c("Group A", "Group B"),
+                                           year_col = "retraction_year",
+                                           year_limits = NULL,
+                                           min_retractions_per_year = 0) {
+  summary <- yearly_reason_proportion_differences(
     data_a, data_b, reasons_list, year_col, year_limits,
     min_retractions_per_year
   ) %>%
-    group_by(Reason) %>%
+    select(year, Reason, proportion_a, proportion_b) %>%
+    pivot_longer(c(proportion_a, proportion_b), names_to = "group",
+                 values_to = "proportion") %>%
+    mutate(group = factor(ifelse(group == "proportion_a", labels[1], labels[2]),
+                          levels = labels)) %>%
+    group_by(Reason, group) %>%
     summarise(
-      mean_difference = mean(difference),
-      sd = stats::sd(difference),
+      mean_proportion = mean(proportion),
+      q25 = stats::quantile(proportion, 0.25, names = FALSE),
+      q75 = stats::quantile(proportion, 0.75, names = FALSE),
       n_years = n(),
       .groups = "drop"
-    ) %>%
-    mutate(error = if (error == "se") sd / sqrt(n_years) else sd) %>%
-    select(-sd)
+    )
 
-  # Horizontal bars are drawn with orientation = "y" rather than coord_flip(),
-  # which ggplotly() converts into whisker caps far taller than the bars
-  ggplot(mean_differences,
-         aes(mean_difference, stats::reorder(Reason, mean_difference),
-             fill = mean_difference > 0)) +
-    geom_vline(xintercept = 0, colour = "grey50") +
-    geom_col(width = 0.7, orientation = "y") +
-    geom_errorbar(aes(xmin = mean_difference - error,
-                      xmax = mean_difference + error),
-                  width = 0.25, orientation = "y") +
+  # One line per reason, the first dataset just above it and the second just
+  # below. Positions are set by hand because ggplotly() does not convert a
+  # vertical position_dodge()
+  reason_order <- summary %>%
+    filter(group == labels[1]) %>%
+    arrange(mean_proportion) %>%
+    pull(Reason)
+  summary <- summary %>%
+    mutate(y = match(Reason, reason_order) +
+             ifelse(group == labels[1], 0.15, -0.15))
+
+  print(summary)
+
+  ggplot(summary, aes(mean_proportion, y, colour = group)) +
+    # Points come first because ggplotly() builds the legend from the first
+    # layer, and the whiskers would give legend entries without markers.
+    # `text` is ignored by ggplot2 but shown in the ggplotly() hover text
+    suppressWarnings(geom_point(aes(text = paste0(
+      Reason, "<br>", group, ": ", scales::percent(mean_proportion, 0.1),
+      " (IQR ", scales::percent(q25, 0.1), " - ", scales::percent(q75, 0.1),
+      ", ", n_years, " years)"
+    )), size = 2.5)) +
+    geom_errorbar(aes(xmin = q25, xmax = q75), width = 0.15,
+                  orientation = "y") +
     scale_x_continuous(labels = scales::label_percent()) +
-    scale_fill_manual(values = c(`TRUE` = "#1b9e77", `FALSE` = "#d95f02"),
-                      guide = "none") +
+    scale_y_continuous(breaks = seq_along(reason_order), labels = reason_order,
+                       minor_breaks = NULL) +
+    scale_colour_manual(values = stats::setNames(c("#1b9e77", "#d95f02"), labels)) +
     labs(
-      x = paste0("Mean yearly proportion difference (", labels[1], " - ",
-                 labels[2], ")"),
+      x = "Mean yearly proportion of retractions citing the reason (IQR band)",
       y = NULL,
-      title = paste0("Mean difference in retraction reasons: ",
-                     labels[1], " vs ", labels[2]),
-      caption = paste0("Error bars: ",
-                       if (error == "se") "standard error" else "standard deviation",
-                       " across years")
+      colour = NULL,
+      title = paste0("Retraction reasons: ", labels[1], " vs ", labels[2]),
+      caption = "Points: mean across years. Whiskers: interquartile range across years"
     ) +
     theme_bw() +
     theme(plot.title.position = "plot")

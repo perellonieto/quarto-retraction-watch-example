@@ -140,7 +140,7 @@ autorange_axes(ggplotly(plot_retraction_rates(retraction_rates)))
 
 # Applying reasons: United Kingdom vs Other OECD
 
-Statistical comparison of the retraction reasons between the UK and the rest of the OECD excluding the mass retractions. The for each period (pre and post 2017) and retraction reason, computes the proportion and count of retractions in the UK and the OECD, the difference in proportions, a two-sample proportion test p-value and its Benjamini-Hochberg adjustment.
+Statistical comparison of the retraction reasons between the UK and the rest of the OECD excluding the mass retractions. The for each period (pre and post 2017) and retraction reason, computes the proportion and count of retractions in the UK and the rest of the OECD, the difference in proportions, a two-sample proportion test p-value and its Benjamini-Hochberg adjustment.
 
 ```{r}
 reasons_compare_results <- retraction_data |>
@@ -165,12 +165,48 @@ sig_plot <- significant_reasons_long(reasons_compare_results,
                                      p_col = "p_adj_filtered",
                                      exclude_low_count = TRUE)
 plot_significant_reasons(sig_plot)
+
+print(sig_plot %>% filter(period == "Post-2017"))
 ```
 
 ```{r}
 ggplotly_free_space(plot_significant_reasons(sig_plot))
 ```
 
+# Retraction reasons of significant adequate counts
+
+```{r}
+alpha <- 0.05
+low_count <- 500
+
+filtered_reasons <- reasons_compare_results %>%
+  filter(p_adj_filtered < alpha & !low_count, period == "Post-2017")
+
+print(filtered_reasons$flag)
+
+retraction_data_uk_post2017 <- retraction_data_uk %>%
+  filter(publication_year >= 2017 & Mass_Retraction == "Other")
+
+retraction_data_uk_post2017_significant <- retraction_data_uk_post2017 %>%
+  separate_rows(Reason, sep = ";") %>%
+  mutate(Reason = str_trim(Reason)) %>%
+  filter(Reason != "", Reason %in% filtered_reasons$flag)
+```
+
+```{r}
+selected_reasons <- filtered_reasons$flag
+```
+
+The mean proportions for the significant and with adequate count reasons across the years 2017 and 2026, and the interquartile range for the UK and the rest of the OECD.
+
+```{r}
+ggplotly(plot_reason_proportions_forest(
+  retraction_data_uk,
+  retraction_data_oecd,
+  reasons_list = selected_reasons,
+  labels = c("UK", "Other OECD"),
+  year_limits = c(2017, 2026)))
+```
 
 
 # AI retractions by country and scenario
@@ -248,6 +284,8 @@ autorange_axes(ggplotly(plot_ai_ts(retraction_ai_prop_ts, "prop_ai", "AI Retract
 ```
 
 # Looking for interactions with is_international flag (UK only)
+
+Not considering mass retractions.
 
 ```{r}
 reasons_compare_results_uk <- retraction_data_nomass |>
@@ -332,13 +370,12 @@ ggplotly(plot_reason_proportion_differences(
 Show the expected difference in proportion of retractions and error bars per year.
 
 ```{r}
-ggplotly(plot_mean_reason_proportion_differences(
+ggplotly(plot_reason_proportions_forest(
   retraction_data_uk |> filter(Mass_Retraction == "Other"),
   retraction_data_oecd |> filter(Mass_Retraction == "Other"),
   reasons_list = selected_reasons,
   labels = c("UK", "OECD"),
   year_limits = c(2017, 2026)))
-
 ```
 
 ```{r}

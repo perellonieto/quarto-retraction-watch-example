@@ -62,5 +62,5 @@ ggplotly(plot_reason_counts_scatter(reasons_compare_results, ratios)) %>%
 sig_plot <- significant_reasons_long(reasons_compare_results,
                                      p_col = "p_adj_filtered",
                                      exclude_low_count = TRUE)
-ggplotly(plot_significant_reasons(sig_plot))
+ggplotly_free_space(plot_significant_reasons(sig_plot))
 ```

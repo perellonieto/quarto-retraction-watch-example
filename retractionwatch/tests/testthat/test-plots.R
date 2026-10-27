@@ -18,8 +18,9 @@ test_that("plot_reason_proportion_differences() plots proportion_a - proportion_
   expect_equal(p$labels$y, "Proportion difference (A - B)")
 })
 
-test_that("plot_mean_reason_proportion_differences() averages the yearly differences", {
-  # R1 differences: 2020 = 2/4 - 1/4, 2021 = 1/2 - 0; R2: 2020 = 1/4, 2021 = 0
+test_that("plot_reason_proportions_forest() summarises each dataset's yearly proportions", {
+  # Yearly proportions (2020, 2021): A has R1 = (2/4, 1/2) and R2 = (1/4, 0);
+  # B has R1 = (1/4, 0) and R2 = (0, 0)
   a <- tibble::tibble(`Record ID` = 1:6,
                       retraction_year = c(2020, 2020, 2020, 2020, 2021, 2021),
                       Reason = c("R1;", "R1;R2;", "R3;", "R3;", "R1;", "R3;"))
@@ -27,20 +28,19 @@ test_that("plot_mean_reason_proportion_differences() averages the yearly differe
                       retraction_year = c(2020, 2020, 2020, 2020, 2021, 2021),
                       Reason = c("R1;", "R3;", "R3;", "R3;", "R3;", "R3;"))
 
-  p <- plot_mean_reason_proportion_differences(a, b, reasons_list = c("R1", "R2"),
-                                               labels = c("A", "B"))
+  p <- plot_reason_proportions_forest(a, b, reasons_list = c("R1", "R2"),
+                                      labels = c("A", "B"))
 
   expect_s3_class(p, "ggplot")
-  data <- dplyr::arrange(p$data, Reason)
-  expect_equal(data$Reason, c("R1", "R2"))
-  expect_equal(data$n_years, c(2, 2))
-  expect_equal(data$mean_difference, c(mean(c(1 / 4, 1 / 2)), mean(c(1 / 4, 0))))
-  expect_equal(data$error, c(sd(c(1 / 4, 1 / 2)), sd(c(1 / 4, 0))) / sqrt(2))
-
-  p_sd <- plot_mean_reason_proportion_differences(a, b, reasons_list = c("R1", "R2"),
-                                                  error = "sd")
-  expect_equal(dplyr::arrange(p_sd$data, Reason)$error,
-               c(sd(c(1 / 4, 1 / 2)), sd(c(1 / 4, 0))))
+  data <- dplyr::arrange(p$data, Reason, group)
+  expect_equal(data$Reason, c("R1", "R1", "R2", "R2"))
+  expect_equal(as.character(data$group), c("A", "B", "A", "B"))
+  expect_equal(data$n_years, c(2, 2, 2, 2))
+  expect_equal(data$mean_proportion, c(1 / 2, 1 / 8, 1 / 8, 0))
+  expect_equal(data$q25, c(1 / 2, 1 / 16, 1 / 16, 0))
+  expect_equal(data$q75, c(1 / 2, 3 / 16, 3 / 16, 0))
+  # Reasons sorted by their mean in A (R2 < R1), with A just above B
+  expect_equal(data$y, c(2.15, 1.85, 1.15, 0.85))
 })
 
 test_that("plot_all_scenarios() combines the scenarios when ncol is given", {

@@ -8,7 +8,8 @@
 #' @param data Cleaned retraction data.
 #' @param group_col Name of the column defining the groups to compare
 #'   (e.g. `"country_class"` or `"international"`).
-#' @param split_year Publication year separating the two periods.
+#' @param split_year Publication year separating the two periods. The second
+#'    group will include the split_year.
 #' @return A wide tibble of reason flags.
 #' @export
 reason_flags <- function(data, group_col = "country_class", split_year = 2017) {
