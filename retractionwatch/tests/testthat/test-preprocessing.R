@@ -68,16 +68,15 @@ test_that("retraction delay is categorised", {
                c("Within 2 years", "After 2 years", "After 2 years", "Within 2 years"))
 })
 
-test_that("papers are split into one row per country with OECD and UK flags", {
+test_that("papers are split into one row per country", {
   data <- clean_fixture()
   paper_2 <- data[data$`Record ID` == 2, ]
 
   expect_equal(nrow(data), 5)
   expect_setequal(paper_2$Country, c("United Kingdom", "China"))
-  expect_equal(paper_2$oecd[paper_2$Country == "United Kingdom"], "OECD")
-  expect_equal(paper_2$oecd[paper_2$Country == "China"], "Non-OECD")
-  expect_equal(data$UK[data$Country == "France"], "Non-UK")
-  expect_true(all(data$UK[data$Country == "United Kingdom"] == "UK"))
+  # Countries are classified per paper by add_paper_country_class() instead
+  # of the former per-row OECD and UK flags
+  expect_false(any(c("oecd", "UK") %in% names(data)))
 })
 
 test_that("only papers with several countries are international", {

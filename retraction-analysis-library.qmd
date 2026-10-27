@@ -149,7 +149,6 @@ reasons_compare_results <- retraction_data |>
 ratios <- group_count_ratios(reasons_compare_results, "United Kingdom", "Other OECD")
 reasons_compare_results <- flag_low_counts(reasons_compare_results, ratios)
 
-write.csv(reasons_compare_results, "./variable_reasons_compare_results_library.csv")
 checkpoint(reasons_compare_results, "05_reasons_compare_results")
 
 ggplotly(plot_reason_counts_scatter(reasons_compare_results, ratios))
@@ -182,7 +181,6 @@ ggplotly_free_space(plot_significant_reasons(sig_plot))
 retraction_ai_rates <- compute_ai_rates_by_country(retraction_data, sjr_country_counts)
 print(retraction_ai_rates)
 
-write.csv(retraction_ai_rates, "./variable_retraction_ai_rates_library.csv")
 checkpoint(retraction_ai_rates, "06_retraction_ai_rates")
 
 plot_all_scenarios(retraction_ai_rates, interactive = TRUE)
@@ -393,22 +391,6 @@ ggplotly(ggplot(significant_reasons_per_country_and_year |> filter(Reason == fir
 ```
 
 ```{r}
-ggplotly(ggplot(significant_reasons_per_country_and_year |> filter(Reason == first_reason),
-       aes(x = factor(year), y = factor(Country, levels = rev(top_10_oecd_countries$Country)),
-           fill = proportion)) +
-  geom_tile(colour = "white") +
-  geom_text(aes(label = scales::percent(proportion, accuracy = 1)), size = 3) +
-  scale_fill_viridis_c(labels = scales::percent, option = "magma", direction = -1) +
-  labs(title = first_reason,
-       x = "Year",
-       y = "Country",
-       fill = "Proportion of\nretractions") +
-  theme_minimal() +
-  theme(panel.grid = element_blank())
-)
-```
-
-```{r}
 plots <- lapply(unique(significant_reasons_per_country_and_year$Reason), function(reason) {
   ggplotly(ggplot(significant_reasons_per_country_and_year |> filter(Reason == reason),
        aes(x = factor(year), y = factor(Country, levels = rev(top_10_oecd_countries$Country)),
@@ -429,6 +411,14 @@ plots <- lapply(unique(significant_reasons_per_country_and_year$Reason), functio
 htmltools::tagList(plots)
 ```
 
+Average proportion of retractions citing each reason across the top 10 countries. The shaded bands show the interquartile range (25th to 75th percentile) across the top countries. Each country counts the same, whatever its number of retractions, and countries without retractions in a year are left out of that year.
+
+```{r}
+plot_reason_proportions_across_groups_by_year(significant_reasons_per_country_and_year,
+                                      interactive = TRUE)
+```
+
+# Retractions for the top 10 publishers
 
 ```{r}
 publisher_and_retractions <- count_number_of_retractions_per_column(
@@ -490,44 +480,6 @@ htmltools::tagList(plots)
 Average proportion of retractions citing each reason across the top 10 publishers. The shaded bands show the interquartile range (25th to 75th percentile) across publishers. Each publisher counts the same, whatever its number of retractions, and publishers without retractions in a year are left out of that year.
 
 ```{r}
-publisher_reason_summary <- significant_reasons_per_publisher_and_year |>
-  group_by(year, Reason) |>
-  summarise(mean_proportion = mean(proportion),
-            q25 = quantile(proportion, 0.25),
-            q75 = quantile(proportion, 0.75),
-            publishers = n(),
-            .groups = "drop")
-
-publisher_reason_plot <- ggplotly(ggplot(publisher_reason_summary,
-       aes(x = year, y = mean_proportion, colour = Reason, fill = Reason)) +
-  geom_ribbon(aes(ymin = q25, ymax = q75), alpha = 0.15, colour = NA) +
-  geom_line() +
-  # `text` is ignored by ggplot2 but shown in the ggplotly() hover text
-  suppressWarnings(geom_point(aes(text = paste0("Publishers: ", publishers)))) +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = "Average proportion of retractions per reason across publishers",
-       x = "Year",
-       y = "Mean proportion of retractions (IQR band)",
-       colour = "Reason",
-       fill = "Reason") +
-  theme_minimal()
-) |> plotly_build()
-
-# ggplotly() adds a legend entry "(Reason,1)" for each band: hide it and group
-# each band with its line, so that clicking a reason toggles both
-publisher_reason_plot$x$data <- lapply(publisher_reason_plot$x$data, function(trace) {
-  reason <- sub("^\\((.*),1\\)$", "\\1", trace$name)
-  trace$legendgroup <- reason
-  if (!identical(trace$name, reason)) {
-    trace$name <- reason
-    trace$showlegend <- FALSE
-  }
-  trace
-})
-publisher_reason_plot
-```
-
-
-```{r}
-
+plot_reason_proportions_across_groups_by_year(significant_reasons_per_publisher_and_year,
+                                      interactive = TRUE)
 ```

@@ -93,3 +93,46 @@ test_that("ggplotly_free_space() sizes the panel rows like space = 'free_y'", {
   expect_equal(c(layout$shapes[[2]]$y0, layout$shapes[[2]]$y1),
                layout$yaxis2$domain)
 })
+
+test_that("plot_reason_proportions_across_groups_by_year() summarises across publishers or countries", {
+  proportions <- tibble::tibble(
+    Publisher = rep(c("P1", "P2", "P3"), each = 2),
+    year = rep(c(2020, 2021), times = 3),
+    Reason = "R1",
+    proportion = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6)
+  )
+
+  p <- plot_reason_proportions_across_groups_by_year(proportions)
+
+  expect_s3_class(p, "ggplot")
+  data <- dplyr::arrange(p$data, year)
+  expect_equal(data$mean_proportion, c(0.3, 0.4))
+  expect_equal(data$q25, c(0.2, 0.3))
+  expect_equal(data$q75, c(0.4, 0.5))
+  expect_equal(data$n_groups, c(3, 3))
+  expect_match(p$labels$title, "across publishers$")
+
+  by_country <- dplyr::rename(proportions, Country = Publisher)
+  expect_match(plot_reason_proportions_across_groups_by_year(by_country)$labels$title,
+               "across countries$")
+  expect_error(plot_reason_proportions_across_groups_by_year(proportions[-1]),
+               "Publisher` or `Country")
+})
+
+test_that("plot_reason_proportions_across_groups_by_year() gives each band its line's legend entry", {
+  proportions <- tibble::tibble(
+    Publisher = rep(c("P1", "P2"), each = 4),
+    year = rep(c(2020, 2020, 2021, 2021), times = 2),
+    Reason = rep(c("R1", "R2"), times = 4),
+    proportion = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8)
+  )
+
+  widget <- plot_reason_proportions_across_groups_by_year(proportions, interactive = TRUE)
+
+  traces <- widget$x$data
+  names <- vapply(traces, function(t) t$name, character(1))
+  in_legend <- vapply(traces, function(t) !isFALSE(t$showlegend), logical(1))
+  expect_setequal(names, c("R1", "R2"))
+  expect_equal(sort(names[in_legend]), c("R1", "R2"))
+  expect_equal(vapply(traces, function(t) t$legendgroup, character(1)), names)
+})

@@ -523,6 +523,91 @@ plot_mean_reason_proportion_differences <- function(data_a,
     theme(plot.title.position = "plot")
 }
 
+#' Plot the average yearly proportion of each reason across groups
+#'
+#' Summarises the output of [calculate_proportion_of_retractions_per_year()]
+#' (one row per country) or
+#' [calculate_proportion_of_retractions_per_year_by_publisher()] (one row per
+#' publisher): for each year and reason, a line shows the mean proportion
+#' across the groups and a band its interquartile range (25th to 75th
+#' percentile). Each group counts the same, whatever its number of
+#' retractions, and groups without retractions in a year are left out of
+#' that year.
+#'
+#' @param proportions Output of [calculate_proportion_of_retractions_per_year()]
+#'   or [calculate_proportion_of_retractions_per_year_by_publisher()].
+#' @param group_col Column with the groups: `"Publisher"` or `"Country"`. By
+#'   default, whichever of the two is in `proportions`.
+#' @param group_label Plural name of the groups used in the title and hover
+#'   text. By default `"publishers"` or `"countries"`.
+#' @param interactive If `TRUE`, returns a plotly figure in which each band
+#'   shares the legend entry of its line, so clicking a reason toggles both.
+#' @return A ggplot object, or a plotly object when `interactive = TRUE`. The
+#'   ggplot data has one row per year and reason with columns
+#'   `mean_proportion`, `q25`, `q75` and `n_groups`.
+#' @export
+plot_reason_proportions_across_groups_by_year <- function(proportions,
+                                                  group_col = NULL,
+                                                  group_label = NULL,
+                                                  interactive = FALSE) {
+  if (is.null(group_col)) {
+    group_col <- intersect(c("Publisher", "Country"), names(proportions))[1]
+    if (is.na(group_col)) {
+      stop("`proportions` needs a `Publisher` or `Country` column, ",
+           "or set `group_col`.")
+    }
+  }
+  if (is.null(group_label)) {
+    group_label <- switch(group_col, Publisher = "publishers",
+                          Country = "countries", tolower(group_col))
+  }
+
+  summary <- proportions %>%
+    group_by(year, Reason) %>%
+    summarise(mean_proportion = mean(proportion),
+              q25 = stats::quantile(proportion, 0.25, names = FALSE),
+              q75 = stats::quantile(proportion, 0.75, names = FALSE),
+              n_groups = n_distinct(.data[[group_col]]),
+              .groups = "drop")
+
+  p <- ggplot(summary, aes(year, mean_proportion, colour = Reason, fill = Reason)) +
+    geom_ribbon(aes(ymin = q25, ymax = q75), alpha = 0.15, colour = NA) +
+    geom_line() +
+    # `text` is ignored by ggplot2 but shown in the ggplotly() hover text
+    suppressWarnings(geom_point(aes(text = paste0(
+      toupper(substr(group_label, 1, 1)), substring(group_label, 2), ": ",
+      n_groups
+    )))) +
+    scale_y_continuous(labels = scales::label_percent()) +
+    labs(
+      title = paste("Average proportion of retractions per reason across",
+                    group_label),
+      x = "Year",
+      y = "Mean proportion of retractions (IQR band)",
+      colour = "Reason",
+      fill = "Reason"
+    ) +
+    theme_minimal()
+
+  if (!interactive) {
+    return(p)
+  }
+
+  # ggplotly() adds a legend entry "(Reason,1)" for each band: hide it and
+  # group each band with its line, so that clicking a reason toggles both
+  widget <- plotly::plotly_build(plotly::ggplotly(p))
+  widget$x$data <- lapply(widget$x$data, function(trace) {
+    reason <- sub("^\\((.*),1\\)$", "\\1", trace$name)
+    trace$legendgroup <- reason
+    if (!identical(trace$name, reason)) {
+      trace$name <- reason
+      trace$showlegend <- FALSE
+    }
+    trace
+  })
+  widget
+}
+
 # Yearly proportion of `data_a` retractions citing each reason minus that of
 # `data_b`, as in compute_top_reasons_over_time(). Returns columns year,
 # Reason, proportion_a, proportion_b and difference, for the years present

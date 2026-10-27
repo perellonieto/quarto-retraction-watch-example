@@ -37,5 +37,6 @@ utils::globalVariables(c(
   "value", "flag", "proportion", "count", "p_value", "p_adj", "p_adj_filtered",
   "low_count", "sig_class", "diff", "group", "x", "y", "label", "n", ".",
   "year", "total", "proportion_a", "proportion_b", "difference",
-  "mean_difference", "n_years", "error"
+  "mean_difference", "n_years", "error", "mean_proportion", "q25", "q75",
+  "n_groups"
 ))

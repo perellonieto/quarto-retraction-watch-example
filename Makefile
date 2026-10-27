@@ -1,4 +1,4 @@
-.PHONY: download-data install-dependencies test preview render publish ci-local
+.PHONY: download-data install-dependencies test generate-documentation preview render publish run-comparison ci-local
 
 download-data:
 	mkdir -p data
@@ -11,6 +11,14 @@ install-dependencies:
 test:
 	Rscript -e 'devtools::test("retractionwatch")'
 	Rscript -e 'print(covr::package_coverage("retractionwatch"))'
+
+# Regenerate NAMESPACE and man/*.Rd from the roxygen comments in
+# retractionwatch/R/ (run it after adding, renaming or documenting a function,
+# instead of editing NAMESPACE by hand), then check that the package loads
+# and its tests pass
+generate-documentation:
+	Rscript -e 'devtools::document("retractionwatch")'
+	Rscript -e 'devtools::test("retractionwatch")'
 
 preview:
 	quarto preview

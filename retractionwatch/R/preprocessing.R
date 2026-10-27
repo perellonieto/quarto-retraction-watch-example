@@ -146,7 +146,8 @@ add_retraction_delay_flags <- function(retraction_data) {
   retraction_data
 }
 
-# One row per paper and country, with OECD and UK flags
+# One row per paper and country. Country classes are added afterwards, per
+# paper, by add_paper_country_class()
 split_by_country <- function(retraction_data, oecd_countries) {
   retraction_data$paper_index <- seq_len(nrow(retraction_data))
   retraction_data <- retraction_data %>%
