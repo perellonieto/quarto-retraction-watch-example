@@ -18,6 +18,9 @@ library(readxl)
 library(tidyverse)
 library(janitor)
 
+source("checkpoints.R")
+checkpoint_version <- "original"
+
 files <- list.files(
   "data/sjr_rankings",
   pattern = "^scimagojr country rank .*\\.xlsx$",
@@ -202,6 +205,8 @@ retraction_data <- retraction_data %>%
   group_by(RetractionID) %>%
   mutate(country_class = paper_country_class(Country)) %>%
   ungroup()
+
+checkpoint(retraction_data, "01_retraction_data")
 ```
 
 Applying the same categorisation to the matched publication rate data. SJR only gives per-country totals, so here the class is per country, and documents with several countries are counted once for each country.
@@ -219,6 +224,9 @@ publication_counts <- sjr_country_counts %>%
     total_papers = sum(Documents, na.rm = TRUE),
     .groups = "drop"
   )
+
+checkpoint(sjr_country_counts, "02_sjr_country_counts")
+checkpoint(publication_counts, "03_publication_counts")
 ```
 
 # New analysis: between country explanation for rates
@@ -264,6 +272,8 @@ retraction_rates <- retraction_counts %>%
     retraction_rate = retractions / total_papers,
     retraction_rate_per_100k = 100000 * retraction_rate
   )
+
+checkpoint(retraction_rates, "04_retraction_rates")
 ```
 
 ```{r}
@@ -437,6 +447,10 @@ reasons_compare_results<- reasons_compare_results %>%
     )
   ) %>%
   mutate(significant_filtered = p_adj_filtered < 0.05)
+
+
+write.csv(reasons_compare_results, "./variable_reasons_compare_results_original.csv")
+checkpoint(reasons_compare_results, "05_reasons_compare_results")
 ```
 
 ```{r}
@@ -629,6 +643,9 @@ retraction_ai_rates <- retraction_ai_counts %>%
   )
 
 print(retraction_ai_rates)
+
+write.csv(retraction_ai_rates, "./variable_retraction_ai_rates_original.csv")
+checkpoint(retraction_ai_rates, "06_retraction_ai_rates")
 ```
 
 ```{r}
@@ -803,6 +820,8 @@ retraction_ai_counts_ts <-retraction_data %>%
     scenario,
     name = "ai_retractions"
   )
+
+checkpoint(retraction_ai_counts_ts, "07_retraction_ai_counts_ts")
 ```
 
 ```{r}
@@ -857,6 +876,8 @@ retraction_ai_prop_ts <- retraction_ai_counts_ts %>%
   mutate(
     prop_ai = ai_retractions / total_retractions
   )
+
+checkpoint(retraction_ai_prop_ts, "08_retraction_ai_prop_ts")
 ```
 
 ```{r}
@@ -980,6 +1001,8 @@ reasons_compare_results_uk <- reasons_compare_wide_uk %>%
     p_adj = p.adjust(p_value, method = "BH")
   ) %>%
   arrange(desc(abs(diff)))
+
+checkpoint(reasons_compare_results_uk, "09_reasons_compare_results_uk")
 ```
 
 ### Plot it

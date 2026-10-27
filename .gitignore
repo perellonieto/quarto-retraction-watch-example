@@ -223,3 +223,9 @@ __marimo__/
 
 # Ignore data
 data
+
+# Local simulation of the GitHub Actions workflow (make ci-local)
+/.ci-local/
+
+# Checkpoints written by retraction-analysis*.qmd (see checkpoints.R)
+/checkpoints/

@@ -39,7 +39,7 @@ test_that("RETRACTION_DATA_TYPES reads Record ID as integer and dates as text", 
   expect_type(raw$OriginalPaperDate, "character")
 })
 
-test_that("load_retraction_data() returns cleaned data with a country class", {
+test_that("load_retraction_data() returns cleaned data with a paper country class", {
   data <- load_retraction_data(
     fixture_path("retraction_watch.csv"),
     oecd_countries = read_fixture_oecd(),
@@ -49,9 +49,10 @@ test_that("load_retraction_data() returns cleaned data with a country class", {
   # Paper 2 has two countries, so it is split into two rows
   expect_equal(nrow(data), 5)
   expect_setequal(unique(data$`Record ID`), 1:4)
-  expect_equal(
-    unique(data$country_class[data$Country == "United Kingdom"]), "United Kingdom"
-  )
-  expect_equal(unique(data$country_class[data$Country == "France"]), "Other OECD")
-  expect_equal(unique(data$country_class[data$Country == "China"]), "Rest of World")
+  # One class per paper: both rows of paper 2 (United Kingdom;China) are UK
+  classes <- dplyr::arrange(dplyr::distinct(data, `Record ID`, country_class),
+                            `Record ID`)
+  expect_equal(classes$`Record ID`, 1:4)
+  expect_equal(classes$country_class,
+               c("United Kingdom", "United Kingdom", "Rest of World", "Other OECD"))
 })

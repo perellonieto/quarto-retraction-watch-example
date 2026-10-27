@@ -27,6 +27,8 @@ A tibble of counts.
 \description{
 Replicates the data for every scenario, applies each scenario's filters and
 counts the distinct \code{RetractionID}s by the grouping columns. A paper with
-authors in several countries counts once for each of its countries (or
-country classes), not only for the first one listed.
+authors in several countries counts once for each value of the grouping
+columns among its rows: once per \code{Country}, but only once per
+\code{country_class}, as all its rows share one class (see
+\code{\link[=add_paper_country_class]{add_paper_country_class()}}).
 }

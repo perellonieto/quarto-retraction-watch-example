@@ -20,7 +20,8 @@ reason to a reason group.}
 }
 \value{
 The cleaned data (one row per paper and country) with a
-\code{country_class} column added by \code{\link[=add_country_class]{add_country_class()}}.
+\code{country_class} column added by \code{\link[=add_paper_country_class]{add_paper_country_class()}}, so all the
+rows of a paper share the same class.
 }
 \description{
 Load and clean the Retraction Watch dataset

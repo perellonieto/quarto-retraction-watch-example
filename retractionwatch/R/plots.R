@@ -40,6 +40,78 @@ autorange_axes <- function(widget) {
   widget
 }
 
+#' Convert a ggplot to plotly keeping the panel heights of `space = "free_y"`
+#'
+#' [plotly::ggplotly()] ignores `facet_grid(space = "free_y")` and gives every
+#' row of panels the same height, so a panel with few categories takes as
+#' much space as one with many. This function resizes each row of panels in
+#' proportion to its y range, as ggplot2 does, keeping the gaps between rows,
+#' and moves the facet strips (labels and boxes on the right) with them.
+#'
+#' @param p A ggplot object faceted by rows with [ggplot2::facet_grid()].
+#' @param ... Passed to [plotly::ggplotly()] (e.g. `height`).
+#' @return A plotly object.
+#' @export
+ggplotly_free_space <- function(p, ...) {
+  widget <- plotly::plotly_build(plotly::ggplotly(p, ...))
+  built <- ggplot2::ggplot_build(p)
+  panel_heights <- vapply(built$layout$panel_params,
+                          function(params) diff(params$y.range), numeric(1))
+  row_heights <- tapply(panel_heights, built$layout$layout$ROW, max)
+
+  layout <- widget$x$layout
+  y_axes <- paste0("yaxis", c("", seq_along(row_heights)[-1]))
+  if (!all(y_axes %in% names(layout)) ||
+      length(grep("^yaxis[0-9]*$", names(layout))) != length(row_heights)) {
+    stop("Expected one plotly y axis per row of panels (facet_grid by rows).")
+  }
+
+  # Old domains, from the top row to the bottom one
+  old <- lapply(y_axes, function(axis) layout[[axis]]$domain)
+  gaps <- vapply(seq_along(old)[-1],
+                 function(i) old[[i - 1]][1] - old[[i]][2], numeric(1))
+  available <- old[[1]][2] - old[[length(old)]][1] - sum(gaps)
+  heights <- available * row_heights / sum(row_heights)
+  top <- old[[1]][2]
+  new <- vector("list", length(old))
+  for (i in seq_along(old)) {
+    new[[i]] <- c(top - heights[[i]], top)
+    top <- top - heights[[i]] - if (i < length(old)) gaps[[i]] else 0
+  }
+  # Avoid floating point drift at the bottom edge
+  new[[length(new)]][1] <- old[[length(old)]][1]
+
+  # Maps a y position (in paper units) inside an old domain to the new one
+  rescale_y <- function(y) {
+    for (i in seq_along(old)) {
+      if (y >= old[[i]][1] - 1e-9 && y <= old[[i]][2] + 1e-9) {
+        return(new[[i]][1] + (y - old[[i]][1]) / diff(old[[i]]) * diff(new[[i]]))
+      }
+    }
+    y
+  }
+
+  for (i in seq_along(y_axes)) {
+    widget$x$layout[[y_axes[i]]]$domain <- new[[i]]
+  }
+  # Facet strips: labels at the right edge (x = 1) and their boxes, whose
+  # vertical extent is the domain of their row
+  widget$x$layout$annotations <- lapply(layout$annotations, function(a) {
+    if (identical(a$yref, "paper") && identical(a$xref, "paper") && a$x >= 1) {
+      a$y <- rescale_y(a$y)
+    }
+    a
+  })
+  widget$x$layout$shapes <- lapply(layout$shapes, function(s) {
+    if (identical(s$yref, "paper")) {
+      s$y0 <- rescale_y(s$y0)
+      s$y1 <- rescale_y(s$y1)
+    }
+    s
+  })
+  widget
+}
+
 #' Scatter plot of reason counts in two groups coloured by significance
 #'
 #' Shows a dashed boundary below which reasons are considered low count and,

@@ -51,7 +51,8 @@ load_oecd_countries <- function(path = "data/oecd_countries.csv") {
 #' @param reason_groupings_path Path to the CSV mapping each retraction
 #'   reason to a reason group.
 #' @return The cleaned data (one row per paper and country) with a
-#'   `country_class` column added by [add_country_class()].
+#'   `country_class` column added by [add_paper_country_class()], so all the
+#'   rows of a paper share the same class.
 #' @export
 load_retraction_data <- function(path = "data/retraction_watch.csv",
                                  oecd_countries = load_oecd_countries(),
@@ -61,5 +62,5 @@ load_retraction_data <- function(path = "data/retraction_watch.csv",
                                                   show_col_types = FALSE, col_types = RETRACTION_REASON_GROUPINGS_TYPES)
   retraction_data %>%
     clean_retraction_data(oecd_countries, retraction_reason_conversion) %>%
-    add_country_class(oecd_countries)
+    add_paper_country_class(oecd_countries)
 }

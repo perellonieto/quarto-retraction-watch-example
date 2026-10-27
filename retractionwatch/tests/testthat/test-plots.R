@@ -70,3 +70,26 @@ test_that("plot_all_scenarios() combines the scenarios when ncol is given", {
   expect_length(plot_all_scenarios(dat), 3)
   expect_equal(plot_scenario(dat, "S1")$labels$title, "S1")
 })
+
+test_that("ggplotly_free_space() sizes the panel rows like space = 'free_y'", {
+  # 6 reasons in "Post" and 2 in "Pre"
+  data <- tibble::tibble(
+    flag = c(paste0("r", 1:6), "r1", "r2"),
+    period = rep(c("Post", "Pre"), times = c(6, 2)),
+    proportion = seq(0.1, 0.8, by = 0.1),
+    group = "A"
+  )
+  p <- ggplot2::ggplot(data, ggplot2::aes(proportion, flag)) +
+    ggplot2::geom_point() +
+    ggplot2::facet_grid(period ~ ., scales = "free_y", space = "free_y")
+
+  layout <- ggplotly_free_space(p)$x$layout
+
+  top <- diff(layout$yaxis$domain)
+  bottom <- diff(layout$yaxis2$domain)
+  # A discrete y range spans the categories (n - 1) plus 0.6 on each side
+  expect_equal(top / bottom, (6 + 0.2) / (2 + 0.2))
+  # The strip boxes follow the panels
+  expect_equal(c(layout$shapes[[2]]$y0, layout$shapes[[2]]$y1),
+               layout$yaxis2$domain)
+})

@@ -21,6 +21,11 @@ render:
 publish:
 	quarto publish gh-pages
 
+run-comparison:
+	quarto render retraction-analysis.qmd
+	quarto render retraction-analysis-library.qmd
+	Rscript compare_checkpoints.R
+
 # Simulate the GitHub Actions workflow by running
 # .github/workflows/quarto-publish.yml with act (https://github.com/nektos/act)
 # in an ubuntu-latest Docker container (Docker must be running).

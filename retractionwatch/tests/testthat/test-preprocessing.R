@@ -151,3 +151,15 @@ test_that("classify_country() and add_country_class() assign country classes", {
                             read_fixture_oecd())
   expect_equal(data$country_class, c("Other OECD", "Rest of World"))
 })
+
+test_that("add_paper_country_class() gives each paper its highest-precedence class", {
+  data <- tibble::tibble(
+    `Record ID` = c(1, 1, 1, 2, 2, 3),
+    Country = c("China", "France", "United Kingdom", "Brazil", "France", "Brazil")
+  )
+
+  result <- add_paper_country_class(data, read_fixture_oecd())
+
+  expect_equal(result$country_class,
+               c(rep("United Kingdom", 3), rep("Other OECD", 2), "Rest of World"))
+})

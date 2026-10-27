@@ -160,7 +160,7 @@ split_by_country <- function(retraction_data, oecd_countries) {
   #retraction_data$UK <- case_when(
   #  retraction_data$Country == "United Kingdom" ~ 'UK',
   #  TRUE ~ 'Non-UK')
-  #retraction_data
+  retraction_data
 }
 
 # TRUE if the paper involves more than one country. Only meaningful after
@@ -214,4 +214,29 @@ classify_country <- function(country, oecd_names) {
 add_country_class <- function(data, oecd_countries) {
   data %>%
     mutate(country_class = classify_country(.data$Country, oecd_countries$Name))
+}
+
+#' Add a `country_class` column with one class per paper
+#'
+#' Gives every row of a paper the same class, taken from all of its
+#' countries in order of precedence: `"United Kingdom"` if any author is in
+#' the UK, otherwise `"Other OECD"` if any author is in another OECD
+#' country, otherwise `"Rest of World"`. Each paper therefore belongs to a
+#' single class, unlike [add_country_class()], which classifies each row on
+#' its own country.
+#'
+#' @param data Data frame with one row per paper and country (see
+#'   [clean_retraction_data()]).
+#' @param oecd_countries Data frame with a `Name` column of OECD countries.
+#' @param id_col Column identifying each paper.
+#' @return `data` with a `country_class` column.
+#' @export
+add_paper_country_class <- function(data, oecd_countries, id_col = "Record ID") {
+  precedence <- c("United Kingdom", "Other OECD", "Rest of World")
+  data %>%
+    group_by(.data[[id_col]]) %>%
+    mutate(country_class = precedence[min(match(
+      classify_country(.data$Country, oecd_countries$Name), precedence
+    ))]) %>%
+    ungroup()
 }
