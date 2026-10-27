@@ -7,7 +7,9 @@
 load_retraction_data(
   path = "data/retraction_watch.csv",
   oecd_countries = load_oecd_countries(),
-  reason_groupings_path = "data/retraction_reason_groupings.csv"
+  reason_groupings_path = "data/retraction_reason_groupings.csv",
+  publication_years = c(1996, 2025),
+  retractions_only = FALSE
 )
 }
 \arguments{
@@ -17,10 +19,18 @@ load_retraction_data(
 
 \item{reason_groupings_path}{Path to the CSV mapping each retraction
 reason to a reason group.}
+
+\item{publication_years}{Length-2 vector with the first and last
+publication year kept. Defaults to the years covered by the SCImago
+publication counts, so that every retraction has a denominator.}
+
+\item{retractions_only}{If \code{TRUE}, keeps only entries whose
+\code{RetractionNature} is "Retraction" (dropping corrections, expressions of
+concern and reinstatements).}
 }
 \value{
-The cleaned data (one row per paper and country) with a
-\code{country_class} column added by \code{\link[=add_country_class]{add_country_class()}}.
+The cleaned data (one row per paper and country) with a per-paper
+\code{country_class} column, see \code{\link[=add_paper_country_class]{add_paper_country_class()}}.
 }
 \description{
 Load and clean the Retraction Watch dataset

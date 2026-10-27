@@ -70,3 +70,47 @@ test_that("plot_all_scenarios() combines the scenarios when ncol is given", {
   expect_length(plot_all_scenarios(dat), 3)
   expect_equal(plot_scenario(dat, "S1")$labels$title, "S1")
 })
+
+test_that("plot_all_scenarios() skips all-NA scenarios and draws intervals and zeros", {
+  dat <- tibble::tibble(
+    scenario = rep(c("S1", "S2"), each = 2),
+    Country = rep(c("United Kingdom", "A"), 2),
+    ai_retraction_rate_per_100k = c(0, 2, NA, NA),
+    ai_retraction_rate_per_100k_lower = c(0, 1, NA, NA),
+    ai_retraction_rate_per_100k_upper = c(1, 4, NA, NA)
+  )
+
+  plots <- plot_all_scenarios(dat)
+  expect_named(plots, "S1")
+  layers <- vapply(plots$S1$layers, function(l) class(l$geom)[1], character(1))
+  expect_true("GeomSegment" %in% layers)
+  # The zero is kept and labels start after the interval
+  expect_equal(nrow(plots$S1$data), 2)
+  expect_equal(sort(plots$S1$data$label_x), c(1, 4))
+  expect_s3_class(plot_all_scenarios(dat, interactive = TRUE), "shiny.tag.list")
+})
+
+test_that("plot_ai_ts() draws confidence bands when interval columns exist", {
+  props <- tibble::tibble(publication_year = c(2020, 2021), country_class = "United Kingdom",
+                          scenario = "All", prop_ai = c(0, 0.5),
+                          prop_ai_lower = c(0, 0.1), prop_ai_upper = c(0.4, 0.9))
+
+  p <- plot_ai_ts(props, "prop_ai", labels = scales::label_percent())
+  layers <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
+  expect_true("GeomRibbon" %in% layers)
+  expect_false("GeomRibbon" %in% vapply(
+    plot_ai_ts(props[c("publication_year", "country_class", "scenario", "prop_ai")], "prop_ai")$layers,
+    function(l) class(l$geom)[1], character(1)))
+})
+
+test_that("plot_reasons_over_time_by_group() stacks one panel per group", {
+  uk <- tibble::tibble(`Record ID` = 1:2, retraction_year = 2020, Reason = c("R1;", "R2;"))
+  oecd <- tibble::tibble(`Record ID` = 1:3, retraction_year = 2020, Reason = c("R1;", "R1;", "R3;"))
+
+  p <- plot_reasons_over_time_by_group(list(UK = uk, OECD = oecd), c("R1", "R2"))
+  expect_equal(levels(p$data$group), c("UK", "OECD"))
+  expect_equal(levels(p$data$Reason), c("R1", "R2"))
+  oecd_r1 <- dplyr::filter(p$data, group == "OECD", Reason == "R1")
+  expect_equal(oecd_r1$proportion, 2 / 3)
+  expect_equal(ggplot2::ggplot_build(p)$layout$layout$ROW, c(1, 2))
+})

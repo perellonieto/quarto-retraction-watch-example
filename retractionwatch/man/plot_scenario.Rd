@@ -8,9 +8,10 @@ plot_scenario(
   dat,
   scenario_name,
   x = "ai_retraction_rate_per_100k",
-  xlab = "AI Retractions per 100,000 papers (log scale)",
+  xlab = "AI retractions per 100,000 papers (pseudo-log scale, 95\% CI)",
   label_size = 2.5,
-  label_gap = 2
+  label_gap = 2,
+  sigma = default_sigma(dat[[x]])
 )
 }
 \arguments{
@@ -20,13 +21,20 @@ plot_scenario(
 are ordered within each scenario and the plot has no title, ready to be
 faceted by \code{scenario} (as done by \code{\link[=plot_all_scenarios]{plot_all_scenarios()}}).}
 
-\item{x}{Column to plot on the (log) x axis.}
+\item{x}{Column to plot on the x axis. If the columns \verb{<x>_lower} and
+\verb{<x>_upper} exist they are drawn as confidence intervals. Rows where
+\code{x} is \code{NA} are dropped.}
 
 \item{xlab}{X axis label.}
 
 \item{label_size}{Size of the country labels, in mm (ggplot2 units).}
 
-\item{label_gap}{Number of spaces between each point and its label.}
+\item{label_gap}{Number of spaces between each point (or the end of its
+interval) and its label.}
+
+\item{sigma}{Scale of the pseudo-log x axis: linear below \code{sigma} and
+logarithmic above, so that zeros can be shown. Defaults to the smallest
+positive value of \code{x} in \code{dat}, so all scenarios share the same axis.}
 }
 \value{
 A ggplot object.

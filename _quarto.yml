@@ -10,6 +10,7 @@ website:
       - retraction-dates.qmd
       - retraction-analysis.qmd
       - retraction-analysis-library.qmd
+      - report-figures.qmd
       - about.qmd
 
 format:

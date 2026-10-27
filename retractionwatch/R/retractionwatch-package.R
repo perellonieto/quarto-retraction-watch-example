@@ -27,7 +27,7 @@
 
 # Column names used with non-standard evaluation
 utils::globalVariables(c(
-  "Country", "Documents", "Year", "Reason", "Publisher", "Record ID",
+  "Country", "Documents", "Year", "Reason", "Publisher", "Record ID", "RetractionNature",
   "RetractionDate", "OriginalPaperDate", "RetractionID", "Mass_Retraction",
   "international", "exclude_mass", "domestic_only", "publication_year",
   "country_class", "scenario", "retractions", "total_papers",
@@ -37,5 +37,5 @@ utils::globalVariables(c(
   "value", "flag", "proportion", "count", "p_value", "p_adj", "p_adj_filtered",
   "low_count", "sig_class", "diff", "group", "x", "y", "label", "n", ".",
   "year", "total", "proportion_a", "proportion_b", "difference",
-  "mean_difference", "n_years", "error"
+  "mean_difference", "n_years", "error", "label_x", "is_uk", "prop_ai_lower", "prop_ai_upper", "ai_retractions_lower", "ai_retractions_upper", "ai_retraction_share_pct_lower", "ai_retraction_share_pct_upper", "ai_retraction_rate_per_100k_lower", "ai_retraction_rate_per_100k_upper", "domestic_only"
 ))

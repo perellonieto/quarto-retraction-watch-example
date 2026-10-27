@@ -35,12 +35,6 @@ retraction_data <- load_retraction_data("data/retraction_watch.csv")
 publication_counts <- publication_counts_by_class(sjr_country_counts, oecd_countries)
 retraction_data_nomass <- retraction_data[retraction_data$Mass_Retraction == "Other",]
 
-# Clean retraction data
-#retraction_reason_conversion <- readr::read_csv(reason_groupings_path,
-#                                                show_col_types = FALSE)
-#retraction_data %>%
-#  clean_retraction_data(oecd_countries, retraction_reason_conversion) %>%
-#  add_country_class(oecd_countries)
 ```
 
 # Top 2 retraction reasons of each year (2000-2025) in the OECD and UK
@@ -48,8 +42,10 @@ retraction_data_nomass <- retraction_data[retraction_data$Mass_Retraction == "Ot
 ## In the UK
 
 ```{r}
+# Country classes are per paper (UK > Other OECD > Rest of World), so the
+# two subsets below never share a paper
 retraction_data_uk <- retraction_data |>
-  subset(Country == "United Kingdom")
+  subset(country_class == "United Kingdom")
 ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = c(2000, 2026), n_top = 2, min_retractions_per_year = 20))
 ```
 
@@ -57,7 +53,7 @@ ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = c(2
 
 ```{r}
 retraction_data_oecd <- retraction_data |>
-  subset((Country %in% oecd_countries$Name) & (Country != "United Kingdom"))
+  subset(country_class == "Other OECD")
 ggplotly(plot_retraction_reasons_over_time(retraction_data_oecd, year_limits = c(2000, 2026), n_top = 2, min_retractions_per_year = 80))
 ```
 
@@ -161,23 +157,29 @@ ggplotly(plot_significant_reasons(sig_plot))
 
 # AI retractions by country and scenario
 
-**TODO: plot each scenario separately by converting them to plotly objects using ggplotly() and then combining them with subplot()**
+How these plots are built:
+
+* The full data is used, so each scenario's name says whether mass retractions are included.
+* Retractions and SCImago publication counts both cover papers published in 2017–2025, when almost all AI retractions happen.
+* Countries with no AI retractions are shown at 0, on a pseudo-log axis (linear near 0, logarithmic above).
+* Bars are exact 95% confidence intervals: Poisson for rates, binomial for shares.
+* Rates per paper are only shown for the "All" scenarios. SCImago counts all of a country's papers, not only its domestic ones, so a domestic rate would divide domestic retractions by all papers. For domestic scenarios use the share of retractions that mention AI (next plots), where both counts are domestic.
 
 ```{r}
-retraction_ai_rates <- compute_ai_rates_by_country(retraction_data_nomass, sjr_country_counts)
+ai_years <- c(2017, 2025)
+retraction_ai_rates <- compute_ai_rates_by_country(retraction_data, sjr_country_counts,
+                                                   publication_years = ai_years)
 print(retraction_ai_rates)
 
 plot_all_scenarios(retraction_ai_rates, interactive = TRUE)
 ```
 
-###  AI retractions by country and scenario, filtered to countries with at least 10 retractions
-
-**TODO: plot each scenario separately by converting them to plotly objects using ggplotly() and then combining them with subplot()**
+###  Share of retractions that mention AI, countries with more than 10 retractions
 
 ```{r}
 plot_all_scenarios(subset(retraction_ai_rates, retractions > 10),
                    x = "ai_retraction_share_pct",
-                   xlab = "Fraction of all retractions that mention AI",
+                   xlab = "% of retractions that mention AI (pseudo-log scale, 95% CI)",
                    interactive = TRUE)
 ```
 
@@ -186,7 +188,7 @@ plot_all_scenarios(subset(retraction_ai_rates, retractions > 10),
 ```{r}
 plot_all_scenarios(subset(retraction_ai_rates, Country %in% oecd_countries$Name),
                    x = "ai_retraction_share_pct",
-                   xlab = "Fraction of all retractions that mention AI",
+                   xlab = "% of retractions that mention AI (pseudo-log scale, 95% CI)",
                    interactive = TRUE)
 ```
 
@@ -208,7 +210,7 @@ print(top_10_oecd_countries)
 ```{r}
 plot_all_scenarios(subset(retraction_ai_rates, Country %in% top_10_oecd_countries$Country),
                    x = "ai_retraction_share_pct",
-                   xlab = "Fraction of all retractions that mention AI",
+                   xlab = "% of retractions that mention AI (pseudo-log scale, 95% CI)",
                    interactive = TRUE, ncol=2) # text to compile again
 ```
 
@@ -216,7 +218,7 @@ plot_all_scenarios(subset(retraction_ai_rates, Country %in% top_10_oecd_countrie
 # Time series plot of AI retractions
 
 ```{r}
-retraction_ai_counts_ts <- compute_ai_counts_ts(retraction_data_nomass)
+retraction_ai_counts_ts <- compute_ai_counts_ts(retraction_data)
 autorange_axes(ggplotly(plot_ai_ts(retraction_ai_counts_ts)))
 ```
 
@@ -225,15 +227,15 @@ autorange_axes(ggplotly(plot_ai_ts(retraction_ai_counts_ts)))
 The total number of retractions per year considers papers that have the specific country listed in the full list of co-authors.
 
 ```{r}
-retraction_ai_prop_ts <- compute_ai_proportion_ts(retraction_data_nomass)
-autorange_axes(ggplotly(plot_ai_ts(retraction_ai_prop_ts, "prop_ai", "AI Retractions (proportion)")))
+retraction_ai_prop_ts <- compute_ai_proportion_ts(retraction_data)
+autorange_axes(ggplotly(plot_ai_ts(retraction_ai_prop_ts, "prop_ai", "AI Retractions (proportion, 95% CI)", labels = scales::label_percent(drop0trailing = TRUE))))
 ```
 
 # Looking for interactions with is_international flag (UK only)
 
 ```{r}
 reasons_compare_results_uk <- retraction_data_nomass |>
-  subset(Country == "United Kingdom") |>
+  subset(country_class == "United Kingdom") |>
   reason_flags("international") |>
   compare_reason_groups("international", FALSE, TRUE)
 
@@ -326,7 +328,8 @@ ggplotly(plot_mean_reason_proportion_differences(
 print(oecd_countries)
 print(retraction_data_oecd)
 ```
-# Top 10 OECD countries (without the UK) by number of retractions since 2017
+
+# Top 10 OECD countries by number of retractions since 2017
 
 Excluding mass retractions
 

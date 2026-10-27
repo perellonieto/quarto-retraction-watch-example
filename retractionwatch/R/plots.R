@@ -121,22 +121,34 @@ plot_significant_reasons <- function(sig_long) {
 #' @param scenario_name Scenario to plot. If several are given, the countries
 #'   are ordered within each scenario and the plot has no title, ready to be
 #'   faceted by `scenario` (as done by [plot_all_scenarios()]).
-#' @param x Column to plot on the (log) x axis.
+#' @param x Column to plot on the x axis. If the columns `<x>_lower` and
+#'   `<x>_upper` exist they are drawn as confidence intervals. Rows where
+#'   `x` is `NA` are dropped.
 #' @param xlab X axis label.
 #' @param label_size Size of the country labels, in mm (ggplot2 units).
-#' @param label_gap Number of spaces between each point and its label.
+#' @param label_gap Number of spaces between each point (or the end of its
+#'   interval) and its label.
+#' @param sigma Scale of the pseudo-log x axis: linear below `sigma` and
+#'   logarithmic above, so that zeros can be shown. Defaults to the smallest
+#'   positive value of `x` in `dat`, so all scenarios share the same axis.
 #' @return A ggplot object.
 #' @export
 plot_scenario <- function(dat, scenario_name,
                           x = "ai_retraction_rate_per_100k",
-                          xlab = "AI Retractions per 100,000 papers (log scale)",
+                          xlab = "AI retractions per 100,000 papers (pseudo-log scale, 95% CI)",
                           label_size = 2.5,
-                          label_gap = 2) {
+                          label_gap = 2,
+                          sigma = default_sigma(dat[[x]])) {
   several <- length(scenario_name) > 1
+  lower <- paste0(x, "_lower")
+  upper <- paste0(x, "_upper")
+  has_ci <- all(c(lower, upper) %in% names(dat))
   plot_dat <- dat %>%
-    filter(scenario %in% scenario_name) %>%
+    filter(scenario %in% scenario_name, !is.na(.data[[x]])) %>%
     arrange(.data[[x]]) %>%
     mutate(is_uk = Country == "United Kingdom",
+           # Labels start after the interval, so they do not cover it
+           label_x = if (has_ci) pmax(.data[[x]], .data[[upper]], na.rm = TRUE) else .data[[x]],
            # Non-breaking spaces keep a gap between the point and its label
            # (plotly collapses normal spaces and ignores nudges in pixels)
            label = paste0(strrep("\u00a0", label_gap), Country),
@@ -149,17 +161,43 @@ plot_scenario <- function(dat, scenario_name,
   uk_dat <- filter(plot_dat, is_uk)
   non_uk_dat <- filter(plot_dat, !is_uk)
 
-  ggplot(plot_dat, aes(x = .data[[x]], y = Country)) +
+  p <- ggplot(plot_dat, aes(x = .data[[x]], y = Country))
+  if (has_ci) {
+    p <- p +
+      geom_segment(aes(x = .data[[lower]], xend = .data[[upper]], yend = Country),
+                   colour = "grey75", linewidth = 0.4) +
+      geom_segment(data = uk_dat,
+                   aes(x = .data[[lower]], xend = .data[[upper]], yend = Country),
+                   colour = "red", alpha = 0.5, linewidth = 0.4)
+  }
+  p +
     geom_point(colour = "grey40", size = 1) +
     geom_point(data = uk_dat, colour = "red", size = 1) +
-    geom_text(data = non_uk_dat, aes(label = label), colour = "grey40",
+    geom_text(data = non_uk_dat, aes(x = label_x, label = label), colour = "grey40",
               hjust = 0, vjust = 0.5, size = label_size) +
-    geom_text(data = uk_dat, aes(label = label), colour = "red",
+    geom_text(data = uk_dat, aes(x = label_x, label = label), colour = "red",
               hjust = 0, vjust = 0.5, fontface = "bold", size = label_size) +
-    scale_x_log10(expand = expansion(mult = c(0.02, 0.2))) +
+    scale_x_continuous(trans = scales::pseudo_log_trans(sigma = sigma, base = 10),
+                       breaks = pseudo_log_breaks(sigma),
+                       labels = scales::label_number(drop0trailing = TRUE, big.mark = ","),
+                       expand = expansion(mult = c(0.02, 0.2))) +
     labs(title = if (!several) scenario_name, x = xlab, y = NULL) +
     theme_minimal() +
     theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+}
+
+# Smallest positive value, used as the linear range of the pseudo-log axis
+default_sigma <- function(values) {
+  positive <- values[!is.na(values) & values > 0]
+  if (length(positive) == 0) 1 else min(positive)
+}
+
+# Zero plus the powers of ten from about sigma upwards
+pseudo_log_breaks <- function(sigma) {
+  function(limits) {
+    powers <- 10^seq(floor(log10(sigma)), ceiling(log10(max(limits[2], sigma))))
+    c(0, powers[powers >= sigma / 2 & powers <= limits[2]])
+  }
 }
 
 #' Height in pixels needed so that the country labels do not overlap
@@ -196,17 +234,19 @@ scenario_plot_height <- function(n_countries, label_size = 2.5,
 #'   its tallest scenario.
 #' @return A named list of ggplot objects, one per scenario, or a tagList of
 #'   plotly widgets when `interactive = TRUE`. With `ncol`, a single ggplot or
-#'   plotly figure.
+#'   plotly figure. Scenarios where `x` is always `NA` (e.g. the rate in
+#'   domestic-only scenarios) are left out.
 #' @export
-plot_all_scenarios <- function(dat, ..., label_size = 2.5, interactive = FALSE,
+plot_all_scenarios <- function(dat, x = "ai_retraction_rate_per_100k", ...,
+                               label_size = 2.5, interactive = FALSE,
                                ncol = NULL) {
-  scenarios <- unique(dat$scenario)
+  scenarios <- unique(dat$scenario[!is.na(dat[[x]])])
   if (!interactive && !is.null(ncol)) {
-    return(plot_scenario(dat, scenarios, ..., label_size = label_size) +
+    return(plot_scenario(dat, scenarios, x = x, ..., label_size = label_size) +
              facet_wrap(~scenario, ncol = ncol, scales = "free_y"))
   }
   plots <- stats::setNames(
-    lapply(scenarios, function(s) plot_scenario(dat, s, ..., label_size = label_size)),
+    lapply(scenarios, function(s) plot_scenario(dat, s, x = x, ..., label_size = label_size)),
     scenarios
   )
   if (!interactive) {
@@ -268,15 +308,32 @@ plot_all_scenarios <- function(dat, ..., label_size = 2.5, interactive = FALSE,
 #'
 #' @param data Output of [compute_ai_counts_ts()] or
 #'   [compute_ai_proportion_ts()].
-#' @param y Column to plot on the (log) y axis.
+#' @param y Column to plot on the y axis. If the columns `<y>_lower` and
+#'   `<y>_upper` exist they are drawn as confidence bands.
 #' @param ylab Y axis label.
 #' @param year_limits Range of publication years shown.
-#' @return A ggplot object.
+#' @param labels Labels of the y axis breaks, e.g. [scales::label_percent()]
+#'   for proportions.
+#' @return A ggplot object, with a pseudo-log y axis (see [plot_scenario()])
+#'   so that zeros are shown.
 #' @export
 plot_ai_ts <- function(data, y = "ai_retractions",
                        ylab = "AI Retractions (counts)",
-                       year_limits = c(2000, 2025)) {
-  ggplot(data, aes(publication_year, .data[[y]], colour = country_class)) +
+                       year_limits = c(2000, 2025),
+                       labels = scales::label_number(drop0trailing = TRUE, big.mark = ",")) {
+  data <- filter(data, publication_year >= year_limits[1],
+                 publication_year <= year_limits[2])
+  sigma <- default_sigma(data[[y]])
+  lower <- paste0(y, "_lower")
+  upper <- paste0(y, "_upper")
+
+  p <- ggplot(data, aes(publication_year, .data[[y]], colour = country_class))
+  if (all(c(lower, upper) %in% names(data))) {
+    p <- p + geom_ribbon(aes(ymin = .data[[lower]], ymax = .data[[upper]],
+                             fill = country_class),
+                         colour = NA, alpha = 0.15)
+  }
+  p +
     geom_line() +
     geom_point() +
     facet_wrap(~scenario, ncol = 2) +
@@ -284,8 +341,48 @@ plot_ai_ts <- function(data, y = "ai_retractions",
       limits = year_limits,
       breaks = seq(year_limits[1], year_limits[2], by = 5)
     ) +
-    scale_y_log10() +
-    labs(y = ylab, x = "Year", colour = NULL) +
+    scale_y_continuous(trans = scales::pseudo_log_trans(sigma = sigma, base = 10),
+                       breaks = pseudo_log_breaks(sigma), labels = labels) +
+    labs(y = ylab, x = "Year", colour = NULL, fill = NULL) +
+    theme_bw()
+}
+
+#' Plot the yearly proportion of selected reasons for several groups
+#'
+#' One panel per group, stacked vertically with a shared y axis and the
+#' same colour for each reason in every panel, so the groups can be compared
+#' directly. Proportions are computed as in [compute_top_reasons_over_time()].
+#'
+#' @param data_list Named list of retraction data, one per group (e.g.
+#'   `list("United Kingdom" = uk, "Other OECD" = oecd)`). The names are the
+#'   panel titles.
+#' @param reasons_list Character vector of reasons to plot.
+#' @param min_retractions_per_year Years with fewer retractions are dropped.
+#'   Either one value or one per group.
+#' @inheritParams compute_top_reasons_over_time
+#' @return A ggplot object.
+#' @export
+plot_reasons_over_time_by_group <- function(data_list, reasons_list,
+                                            year_col = "retraction_year",
+                                            min_retractions_per_year = 0,
+                                            year_limits = NULL) {
+  min_retractions_per_year <- rep_len(min_retractions_per_year, length(data_list))
+  proportions <- bind_rows(Map(function(data, min_per_year) {
+    compute_top_reasons_over_time(data, n_top = NULL, year_col = year_col,
+                                  min_retractions_per_year = min_per_year,
+                                  year_limits = year_limits,
+                                  reasons_list = reasons_list)
+  }, data_list, min_retractions_per_year), .id = "group") %>%
+    mutate(group = factor(group, levels = names(data_list)),
+           Reason = factor(Reason, levels = reasons_list))
+
+  ggplot(proportions, aes(year, proportion, colour = Reason)) +
+    geom_line() +
+    geom_point(size = 1) +
+    facet_wrap(~group, ncol = 1) +
+    scale_y_continuous(labels = scales::label_percent()) +
+    labs(x = "Year", y = "Proportion of retractions citing the reason",
+         colour = NULL) +
     theme_bw()
 }
 

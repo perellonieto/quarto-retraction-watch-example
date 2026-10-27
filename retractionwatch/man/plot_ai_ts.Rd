@@ -8,21 +8,27 @@ plot_ai_ts(
   data,
   y = "ai_retractions",
   ylab = "AI Retractions (counts)",
-  year_limits = c(2000, 2025)
+  year_limits = c(2000, 2025),
+  labels = scales::label_number(drop0trailing = TRUE, big.mark = ",")
 )
 }
 \arguments{
 \item{data}{Output of \code{\link[=compute_ai_counts_ts]{compute_ai_counts_ts()}} or
 \code{\link[=compute_ai_proportion_ts]{compute_ai_proportion_ts()}}.}
 
-\item{y}{Column to plot on the (log) y axis.}
+\item{y}{Column to plot on the y axis. If the columns \verb{<y>_lower} and
+\verb{<y>_upper} exist they are drawn as confidence bands.}
 
 \item{ylab}{Y axis label.}
 
 \item{year_limits}{Range of publication years shown.}
+
+\item{labels}{Labels of the y axis breaks, e.g. \code{\link[scales:label_percent]{scales::label_percent()}}
+for proportions.}
 }
 \value{
-A ggplot object.
+A ggplot object, with a pseudo-log y axis (see \code{\link[=plot_scenario]{plot_scenario()}})
+so that zeros are shown.
 }
 \description{
 Plot a yearly AI retraction measure by country class and scenario

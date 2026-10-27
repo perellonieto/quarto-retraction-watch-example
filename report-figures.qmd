@@ -1,0 +1,96 @@
+---
+title: "Report Figures"
+format:
+  html:
+    code-fold: true
+---
+
+Figures and tables for the report, built with the `retractionwatch` package.
+
+How countries are counted:
+
+* **Each country:** a paper counts once in every country of its authors.
+* **Groups:** a paper counts once, in a single group:
+  * **United Kingdom:** at least one UK author.
+  * **Other OECD:** no UK author, but at least one author from another OECD country.
+  * **Rest of World:** no author from the UK or another OECD country.
+* **Papers with no known country** ("Unknown" in Retraction Watch) are left out.
+
+Retraction Watch entries include all notice types (retractions, expressions of concern, corrections and reinstatements). Mass retractions (IEEE 2009–2011, Hindawi 2022–2024) are included.
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r}
+devtools::load_all("retractionwatch", quiet = TRUE)
+library(plotly)
+
+sjr_country_counts <- build_sjr_country_counts("data/sjr_rankings")
+oecd_countries <- load_oecd_countries("data/oecd_countries.csv")
+retraction_data <- load_retraction_data("data/retraction_watch.csv", oecd_countries)
+```
+
+# AI retractions in the 10 OECD countries with most retractions
+
+The 10 OECD countries with the most retractions, excluding mass retractions, as on the [library analysis page](retraction-analysis-library.qmd). Counts and rates cover papers published in 2017–2025, when almost all AI retractions happen, for both the retractions and the SCImago publication counts. A retraction mentions AI when one of its reasons is "Computer-Aided Content" or "Computer-Generated Content". Intervals are exact 95% confidence intervals (binomial for percentages, Poisson for rates).
+
+```{r}
+ai_years <- c(2017, 2025)
+
+# A paper with authors in several countries counts once for each of them
+top_10_oecd_countries <- retraction_data |>
+  filter(Mass_Retraction == "Other", Country %in% oecd_countries$Name) |>
+  distinct(`Record ID`, Country) |>
+  count(Country, name = "retractions", sort = TRUE) |>
+  slice_head(n = 10)
+
+retraction_ai_rates <- compute_ai_rates_by_country(retraction_data, sjr_country_counts,
+                                                   publication_years = ai_years)
+
+knitr::kable(ai_rates_table(retraction_ai_rates, top_10_oecd_countries, "All"),
+             format.args = list(big.mark = ","),
+             caption = "AI retractions of papers published 2017–2025, all retractions, sorted by rate per 100,000 papers")
+```
+
+# AI retractions as a proportion of all retractions
+
+For each publication year, the proportion of retractions in each group that mention AI. Shaded bands are exact 95% binomial confidence intervals. The y axis is pseudo-log: linear near 0 and logarithmic above, so years with no AI retractions still show at 0.
+
+```{r}
+retraction_ai_prop_ts <- compute_ai_proportion_ts(retraction_data) |>
+  filter(scenario == "All")
+
+autorange_axes(ggplotly(
+  plot_ai_ts(retraction_ai_prop_ts, "prop_ai",
+             "Retractions mentioning AI (pseudo-log scale, 95% CI)",
+             labels = scales::label_percent(drop0trailing = TRUE)) +
+    theme(strip.text = element_blank())
+))
+```
+
+# Top 10 retraction reasons in the UK and the rest of the OECD
+
+The 10 reasons cited by the most Other OECD retractions from 2017 onwards, as a single list. Each panel shows the yearly proportion of that group's retractions citing each reason, by retraction year. A retraction can cite several reasons, so the proportions in a year can add up to more than 100%. Years with fewer than 20 retractions (UK) or 80 (Other OECD) are left out, as on the library page.
+
+```{r}
+retraction_data_uk <- subset(retraction_data, country_class == "United Kingdom")
+retraction_data_oecd <- subset(retraction_data, country_class == "Other OECD")
+
+top_10_reasons <- top_reasons_overall(retraction_data_oecd, n = 10,
+                                      year_limits = c(2017, 2025))
+
+knitr::kable(tibble::tibble(Rank = seq_along(top_10_reasons), Reason = top_10_reasons),
+             caption = "Top 10 reasons in Other OECD retractions since 2017")
+```
+
+```{r}
+#| fig-height: 9
+ggplotly(
+  plot_reasons_over_time_by_group(
+    list("United Kingdom" = retraction_data_uk, "Other OECD" = retraction_data_oecd),
+    reasons_list = top_10_reasons,
+    min_retractions_per_year = c(20, 80),
+    year_limits = c(2000, 2025)),
+  height = 900)
+```

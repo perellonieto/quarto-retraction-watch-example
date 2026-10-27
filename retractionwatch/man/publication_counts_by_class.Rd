@@ -15,5 +15,10 @@ publication_counts_by_class(sjr_country_counts, oecd_countries)
 A tibble with \code{publication_year}, \code{country_class} and \code{total_papers}.
 }
 \description{
-Total publications per year and country class
+SCImago only gives totals per country, in which a paper with authors in
+several countries is counted once for each of them. Summing countries is
+exact for the United Kingdom, but for "Other OECD" and "Rest of World" it
+counts collaborations within the class more than once and includes papers
+that the per-paper retraction classes assign to a higher class, so rates
+for those two classes are biased low.
 }

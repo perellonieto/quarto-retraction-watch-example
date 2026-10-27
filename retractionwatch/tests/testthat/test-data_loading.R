@@ -53,5 +53,14 @@ test_that("load_retraction_data() returns cleaned data with a country class", {
     unique(data$country_class[data$Country == "United Kingdom"]), "United Kingdom"
   )
   expect_equal(unique(data$country_class[data$Country == "France"]), "Other OECD")
-  expect_equal(unique(data$country_class[data$Country == "China"]), "Rest of World")
+  # China appears alone (Rest of World) and with the UK (United Kingdom)
+  expect_setequal(data$country_class[data$Country == "China"],
+                  c("United Kingdom", "Rest of World"))
+})
+
+test_that("SCImago country names are recoded to Retraction Watch names", {
+  counts <- recode_sjr_countries(
+    data.frame(Country = c("Russian Federation", "Viet Nam", "France")))
+
+  expect_equal(counts$Country, c("Russia", "Vietnam", "France"))
 })

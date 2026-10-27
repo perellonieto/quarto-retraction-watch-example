@@ -7,7 +7,9 @@
 compute_ai_rates_by_country(
   retraction_data,
   sjr_country_counts,
-  scenarios = default_scenarios()
+  scenarios = default_scenarios(),
+  publication_years = NULL,
+  conf_level = 0.95
 )
 }
 \arguments{
@@ -16,11 +18,29 @@ compute_ai_rates_by_country(
 \item{sjr_country_counts}{SCImago counts, see \code{\link[=build_sjr_country_counts]{build_sjr_country_counts()}}.}
 
 \item{scenarios}{Scenarios table, see \code{\link[=default_scenarios]{default_scenarios()}}.}
+
+\item{publication_years}{Optional length-2 vector with the first and last
+publication year, applied to both the retractions and the SCImago
+counts so that both cover the same years.}
+
+\item{conf_level}{Confidence level of the intervals.}
 }
 \value{
 A tibble with AI retraction counts, their share of all retractions
-and their rate per published paper.
+(with exact binomial intervals) and their rate per published paper
+(with exact Poisson intervals). Interval columns end in \verb{_lower} and
+\verb{_upper}.
 }
 \description{
-AI retraction shares and rates per country and scenario
+Pass the full retraction data (with mass retractions): the scenarios
+decide whether mass retractions are excluded. Every country with a
+retraction gets a row in every scenario, with zero counts where it has
+none, so countries without AI retractions are not silently dropped.
+}
+\details{
+The rate per published paper is \code{NA} in domestic-only scenarios: SCImago
+counts all of a country's papers, not only its domestic ones, so the
+rate would compare domestic retractions with all papers. Use the share of
+retractions that mention AI there instead, whose numerator and
+denominator are both domestic.
 }
