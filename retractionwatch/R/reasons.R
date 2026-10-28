@@ -340,6 +340,7 @@ calculate_proportion_of_retractions_per_year <- function(retraction_data,
 calculate_proportion_of_retractions_per_year_by_publisher <- function(retraction_data,
                                                                       publisher_list,
                                                                       reasons = NULL,
+                                                                      n_top_reasons = NULL,
                                                                       yearmin = NULL,
                                                                       yearmax = NULL,
                                                                       year_col = "retraction_year") {
@@ -351,10 +352,12 @@ calculate_proportion_of_retractions_per_year_by_publisher <- function(retraction
     if (is.null(yearmax)) Inf else yearmax
   )
 
+  # TODO: I added n_top_reasons that may conflict with reasons if used in the wrong way. Consider a warning and a default solution
+
   bind_rows(lapply(stats::setNames(publisher_list, publisher_list), function(publisher) {
     compute_top_reasons_over_time(
       filter(retraction_data, Publisher == publisher),
-      n_top = NULL,
+      n_top = n_top_reasons,
       year_col = year_col,
       min_retractions_per_year = 0,
       year_limits = year_limits,
@@ -457,4 +460,40 @@ top_reasons_per_year <- function(reason_counts, n_top) {
     slice_max(n, n = n_top, with_ties = FALSE) %>%
     pull(Reason) %>%
     unique()
+}
+
+
+#' Most frequent retraction reasons over a period
+#'
+#' Ranks the retraction reasons by the proportion of retractions citing them
+#' over all the years in `year_limits` together, and returns the top
+#' `n_top`. Unlike [compute_top_reasons_over_time()], which keeps the
+#' reasons in the top of any single year, this gives one ranking for the
+#' whole period. Retractions are de-duplicated by `Record ID`, and one
+#' citing several reasons counts once for each of them.
+#'
+#' @param retraction_data Output of [load_retraction_data()].
+#' @param n_top Number of reasons to return.
+#' @param year_limits Optional length-2 vector with the first and last year
+#'   (inclusive). All years if `NULL`.
+#' @inheritParams compute_top_reasons_over_time
+#' @return A character vector with the `n_top` reasons cited in the largest
+#'   proportion of retractions, from the most to the least cited.
+#' @export
+select_top_retraction_reasons <- function(retraction_data,
+                                          n_top = 10,
+                                          year_limits = NULL,
+                                          year_col = "retraction_year",
+                                          exclude_reasons = NULL) {
+  counts <- yearly_reason_counts(retraction_data, year_col,
+                                 min_retractions_per_year = 0, year_limits,
+                                 exclude_reasons)
+  n_retractions <- sum(counts$totals$total)
+
+  counts$reason_counts %>%
+    group_by(Reason) %>%
+    summarise(proportion = sum(n) / n_retractions, .groups = "drop") %>%
+    arrange(desc(proportion), Reason) %>%
+    slice_head(n = n_top) %>%
+    pull(Reason)
 }

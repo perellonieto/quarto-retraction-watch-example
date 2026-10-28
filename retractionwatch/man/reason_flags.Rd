@@ -12,7 +12,8 @@ reason_flags(data, group_col = "country_class", split_year = 2017)
 \item{group_col}{Name of the column defining the groups to compare
 (e.g. \code{"country_class"} or \code{"international"}).}
 
-\item{split_year}{Publication year separating the two periods.}
+\item{split_year}{Publication year separating the two periods. The second
+group will include the split_year.}
 }
 \value{
 A wide tibble of reason flags.

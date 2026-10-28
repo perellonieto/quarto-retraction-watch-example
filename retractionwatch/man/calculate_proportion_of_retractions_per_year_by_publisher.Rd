@@ -8,6 +8,7 @@ calculate_proportion_of_retractions_per_year_by_publisher(
   retraction_data,
   publisher_list,
   reasons = NULL,
+  n_top_reasons = NULL,
   yearmin = NULL,
   yearmax = NULL,
   year_col = "retraction_year"

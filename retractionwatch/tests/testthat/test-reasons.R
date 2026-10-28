@@ -204,3 +204,26 @@ test_that("count_number_of_retractions_per_column() counts distinct papers per v
   expect_equal(result$Publisher, c("P2", "P1"))
   expect_equal(result$retractions, c(3, 1))
 })
+
+test_that("select_top_retraction_reasons() ranks reasons over the whole period", {
+  data <- rbind(
+    make_retractions(c("R1;", "R1;", "R1;"), 2019),
+    make_retractions(c("R2;R3;", "R2;", "R3;"), 2020),
+    make_retractions(c("R2;", "R4;"), 2021)
+  )
+  data$`Record ID` <- seq_len(nrow(data))
+
+  # 2020-2021: R2 in 3/5 retractions, R3 in 2/5 and R4 in 1/5
+  expect_equal(select_top_retraction_reasons(data, n_top = 2,
+                                             year_limits = c(2020, 2021)),
+               c("R2", "R3"))
+  expect_equal(select_top_retraction_reasons(data, n_top = 10,
+                                             year_limits = c(2020, 2021)),
+               c("R2", "R3", "R4"))
+  # All years: R1 and R2 tie at 3/8, ahead of R3 at 2/8
+  expect_equal(select_top_retraction_reasons(data, n_top = 3),
+               c("R1", "R2", "R3"))
+  expect_equal(select_top_retraction_reasons(data, n_top = 1,
+                                             exclude_reasons = "R1"),
+               "R2")
+})

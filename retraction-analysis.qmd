@@ -449,7 +449,6 @@ reasons_compare_results<- reasons_compare_results %>%
   mutate(significant_filtered = p_adj_filtered < 0.05)
 
 
-write.csv(reasons_compare_results, "./variable_reasons_compare_results_original.csv")
 checkpoint(reasons_compare_results, "05_reasons_compare_results")
 ```
 
@@ -644,7 +643,6 @@ retraction_ai_rates <- retraction_ai_counts %>%
 
 print(retraction_ai_rates)
 
-write.csv(retraction_ai_rates, "./variable_retraction_ai_rates_original.csv")
 checkpoint(retraction_ai_rates, "06_retraction_ai_rates")
 ```
 
