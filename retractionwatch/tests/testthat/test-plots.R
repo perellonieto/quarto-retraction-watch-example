@@ -136,3 +136,84 @@ test_that("plot_reason_proportions_across_groups_by_year() gives each band its l
   expect_equal(sort(names[in_legend]), c("R1", "R2"))
   expect_equal(vapply(traces, function(t) t$legendgroup, character(1)), names)
 })
+
+test_that("plot_number_of_total_retractions_per_year() counts distinct papers per year", {
+  # Paper 1 has two countries, so it has two rows; paper 4 has no year
+  data <- tibble::tibble(
+    `Record ID` = c(1, 1, 2, 3, 4, 5),
+    Country = c("A", "B", "A", "A", "A", "B"),
+    retraction_year = c(2019, 2019, 2019, 2020, NA, 2021),
+    publication_year = c(2018, 2018, 2018, 2018, 2020, 2020)
+  )
+
+  p <- plot_number_of_total_retractions_per_year(data)
+  expect_s3_class(p, "ggplot")
+  expect_equal(p$data$year, c(2019, 2020, 2021))
+  expect_equal(p$data$retractions, c(2, 1, 1))
+  expect_equal(p$labels$x, "Retraction year")
+
+  limited <- plot_number_of_total_retractions_per_year(data, year_limits = c(2020, 2021))
+  expect_equal(limited$data$year, c(2020, 2021))
+
+  by_publication <- plot_number_of_total_retractions_per_year(data, year_col = "publication_year")
+  expect_equal(by_publication$data$retractions, c(3, 2))
+  expect_equal(by_publication$labels$x, "Publication year")
+})
+
+test_that("plot_number_of_distinct_reasons_per_year() counts each reason once per year", {
+  # 2019: R1, R2 (R1 cited twice, paper 1 has two country rows); 2020: R1, R2, R3
+  data <- tibble::tibble(
+    `Record ID` = c(1, 1, 2, 3, 4),
+    Country = c("A", "B", "A", "A", "B"),
+    retraction_year = c(2019, 2019, 2019, 2020, 2020),
+    Reason = c("R1;R2;", "R1;R2;", "R1;", "R1;R2;", "R3;")
+  )
+
+  p <- plot_number_of_distinct_reasons_per_year(data)
+  expect_s3_class(p, "ggplot")
+  expect_equal(p$data$year, c(2019, 2020))
+  expect_equal(p$data$reasons, c(2, 3))
+
+  expect_equal(plot_number_of_distinct_reasons_per_year(data, year_limits = c(2020, 2020))$data$reasons, 3)
+  expect_equal(plot_number_of_distinct_reasons_per_year(data, exclude_reasons = "R1")$data$reasons, c(1, 2))
+})
+
+test_that("plot_first_year_occurrence_per_reason() finds each reason's first year", {
+  # R1 cited in 1975, 1990 and 2000; R2 in 1990 (twice); R3 in 2000 and 2010
+  data <- tibble::tibble(
+    `Record ID` = 1:5,
+    retraction_year = c(1975, 1990, 1990, 2000, 2010),
+    Reason = c("R1;", "R2;", "R1;R2;", "R3;R1;", "R3;")
+  )
+
+  p <- plot_first_year_occurrence_per_reason(data)
+  expect_s3_class(p, "ggplot")
+  data_shown <- dplyr::arrange(p$data, first_year)
+  expect_equal(as.character(data_shown$Reason), c("R1", "R2", "R3"))
+  expect_equal(data_shown$first_year, c(1975, 1990, 2000))
+  expect_equal(data_shown$n, c(1, 2, 1))
+  expect_equal(data_shown$last_year, c(2000, 1990, 2010))
+  expect_equal(data_shown$last_n, c(1, 2, 1))
+  expect_equal(data_shown$line_end, data_shown$last_year)
+  expect_length(p$layers, 3)
+  # Oldest reason at the top of the y axis
+  expect_equal(levels(p$data$Reason), c("R3", "R2", "R1"))
+
+  # The first year is computed on all the data, not only within the limits
+  limited <- plot_first_year_occurrence_per_reason(data, year_limits = c(1980, 2005))
+  expect_equal(as.character(dplyr::arrange(limited$data, first_year)$Reason),
+               c("R2", "R3"))
+  # R3 is last cited in 2010, after the period, so its last year is 2000
+  expect_equal(dplyr::arrange(limited$data, first_year)$last_year, c(1990, 2000))
+
+  # Without show_last, every line runs to the end of the period
+  to_end <- plot_first_year_occurrence_per_reason(data, year_limits = c(1980, 2005),
+                                                  show_last = FALSE)
+  expect_equal(unique(to_end$data$line_end), 2005)
+  expect_length(to_end$layers, 2)
+
+  # reason_list keeps only the listed reasons
+  listed <- plot_first_year_occurrence_per_reason(data, reason_list = list("R1", "R3"))
+  expect_setequal(as.character(listed$data$Reason), c("R1", "R3"))
+  expect_match(limited$labels$title, "1 reason first cited before 1980 not shown")
+})

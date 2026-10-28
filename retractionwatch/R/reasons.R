@@ -497,3 +497,27 @@ select_top_retraction_reasons <- function(retraction_data,
     slice_head(n = n_top) %>%
     pull(Reason)
 }
+
+#' Retraction reasons not cited in a given year
+#'
+#' Returns the reasons cited by at least one retraction in
+#' `retraction_data` but by none in `year`. This includes reasons that were
+#' no longer used by then and reasons first cited after `year`. Reasons are
+#' split and cleaned as in [compute_top_reasons_over_time()].
+#'
+#' @param retraction_data Output of [load_retraction_data()].
+#' @param year Year to check.
+#' @inheritParams compute_top_reasons_over_time
+#' @return A sorted character vector of reasons.
+#' @export
+find_reasons_not_reported_in_year <- function(retraction_data,
+                                              year,
+                                              year_col = "retraction_year",
+                                              exclude_reasons = NULL) {
+  reason_counts <- yearly_reason_counts(retraction_data, year_col,
+                                        min_retractions_per_year = 0,
+                                        year_limits = NULL,
+                                        exclude_reasons)$reason_counts
+  sort(setdiff(unique(reason_counts$Reason),
+               reason_counts$Reason[reason_counts$year == year]))
+}

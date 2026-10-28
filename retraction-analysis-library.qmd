@@ -50,6 +50,31 @@ checkpoint(publication_counts, "03_publication_counts")
 #  add_country_class(oecd_countries)
 ```
 
+Number of retracted papers without mass-retractions
+
+```{r}
+ggplotly(plot_number_of_total_retractions_per_year(retraction_data_nomass,
+year_limits = c(2000, 2026)))
+```
+
+
+```{r}
+ggplotly(plot_number_of_distinct_reasons_per_year(retraction_data, year_limits = c(1980, 2026), colour = "hotpink2") )
+```
+
+```{r}
+ggplotly(plot_first_year_occurrence_per_reason(retraction_data, year_limits = NULL, show_last = TRUE), height = 900)
+```
+
+```{r}
+reasons_not_reported_in_2026 <- find_reasons_not_reported_in_year(retraction_data, 2026)
+```
+
+```{r}
+ggplotly(plot_first_year_occurrence_per_reason(retraction_data, year_limits = NULL, show_last = TRUE, reason_list = reasons_not_reported_in_2026), height = 400) 
+```
+
+
 # Top 2 retraction reasons of each year (2000-2025) in the OECD and UK
 
 ## In the UK
@@ -60,12 +85,24 @@ retraction_data_uk <- retraction_data |>
 ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = c(2000, 2026), n_top = 2, min_retractions_per_year = 20))
 ```
 
+```{r}
+ggplotly(plot_number_of_total_retractions_per_year(retraction_data_uk %>% filter(Mass_Retraction == "Other"),
+year_limits = c(2000, 2026),
+colour = "steelblue"))
+```
+
 ## In the OECD without the UK
 
 ```{r}
 retraction_data_oecd <- retraction_data |>
   subset((Country %in% oecd_countries$Name) & (Country != "United Kingdom"))
 ggplotly(plot_retraction_reasons_over_time(retraction_data_oecd, year_limits = c(2000, 2026), n_top = 2, min_retractions_per_year = 80))
+```
+
+```{r}
+ggplotly(plot_number_of_total_retractions_per_year(retraction_data_oecd %>% filter(Mass_Retraction == "Other"),
+year_limits = c(2000, 2026),
+colour = "brown2"))
 ```
 
 ## Top reasons that are shared and non-shared across UK and the rest of the OECD
@@ -140,10 +177,10 @@ autorange_axes(ggplotly(plot_retraction_rates(retraction_rates)))
 
 # Applying reasons: United Kingdom vs Other OECD
 
-Statistical comparison of the retraction reasons between the UK and the rest of the OECD excluding the mass retractions. The for each period (pre and post 2017) and retraction reason, computes the proportion and count of retractions in the UK and the rest of the OECD, the difference in proportions, a two-sample proportion test p-value and its Benjamini-Hochberg adjustment.
+Statistical comparison of the retraction reasons between the UK and the rest of the OECD **excluding the mass retractions**. The for each period (pre and post 2017) and retraction reason, computes the proportion and count of retractions in the UK and the rest of the OECD, the difference in proportions, a two-sample proportion test p-value and its Benjamini-Hochberg adjustment.
 
 ```{r}
-reasons_compare_results <- retraction_data |>
+reasons_compare_results <- retraction_data_nomass |>
   reason_flags("country_class") |>
   compare_reason_groups(group_col = "country_class", group_a = "United Kingdom", group_b = "Other OECD")
 ratios <- group_count_ratios(reasons_compare_results, "United Kingdom", "Other OECD")
@@ -184,28 +221,28 @@ filtered_reasons <- reasons_compare_results %>%
 
 print(filtered_reasons$flag)
 
-retraction_data_uk_post2017 <- retraction_data_uk %>%
-  filter(publication_year >= 2017 & Mass_Retraction == "Other")
+#retraction_data_uk_post2017 <- retraction_data_uk %>%
+#  filter(publication_year >= 2017 & Mass_Retraction == "Other")
 
-retraction_data_uk_post2017_significant <- retraction_data_uk_post2017 %>%
-  separate_rows(Reason, sep = ";") %>%
-  mutate(Reason = str_trim(Reason)) %>%
-  filter(Reason != "", Reason %in% filtered_reasons$flag)
+#retraction_data_uk_post2017_significant <- retraction_data_uk_post2017 %>%
+#  separate_rows(Reason, sep = ";") %>%
+#  mutate(Reason = str_trim(Reason)) %>%
+#  filter(Reason != "", Reason %in% filtered_reasons$flag)
 ```
 
 ```{r}
 selected_reasons <- filtered_reasons$flag
 ```
 
-The mean proportions for the significant and with adequate count reasons across the years 2017 and 2026, and the interquartile range for the UK and the rest of the OECD.
+The mean proportions for the significant and with adequate count reasons across the years 2017 and 2026, and the interquartile range for the UK and the rest of the OECD. Excluding mass retractions.
 
 ```{r}
 ggplotly(plot_reason_proportions_forest(
-  retraction_data_uk,
-  retraction_data_oecd,
+  retraction_data_uk %>% filter(Mass_Retraction == "Other"),
+  retraction_data_oecd %>% filter(Mass_Retraction == "Other"),
   reasons_list = selected_reasons,
   labels = c("UK", "Other OECD"),
-  year_limits = c(2017, 2026)))
+  year_limits = c(2017, 2026)), height = 300)
 ```
 
 
@@ -412,19 +449,19 @@ significant_reasons_per_country_and_year <- calculate_proportion_of_retractions_
 ```
 
 ```{r}
-first_reason <- unique(significant_reasons_per_country_and_year$Reason)[1]
-
-ggplotly(ggplot(significant_reasons_per_country_and_year |> filter(Reason == first_reason),
+plots <- lapply(unique(significant_reasons_per_country_and_year$Reason), function(reason) {
+ggplotly(ggplot(significant_reasons_per_country_and_year |> filter(Reason == reason),
        aes(x = year, y = proportion, colour = Country)) +
   geom_line() +
   geom_point() +
   scale_y_continuous(labels = scales::percent) +
-  labs(title = first_reason,
+  labs(title = reason,
        x = "Year",
        y = "Proportion of retractions",
        colour = "Country") +
   theme_minimal()
-)
+)})
+htmltools::tagList(plots)
 ```
 
 ```{r}
@@ -684,5 +721,21 @@ top_5_reasons_per_country_and_year <- calculate_proportion_of_retractions_per_ye
 
 ```{r}
 plot_reason_proportions_across_groups_by_year(top_5_reasons_per_country_and_year,
+interactive = TRUE)
+```
+
+## Only the UK
+
+```{r}
+top_5_reasons_uk_and_year <- calculate_proportion_of_retractions_per_year(
+  retraction_data_nomass,
+  country_list = c("United Kingdom"),
+  reasons = top_5_reasons,
+  yearmin = 2017,
+  yearmax = 2026)
+```
+
+```{r}
+plot_reason_proportions_across_groups_by_year(top_5_reasons_uk_and_year,
 interactive = TRUE)
 ```

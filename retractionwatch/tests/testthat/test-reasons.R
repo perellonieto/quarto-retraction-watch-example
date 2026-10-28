@@ -227,3 +227,18 @@ test_that("select_top_retraction_reasons() ranks reasons over the whole period",
                                              exclude_reasons = "R1"),
                "R2")
 })
+
+test_that("find_reasons_not_reported_in_year() lists the reasons absent that year", {
+  data <- rbind(
+    make_retractions(c("R1;R2;", "R3;"), 2019),
+    make_retractions(c("R1;", "R2;"), 2020),
+    make_retractions("R4;", 2021)
+  )
+  data$`Record ID` <- seq_len(nrow(data))
+
+  expect_equal(find_reasons_not_reported_in_year(data, 2020), c("R3", "R4"))
+  expect_equal(find_reasons_not_reported_in_year(data, 2021), c("R1", "R2", "R3"))
+  expect_equal(find_reasons_not_reported_in_year(data, 2020, exclude_reasons = "R4"), "R3")
+  # A year without retractions lacks every reason
+  expect_equal(find_reasons_not_reported_in_year(data, 2030), c("R1", "R2", "R3", "R4"))
+})

@@ -622,6 +622,187 @@ plot_reason_proportions_across_groups_by_year <- function(proportions,
   widget
 }
 
+#' Bar plot of the number of retractions per year
+#'
+#' Counts the distinct retracted papers (`Record ID`) of each year, so a
+#' paper with authors in several countries counts once.
+#'
+#' @param retraction_data Output of [load_retraction_data()], or a subset of
+#'   it (e.g. without mass retractions).
+#' @param year_col Year column to use, `"retraction_year"` or
+#'   `"publication_year"`.
+#' @param year_limits Optional length-2 vector with the first and last year
+#'   (inclusive).
+#' @param title Plot title.
+#' @param colour Fill colour of the bars.
+#' @return A ggplot object. Its data has columns `year` and `retractions`.
+#' @export
+plot_number_of_total_retractions_per_year <- function(retraction_data,
+                                                      year_col = "retraction_year",
+                                                      year_limits = NULL,
+                                                      title = "Number of retractions per year",
+                                                      colour = "#1b9e77") {
+  counts <- retraction_data %>%
+    distinct(`Record ID`, year = .data[[year_col]]) %>%
+    filter(!is.na(year))
+  if (!is.null(year_limits)) {
+    counts <- counts %>%
+      filter(year >= year_limits[1], year <= year_limits[2])
+  }
+  counts <- count(counts, year, name = "retractions")
+
+  ggplot(counts, aes(year, retractions)) +
+    geom_col(fill = colour) +
+    scale_y_continuous(labels = scales::label_comma()) +
+    labs(
+      x = if (year_col == "publication_year") "Publication year" else "Retraction year",
+      y = "Number of retractions",
+      title = title
+    ) +
+    theme_minimal()
+}
+
+#' Bar plot of the number of distinct retraction reasons per year
+#'
+#' Counts how many different reasons are cited by the retractions of each
+#' year. Reasons are split and cleaned as in [compute_top_reasons_over_time()],
+#' and a reason counts once per year however many retractions cite it.
+#'
+#' @inheritParams plot_number_of_total_retractions_per_year
+#' @inheritParams compute_top_reasons_over_time
+#' @return A ggplot object. Its data has columns `year` and `reasons`.
+#' @export
+plot_number_of_distinct_reasons_per_year <- function(retraction_data,
+                                                     year_col = "retraction_year",
+                                                     year_limits = NULL,
+                                                     exclude_reasons = NULL,
+                                                     title = "Number of distinct retraction reasons per year",
+                                                     colour = "#1b9e77") {
+  counts <- yearly_reason_counts(retraction_data, year_col,
+                                 min_retractions_per_year = 0, year_limits,
+                                 exclude_reasons)$reason_counts %>%
+    count(year, name = "reasons")
+
+  ggplot(counts, aes(year, reasons)) +
+    geom_col(fill = colour) +
+    labs(
+      x = if (year_col == "publication_year") "Publication year" else "Retraction year",
+      y = "Number of distinct reasons",
+      title = title
+    ) +
+    theme_minimal()
+}
+
+#' Timeline of the first year each retraction reason was cited
+#'
+#' For every reason, finds the first year in which a retraction cited it and
+#' plots one row per reason, ordered from the oldest (top) to the newest
+#' (bottom): a point at the first year and a line from there to the last
+#' year the reason was cited (hollow point) or, with `show_last = FALSE`, to
+#' the end of the period. The first year is always computed on all of `retraction_data`;
+#' `year_limits` only selects which reasons are shown (those first cited
+#' within the limits), so a reason never looks newer than it is. The title
+#' says how many reasons were first cited before the period. Reasons are
+#' split and cleaned as in [compute_top_reasons_over_time()].
+#'
+#' With about a hundred reasons the plot needs to be tall, e.g.
+#' `ggplotly(p, height = 1400)` or a large `fig-height` chunk option.
+#'
+#' @inheritParams plot_number_of_total_retractions_per_year
+#' @inheritParams compute_top_reasons_over_time
+#' @param show_last If `TRUE`, each line ends at the last year the reason was
+#'   cited (within `year_limits`), marked with a hollow point. If `FALSE`,
+#'   every line runs to the end of the period.
+#' @param reason_list Optional character vector (or list) of reasons to plot,
+#'   e.g. the output of [find_reasons_not_reported_in_year()]. All reasons
+#'   if `NULL`.
+#' @return A ggplot object. Its data has one row per reason shown with
+#'   columns `Reason`, `first_year` and `n` (first year and number of
+#'   retractions citing the reason that year), `last_year` and `last_n` (the
+#'   same for the last year it was cited) and `line_end` (end of the line).
+#' @export
+plot_first_year_occurrence_per_reason <- function(retraction_data,
+                                                  year_col = "retraction_year",
+                                                  year_limits = NULL,
+                                                  exclude_reasons = NULL,
+                                                  colour = "#1b9e77",
+                                                  show_last = TRUE,
+                                                  reason_list = NULL) {
+  reason_counts <- yearly_reason_counts(retraction_data, year_col,
+                                        min_retractions_per_year = 0,
+                                        year_limits = NULL,
+                                        exclude_reasons)$reason_counts
+  period_end <- max(reason_counts$year)
+  if (!is.null(year_limits)) {
+    period_end <- min(period_end, year_limits[2])
+  }
+  first_years <- reason_counts %>%
+    group_by(Reason) %>%
+    slice_min(year, n = 1, with_ties = FALSE) %>%
+    ungroup() %>%
+    select(Reason, first_year = year, n)
+  # Last year cited up to the end of the period
+  last_years <- reason_counts %>%
+    filter(year <= period_end) %>%
+    group_by(Reason) %>%
+    slice_max(year, n = 1, with_ties = FALSE) %>%
+    ungroup() %>%
+    select(Reason, last_year = year, last_n = n)
+  first_years <- first_years %>%
+    inner_join(last_years, by = "Reason") %>%
+    mutate(line_end = if (show_last) last_year else period_end)
+  if (!is.null(reason_list)) {
+    first_years <- filter(first_years,
+                          Reason %in% as.character(unlist(reason_list)))
+  }
+
+  title <- "First year each retraction reason was cited"
+  if (!is.null(year_limits)) {
+    n_before <- sum(first_years$first_year < year_limits[1])
+    first_years <- first_years %>%
+      filter(first_year >= year_limits[1], first_year <= year_limits[2])
+    if (n_before > 0) {
+      title <- paste0(title, "\n(", n_before,
+                      if (n_before == 1) " reason" else " reasons",
+                      " first cited before ", year_limits[1], " not shown)")
+    }
+  }
+  # Oldest reasons at the top
+  first_years <- first_years %>%
+    arrange(first_year, Reason) %>%
+    mutate(Reason = factor(Reason, levels = rev(Reason)))
+
+  hover <- function(label, year, n) {
+    paste0(label, year, " (", n, ifelse(n == 1, " retraction)", " retractions)"))
+  }
+  p <- ggplot(first_years, aes(y = Reason)) +
+    geom_segment(aes(x = first_year, xend = line_end, yend = Reason),
+                 colour = colour, alpha = if (show_last) 0.5 else 0.25)
+  # `text` is ignored by ggplot2 but shown in the ggplotly() hover text.
+  # Last years are drawn first so that, for a reason cited in a single year,
+  # the filled first-year point stays visible on top
+  if (show_last) {
+    p <- p +
+      suppressWarnings(geom_point(aes(
+        x = last_year,
+        text = paste0(Reason, "<br>", hover("Last cited: ", last_year, last_n))
+      ), colour = colour, size = 2, shape = 21, fill = "white"))
+  }
+  p +
+    suppressWarnings(geom_point(aes(
+      x = first_year,
+      text = paste0(Reason, "<br>", hover("First cited: ", first_year, n))
+    ), colour = colour, size = 2)) +
+    labs(
+      x = if (year_col == "publication_year") "Publication year" else "Retraction year",
+      y = NULL,
+      title = title
+    ) +
+    theme_minimal() +
+    theme(panel.grid.major.y = element_blank(),
+          axis.text.y = element_text(size = 7))
+}
+
 # Yearly proportion of `data_a` retractions citing each reason minus that of
 # `data_b`, as in compute_top_reasons_over_time(). Returns columns year,
 # Reason, proportion_a, proportion_b and difference, for the years present
