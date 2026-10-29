@@ -205,6 +205,29 @@ test_that("count_number_of_retractions_per_column() counts distinct papers per v
   expect_equal(result$retractions, c(3, 1))
 })
 
+test_that("count_number_of_retractions_per_column() can count only some years", {
+  data <- tibble::tibble(`Record ID` = c(1, 1, 2, 3, 4, 5),
+                         Publisher = c("P1", "P1", "P1", "P2", "P2", "P2"),
+                         retraction_year = c(2015, 2015, 2018, 2018, 2020, NA),
+                         publication_year = c(2010, 2010, 2016, 2017, 2019, 2019))
+
+  # All years: P2 has 3 papers, P1 has 2
+  expect_equal(count_number_of_retractions_per_column(data, "Publisher")$retractions,
+               c(3, 2))
+
+  # 2017-2020 leaves out paper 1 (2015) and paper 5 (no year)
+  result <- count_number_of_retractions_per_column(data, "Publisher",
+                                                   year_limits = c(2017, 2020))
+  expect_equal(result$Publisher, c("P2", "P1"))
+  expect_equal(result$retractions, c(2, 1))
+
+  by_publication <- count_number_of_retractions_per_column(
+    data, "Publisher", year_limits = c(2016, 2019), year_col = "publication_year"
+  )
+  expect_equal(by_publication$Publisher, c("P2", "P1"))
+  expect_equal(by_publication$retractions, c(3, 1))
+})
+
 test_that("select_top_retraction_reasons() ranks reasons over the whole period", {
   data <- rbind(
     make_retractions(c("R1;", "R1;", "R1;"), 2019),
@@ -241,4 +264,26 @@ test_that("find_reasons_not_reported_in_year() lists the reasons absent that yea
   expect_equal(find_reasons_not_reported_in_year(data, 2020, exclude_reasons = "R4"), "R3")
   # A year without retractions lacks every reason
   expect_equal(find_reasons_not_reported_in_year(data, 2030), c("R1", "R2", "R3", "R4"))
+})
+
+test_that("one_hot_encoding_reasons_and_country_type() has one row per paper", {
+  # Paper 1 has two country rows; paper 3 has no reason
+  data <- tibble::tibble(
+    `Record ID` = c(1, 1, 2, 3),
+    Country = c("United Kingdom", "France", "France", "China"),
+    country_class = c("United Kingdom", "United Kingdom", "Other OECD", "Rest of World"),
+    Reason = c("Paper Mill;Error in Data;", "Paper Mill;Error in Data;", "Error in Data;", "")
+  )
+
+  result <- one_hot_encoding_reasons_and_country_type(data)
+
+  expect_equal(names(result), c("Record ID", "country_class", "error_in_data", "paper_mill"))
+  expect_equal(result$`Record ID`, c(1, 2, 3))
+  expect_equal(result$country_class, c("United Kingdom", "Other OECD", "Rest of World"))
+  expect_equal(result$error_in_data, c(1L, 1L, 0L))
+  expect_equal(result$paper_mill, c(1L, 0L, 0L))
+  expect_equal(attr(result, "reasons")[["paper_mill"]], "Paper Mill")
+
+  expect_error(one_hot_encoding_reasons_and_country_type(data, country_col = "Country"),
+               "several values")
 })

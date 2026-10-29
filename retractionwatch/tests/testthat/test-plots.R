@@ -217,3 +217,156 @@ test_that("plot_first_year_occurrence_per_reason() finds each reason's first yea
   expect_setequal(as.character(listed$data$Reason), c("R1", "R3"))
   expect_match(limited$labels$title, "1 reason first cited before 1980 not shown")
 })
+
+test_that("plot_number_of_retractions_per_year_per_publisher() counts papers per publisher and year", {
+  # Paper 1 has two country rows; paper 6 has no publisher
+  data <- tibble::tibble(
+    `Record ID` = c(1, 1, 2, 3, 4, 5, 6),
+    Publisher = c("P1", "P1", "P1", "P1", "P2", "P3", NA),
+    retraction_year = c(2019, 2019, 2019, 2020, 2020, 2021, 2020)
+  )
+
+  p <- plot_number_of_retractions_per_year_per_publisher(data)
+  expect_s3_class(p, "ggplot")
+  counts <- dplyr::arrange(p$data, Publisher, year)
+  expect_equal(as.character(counts$Publisher), c("P1", "P1", "P2", "P3"))
+  expect_equal(counts$year, c(2019, 2020, 2020, 2021))
+  expect_equal(counts$retractions, c(2, 1, 1, 1))
+  expect_equal(p$theme$legend.position, "none")
+
+  top <- plot_number_of_retractions_per_year_per_publisher(data, top_n = 1,
+                                                           show_legend = TRUE)
+  expect_equal(unique(as.character(top$data$Publisher)), "P1")
+  expect_equal(top$theme$legend.position, "right")
+
+  # Only the retractions of 2020-2021 are counted
+  limited <- plot_number_of_retractions_per_year_per_publisher(data, year_limits = c(2020, 2021))
+  expect_equal(sum(limited$data$retractions), 3)
+
+  expect_equal(p$labels$y, "Number of retractions")
+  log_scale <- plot_number_of_retractions_per_year_per_publisher(data, yscale = "log")
+  expect_equal(log_scale$scales$get_scales("y")$trans$name, "log-10")
+  expect_equal(log_scale$labels$y, "Number of retractions (log scale)")
+  expect_error(plot_number_of_retractions_per_year_per_publisher(data, yscale = "sqrt"))
+})
+
+test_that("plot_proportion_of_total_retractions_per_publisher() groups the rest of publishers", {
+  # P1: 3 papers (paper 1 has two rows), P2: 2, P3: 1, P4: 1, no publisher: 1
+  data <- tibble::tibble(
+    `Record ID` = c(1, 1, 2, 3, 4, 5, 6, 7, 8),
+    Publisher = c("P1", "P1", "P1", "P1", "P2", "P2", "P3", "P4", NA),
+    retraction_year = c(2020, 2020, 2020, 2021, 2020, 2021, 2021, 2010, 2020)
+  )
+
+  p <- plot_proportion_of_total_retractions_per_publisher(data, top_n = 2)
+  expect_s3_class(p, "ggplot")
+  # Plotting order: other publishers at the bottom, largest publisher on top
+  expect_equal(levels(p$data$Publisher), c("Other publishers", "P2", "P1"))
+  expect_equal(as.character(p$data$Publisher), c("P1", "P2", "Other publishers"))
+  expect_equal(p$data$retractions, c(3, 2, 2))
+  expect_equal(p$data$proportion, c(3, 2, 2) / 7)
+
+  # No "other" bar when the top publishers are all of them
+  all_shown <- plot_proportion_of_total_retractions_per_publisher(data, top_n = 10)
+  expect_equal(nrow(all_shown$data), 4)
+  expect_equal(sum(all_shown$data$proportion), 1)
+
+  # Year limits leave out P4 (2010)
+  limited <- plot_proportion_of_total_retractions_per_publisher(data, top_n = 1,
+                                                                year_limits = c(2020, 2021))
+  expect_equal(limited$data$retractions, c(3, 3))
+})
+
+test_that("plot_reasons_coocurrence_matrix() counts papers citing each pair of reasons", {
+  # Paper 1 has two country rows; paper 4 is from 2010
+  data <- tibble::tibble(
+    `Record ID` = c(1, 1, 2, 3, 4),
+    retraction_year = c(2020, 2020, 2020, 2021, 2010),
+    Reason = c("R1;R2;", "R1;R2;", "R1;R3;", "R1;", "R2;R3;")
+  )
+  pair <- function(p, a, b) {
+    p$data$papers[p$data$reason_a == a & p$data$reason_b == b]
+  }
+
+  p <- plot_reasons_coocurrence_matrix(data)
+  expect_s3_class(p, "ggplot")
+  expect_equal(pair(p, "R1", "R1"), 3)
+  expect_equal(pair(p, "R1", "R2"), 1)
+  expect_equal(pair(p, "R2", "R1"), 1)
+  expect_equal(pair(p, "R2", "R3"), 1)
+  # Most cited reason first on the x axis and at the top of the y axis
+  expect_equal(levels(p$data$reason_b), c("R1", "R2", "R3"))
+  expect_equal(levels(p$data$reason_a), c("R3", "R2", "R1"))
+  expect_equal(p$data$share[p$data$reason_a == "R1" & p$data$reason_b == "R2"], 1 / 3)
+  # Reasons numbered by rank: "R1 (1)" on the y axis, "1" on the x axis
+  built <- ggplot2::ggplot_build(p)
+  expect_equal(built$layout$panel_params[[1]]$x$get_labels(), c("1", "2", "3"))
+  expect_equal(built$layout$panel_params[[1]]$y$get_labels(),
+               c("R3 (3)", "R2 (2)", "R1 (1)"))
+
+  # Year limits leave out paper 4, so R2 and R3 are never cited together
+  limited <- plot_reasons_coocurrence_matrix(data, year_limits = c(2020, 2021))
+  expect_length(pair(limited, "R2", "R3"), 0)
+
+  top <- plot_reasons_coocurrence_matrix(data, top_n = 2)
+  expect_equal(levels(top$data$reason_b), c("R1", "R2"))
+  listed <- plot_reasons_coocurrence_matrix(data, reasons_list = list("R2", "R3"))
+  expect_setequal(as.character(listed$data$reason_b), c("R2", "R3"))
+})
+
+test_that("plot_reasons_coocurrence_matrix() shows Jaccard indices with proportion = TRUE", {
+  # R1 is cited by 3 papers, R2 and R3 by 2; each pair is cited together once
+  data <- tibble::tibble(
+    `Record ID` = c(1, 2, 3, 4),
+    retraction_year = 2020,
+    Reason = c("R1;R2;", "R1;R3;", "R1;", "R2;R3;")
+  )
+  jaccard <- function(p, a, b) {
+    p$data$jaccard[p$data$reason_a == a & p$data$reason_b == b]
+  }
+
+  p <- plot_reasons_coocurrence_matrix(data, proportion = TRUE)
+  expect_equal(jaccard(p, "R1", "R2"), 1 / (3 + 2 - 1))
+  expect_equal(jaccard(p, "R2", "R1"), 1 / (3 + 2 - 1))
+  expect_equal(jaccard(p, "R2", "R3"), 1 / (2 + 2 - 1))
+  # Coloured by the Jaccard index, except the diagonal
+  expect_equal(p$data$value[p$data$reason_a == "R2" & p$data$reason_b == "R3"], 1 / 3)
+  expect_true(all(is.na(p$data$value[p$data$reason_a == p$data$reason_b])))
+  expect_equal(p$labels$fill, "Jaccard index")
+  # R2 and R3 have the highest Jaccard index (1/3), ahead of R1 (1/4)
+  expect_equal(levels(p$data$reason_b), c("R2", "R3", "R1"))
+
+  top <- plot_reasons_coocurrence_matrix(data, proportion = TRUE, top_n = 2)
+  expect_equal(levels(top$data$reason_b), c("R2", "R3"))
+  # Without proportion, top_n keeps the most cited reasons
+  expect_equal(levels(plot_reasons_coocurrence_matrix(data, top_n = 2)$data$reason_b),
+               c("R1", "R2"))
+})
+
+test_that("plot_auc() computes the ROC curve and its area", {
+  # Score ranks: of the 2 x 2 (UK, OECD) pairs, the UK paper scores higher in 3
+  data <- tibble::tibble(
+    `Record ID` = 1:5,
+    country_class = c("United Kingdom", "Other OECD", "United Kingdom", "Other OECD",
+                      "Rest of World"),
+    score = c(4, 3, 2, 1, 5)
+  )
+  model <- suppressWarnings(train_logistic_regressor(
+    data, targets = c("United Kingdom", "Other OECD")
+  ))
+
+  p <- plot_auc(model, data)
+
+  expect_s3_class(p, "ggplot")
+  expect_equal(p$auc, 3 / 4)
+  expect_match(p$labels$title, "AUC = 0.750")
+  # From (0, 0) to (1, 1), one point per threshold; Rest of World is ignored
+  expect_equal(p$data$fpr, c(0, 0, 0.5, 0.5, 1))
+  expect_equal(p$data$tpr, c(0, 0.5, 0.5, 1, 1))
+})
+
+test_that("roc_curve() shares one threshold between tied scores", {
+  roc <- roc_curve(c(0.9, 0.5, 0.5, 0.1), c(TRUE, TRUE, FALSE, FALSE))
+  expect_equal(roc$tpr, c(0, 0.5, 1, 1))
+  expect_equal(roc$fpr, c(0, 0, 0.5, 1))
+})

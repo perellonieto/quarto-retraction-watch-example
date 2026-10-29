@@ -662,6 +662,276 @@ plot_number_of_total_retractions_per_year <- function(retraction_data,
     theme_minimal()
 }
 
+#' Scatter plot of the number of retractions per year for each publisher
+#'
+#' Counts the distinct retracted papers (`Record ID`) of each publisher and
+#' year and draws one point per publisher and year, coloured by publisher.
+#' Papers without a publisher are left out. With thousands of publishers the
+#' legend is hidden by default; in [plotly::ggplotly()] the hover text shows
+#' the publisher of each point.
+#'
+#' @inheritParams plot_number_of_total_retractions_per_year
+#' @param top_n If not `NULL`, only the `top_n` publishers with the most
+#'   retractions over the period (within `year_limits`) are shown.
+#' @param show_legend If `TRUE`, shows the legend of publisher colours,
+#'   ordered from the most to the least retractions.
+#' @param yscale Scale of the y axis: `"linear"` or `"log"` (base 10), which
+#'   keeps publishers with few retractions visible next to the largest ones.
+#' @param title Plot title.
+#' @return A ggplot object. Its data has columns `Publisher` (a factor
+#'   ordered from the most to the least retractions), `year` and
+#'   `retractions`.
+#' @export
+plot_number_of_retractions_per_year_per_publisher <- function(retraction_data,
+                                                              year_col = "retraction_year",
+                                                              year_limits = NULL,
+                                                              top_n = NULL,
+                                                              show_legend = FALSE,
+                                                              yscale = c("linear", "log"),
+                                                              title = "Number of retractions per year and publisher") {
+  yscale <- match.arg(yscale)
+  papers <- retraction_data %>%
+    distinct(`Record ID`, Publisher, year = .data[[year_col]]) %>%
+    filter(!is.na(year), !is.na(Publisher))
+  if (!is.null(year_limits)) {
+    papers <- papers %>%
+      filter(year >= year_limits[1], year <= year_limits[2])
+  }
+
+  publisher_order <- papers %>%
+    count(Publisher, sort = TRUE) %>%
+    pull(Publisher)
+  if (!is.null(top_n)) {
+    publisher_order <- utils::head(publisher_order, top_n)
+  }
+
+  counts <- papers %>%
+    filter(Publisher %in% publisher_order) %>%
+    count(Publisher, year, name = "retractions") %>%
+    mutate(Publisher = factor(Publisher, levels = publisher_order))
+
+  y_scale <- if (yscale == "log") {
+    scale_y_log10(labels = scales::label_comma())
+  } else {
+    scale_y_continuous(labels = scales::label_comma())
+  }
+
+  # `text` is ignored by ggplot2 but shown in the ggplotly() hover text
+  ggplot(counts, aes(year, retractions, colour = Publisher)) +
+    suppressWarnings(geom_point(aes(text = Publisher), alpha = 0.7)) +
+    y_scale +
+    labs(
+      x = if (year_col == "publication_year") "Publication year" else "Retraction year",
+      y = if (yscale == "log") "Number of retractions (log scale)" else "Number of retractions",
+      colour = "Publisher",
+      title = title
+    ) +
+    theme_minimal() +
+    theme(legend.position = if (show_legend) "right" else "none")
+}
+
+#' Bar plot of the share of retractions of the top publishers
+#'
+#' Counts the distinct retracted papers (`Record ID`) of each publisher and
+#' shows, as one bar each, the proportion of all retractions of the `top_n`
+#' publishers with the most retractions, plus one bar for all the other
+#' publishers together. Papers without a publisher are left out. A bar chart
+#' is used rather than a pie chart because [plotly::ggplotly()] cannot
+#' convert pie charts.
+#'
+#' @inheritParams plot_number_of_retractions_per_year_per_publisher
+#' @param top_n Number of publishers shown separately.
+#' @param other_label Label of the bar grouping the remaining publishers.
+#' @param colour Fill colour of the publisher bars (the other publishers are
+#'   grey).
+#' @return A ggplot object. Its data has one row per bar with columns
+#'   `Publisher` (a factor in plotting order), `retractions` and
+#'   `proportion`.
+#' @export
+plot_proportion_of_total_retractions_per_publisher <- function(retraction_data,
+                                                               top_n = 10,
+                                                               year_col = "retraction_year",
+                                                               year_limits = NULL,
+                                                               other_label = "Other publishers",
+                                                               colour = "#1b9e77",
+                                                               title = "Share of retractions per publisher") {
+  papers <- retraction_data %>%
+    distinct(`Record ID`, Publisher, year = .data[[year_col]]) %>%
+    filter(!is.na(Publisher))
+  if (!is.null(year_limits)) {
+    papers <- papers %>%
+      filter(!is.na(year), year >= year_limits[1], year <= year_limits[2])
+  }
+
+  counts <- papers %>%
+    count(Publisher, name = "retractions", sort = TRUE)
+  top <- utils::head(counts, top_n)
+  others <- sum(counts$retractions) - sum(top$retractions)
+  if (others > 0) {
+    top <- bind_rows(top, tibble(Publisher = other_label, retractions = others))
+  }
+  shares <- top %>%
+    mutate(proportion = retractions / sum(counts$retractions),
+           # Largest publisher at the top, other publishers at the bottom
+           Publisher = factor(Publisher, levels = rev(Publisher)),
+           is_other = Publisher == other_label)
+
+  # `text` is ignored by ggplot2 but shown in the ggplotly() hover text
+  ggplot(shares, aes(proportion, Publisher, fill = is_other)) +
+    suppressWarnings(geom_col(aes(text = paste0(
+      Publisher, "<br>", scales::comma(retractions), " retractions (",
+      scales::percent(proportion, accuracy = 0.1), ")"
+    )), orientation = "y")) +
+    # Labels are centred just right of each bar: ggplotly() ignores hjust, so
+    # the gap is part of their x position
+    geom_text(aes(x = proportion + 0.05 * max(proportion),
+                  label = scales::percent(proportion, accuracy = 0.1)),
+              size = 3) +
+    scale_x_continuous(labels = scales::label_percent(),
+                       expand = expansion(mult = c(0, 0.12))) +
+    scale_fill_manual(values = c(`FALSE` = colour, `TRUE` = "grey60"),
+                      guide = "none") +
+    labs(x = "Proportion of all retractions", y = NULL, title = title) +
+    theme_minimal()
+}
+
+#' Heatmap of how often retraction reasons are cited in the same paper
+#'
+#' For every pair of reasons, counts the retracted papers (distinct
+#' `Record ID`s) citing both. The diagonal has the number of papers citing
+#' each reason. Reasons are split and cleaned as in
+#' [compute_top_reasons_over_time()] and sorted from the most cited (top
+#' left) to the least cited. Each reason is numbered by this rank: the y axis
+#' shows the reason followed by its number and the x axis only the number.
+#' The colour scale is logarithmic because pair
+#' counts range from one paper to tens of thousands. Pairs never cited
+#' together are left blank.
+#'
+#' With `proportion = TRUE`, each cell shows instead the Jaccard index of the
+#' pair: the papers citing both reasons divided by the papers citing either.
+#' The diagonal (always 100%) is then left grey, and reasons are sorted (and
+#' `top_n` selected) by their highest Jaccard index with any other reason,
+#' so the reasons most tied to another one come first. Ties are sorted by
+#' the number of papers citing the reason.
+#'
+#' @param retraction_data Output of [load_retraction_data()].
+#' @param year_limits Optional length-2 vector with the first and last year
+#'   (inclusive) of the retractions used. All retractions if `NULL`.
+#' @param reasons_list Optional character vector (or list) of reasons to
+#'   include. All reasons if `NULL`.
+#' @param top_n If not `NULL`, only the `top_n` first reasons (among
+#'   `reasons_list`, if given) are shown: the most cited ones or, with
+#'   `proportion = TRUE`, those with the highest Jaccard index with another
+#'   reason.
+#' @param proportion If `TRUE`, shows the Jaccard index of each pair instead
+#'   of the number of papers.
+#' @param year_col Year column used by `year_limits`, `"retraction_year"` or
+#'   `"publication_year"`.
+#' @param title Plot title.
+#' @return A ggplot object. Its data has one row per pair of reasons cited
+#'   together, with columns `reason_a`, `reason_b`, `papers` (papers citing
+#'   both), `share` (proportion of the papers citing `reason_a` that also
+#'   cite `reason_b`) and `jaccard` (papers citing both divided by papers
+#'   citing either).
+#' @export
+plot_reasons_coocurrence_matrix <- function(retraction_data,
+                                            year_limits = NULL,
+                                            reasons_list = NULL,
+                                            top_n = NULL,
+                                            proportion = FALSE,
+                                            year_col = "retraction_year",
+                                            title = "Co-occurrence of retraction reasons in the same paper") {
+  papers <- retraction_data %>%
+    distinct(`Record ID`, year = .data[[year_col]], Reason)
+  if (!is.null(year_limits)) {
+    papers <- papers %>%
+      filter(!is.na(year), year >= year_limits[1], year <= year_limits[2])
+  }
+  paper_reasons <- papers %>%
+    separate_rows(Reason, sep = ";") %>%
+    mutate(Reason = str_trim(Reason)) %>%
+    filter(Reason != "") %>%
+    distinct(`Record ID`, Reason)
+  if (!is.null(reasons_list)) {
+    paper_reasons <- paper_reasons %>%
+      filter(Reason %in% as.character(unlist(reasons_list)))
+  }
+
+  # Every pair of reasons of the same paper, including each reason with itself
+  pairs <- inner_join(paper_reasons, paper_reasons, by = "Record ID",
+                      suffix = c("_a", "_b"), relationship = "many-to-many") %>%
+    count(reason_a = Reason_a, reason_b = Reason_b, name = "papers")
+  totals <- filter(pairs, reason_a == reason_b) %>%
+    select(reason = reason_a, total = papers)
+  pairs <- pairs %>%
+    left_join(rename(totals, total_a = total), by = c("reason_a" = "reason")) %>%
+    left_join(rename(totals, total_b = total), by = c("reason_b" = "reason")) %>%
+    mutate(share = papers / total_a,
+           jaccard = papers / (total_a + total_b - papers)) %>%
+    select(-total_a, -total_b)
+
+  # Most cited reasons first or, for proportions, those with the highest
+  # Jaccard index with another reason
+  ranking <- totals
+  if (proportion) {
+    best_pair <- pairs %>%
+      filter(reason_a != reason_b) %>%
+      group_by(reason = reason_a) %>%
+      summarise(max_jaccard = max(jaccard), .groups = "drop")
+    ranking <- ranking %>%
+      left_join(best_pair, by = "reason") %>%
+      mutate(max_jaccard = coalesce(max_jaccard, 0)) %>%
+      arrange(desc(max_jaccard), desc(total), reason)
+  } else {
+    ranking <- arrange(ranking, desc(total), reason)
+  }
+  reason_order <- ranking$reason
+  if (!is.null(top_n)) {
+    reason_order <- utils::head(reason_order, top_n)
+  }
+  pairs <- pairs %>%
+    filter(reason_a %in% reason_order, reason_b %in% reason_order) %>%
+    mutate(reason_a = factor(reason_a, levels = rev(reason_order)),
+           reason_b = factor(reason_b, levels = reason_order),
+           # The diagonal is always 100% for proportions, so it is not coloured
+           value = if (proportion) {
+             ifelse(reason_a == reason_b, NA_real_, jaccard)
+           } else {
+             papers
+           })
+
+  # Each reason is numbered by its rank: "Reason (1)" on the y axis and only
+  # the number on the x axis
+  rank <- stats::setNames(seq_along(reason_order), reason_order)
+  numbered <- function(reason) paste0(reason, " (", rank[as.character(reason)], ")")
+
+  # `text` is ignored by ggplot2 but shown in the ggplotly() hover text
+  fill_scale <- if (proportion) {
+    scale_fill_viridis_c(labels = scales::label_percent(), option = "magma",
+                         direction = -1, na.value = "grey85")
+  } else {
+    scale_fill_viridis_c(trans = "log10", labels = scales::label_comma(),
+                         option = "magma", direction = -1)
+  }
+
+  ggplot(pairs, aes(reason_b, reason_a, fill = value)) +
+    suppressWarnings(geom_tile(aes(text = ifelse(
+      reason_a == reason_b,
+      paste0(numbered(reason_a), "<br>", scales::comma(papers), " papers"),
+      paste0(numbered(reason_a), " + ", numbered(reason_b), "<br>",
+             scales::comma(papers), " papers (",
+             scales::percent(share, accuracy = 0.1), " of the papers citing ",
+             reason_a, ")<br>Jaccard: ", scales::percent(jaccard, accuracy = 0.1))
+    )))) +
+    scale_x_discrete(labels = function(reason) as.character(rank[reason])) +
+    scale_y_discrete(labels = numbered) +
+    fill_scale +
+    labs(x = "Reason number", y = NULL,
+         fill = if (proportion) "Jaccard index" else "Papers", title = title) +
+    theme_minimal() +
+    theme(panel.grid = element_blank())
+}
+
 #' Bar plot of the number of distinct retraction reasons per year
 #'
 #' Counts how many different reasons are cited by the retractions of each
@@ -827,4 +1097,72 @@ yearly_reason_proportion_differences <- function(data_a, data_b, reasons_list,
              by = c("year", "Reason"),
              suffix = c("_a", "_b")) %>%
     mutate(difference = proportion_a - proportion_b)
+}
+
+#' ROC curve and area under the curve of a binary classifier
+#'
+#' Predicts with `model` the probability of `targets[1]` for the rows of
+#' `data` whose `column` is one of `targets`, and plots the ROC curve: the
+#' true positive rate (share of `targets[1]` rows above the threshold)
+#' against the false positive rate (share of `targets[2]` rows above it) for
+#' every threshold. The title shows the area under the curve (AUC): 0.5 for
+#' a model no better than chance (dashed diagonal) and 1 for a perfect one.
+#'
+#' @param model A model whose `predict(model, data, type = "response")`
+#'   gives the probability of `targets[1]`, e.g. the output of
+#'   [train_logistic_regressor()].
+#' @param data Data to evaluate, ideally not used for training (e.g. the
+#'   `test` element of [divide_by()]).
+#' @param targets The positive (`targets[1]`) and negative (`targets[2]`)
+#'   classes. By default, those stored in `model` by
+#'   [train_logistic_regressor()].
+#' @param column Column with the class of each row.
+#' @param colour Colour of the curve.
+#' @return A ggplot object. Its data has one row per threshold with columns
+#'   `threshold`, `fpr` and `tpr`, and its `auc` element has the AUC.
+#' @export
+plot_auc <- function(model, data, targets = model$targets,
+                     column = "country_class", colour = "#1b9e77") {
+  data <- data[data[[column]] %in% targets, ]
+  probability <- stats::predict(model, newdata = data, type = "response")
+  roc <- roc_curve(probability, data[[column]] == targets[1])
+  auc <- sum(diff(roc$fpr) * (utils::head(roc$tpr, -1) + utils::tail(roc$tpr, -1)) / 2)
+
+  p <- ggplot(roc, aes(fpr, tpr)) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed", colour = "grey50") +
+    geom_path(colour = colour) +
+    # `text` is ignored by ggplot2 but shown in the ggplotly() hover text
+    suppressWarnings(geom_point(aes(text = paste0(
+      "Threshold: ", signif(threshold, 3),
+      "<br>True positive rate: ", scales::percent(tpr, accuracy = 0.1),
+      "<br>False positive rate: ", scales::percent(fpr, accuracy = 0.1)
+    )), colour = colour, size = 0.5)) +
+    scale_x_continuous(labels = scales::label_percent()) +
+    scale_y_continuous(labels = scales::label_percent()) +
+    coord_equal() +
+    labs(
+      x = paste0("False positive rate (", targets[2], " predicted as ", targets[1], ")"),
+      y = paste0("True positive rate (", targets[1], " predicted as ", targets[1], ")"),
+      title = paste0("ROC curve: ", targets[1], " vs ", targets[2],
+                     " (AUC = ", format(round(auc, 3), nsmall = 3), ")")
+    ) +
+    theme_minimal()
+  p$auc <- auc
+  p
+}
+
+# False and true positive rates for every threshold of `score`, from the
+# highest threshold (no positive predicted) to the lowest (all predicted).
+# Tied scores share one threshold, so ties give a diagonal step.
+roc_curve <- function(score, is_positive) {
+  ordered <- tibble(score = score, is_positive = is_positive) %>%
+    group_by(threshold = score) %>%
+    summarise(tp = sum(is_positive), fp = sum(!is_positive), .groups = "drop") %>%
+    arrange(desc(threshold))
+  bind_rows(
+    tibble(threshold = Inf, tpr = 0, fpr = 0),
+    tibble(threshold = ordered$threshold,
+           tpr = cumsum(ordered$tp) / sum(is_positive),
+           fpr = cumsum(ordered$fp) / sum(!is_positive))
+  )
 }

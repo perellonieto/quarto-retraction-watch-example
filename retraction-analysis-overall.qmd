@@ -1,0 +1,152 @@
+---
+title: "Overall statistics"
+format:
+  html:
+    code-fold: true
+---
+
+Descriptive analysis of retraction watch data, downloaded [here](https://www.crossref.org/labs/retraction-watch/).
+
+Now located [here](https://gitlab.com/crossref/retraction-watch-data). SJR Data located [here](https://github.com/Michael-E-Rose/SCImagoJournalRankIndicators).
+
+Explanation for the categories is [here](https://retractionwatch.com/retraction-watch-database-user-guide/retraction-watch-database-user-guide-appendix-b-reasons/)
+
+The evidence that "withdrawal" used to be a term is [here](https://web.archive.org/web/20240520103212/https://retractionwatch.com/retraction-watch-database-user-guide/retraction-watch-database-user-guide-appendix-b-reasons/). Still present at last crawl of 2024, and absent by the [first crawl of 2025](https://web.archive.org/web/20250124120100/https://retractionwatch.com/retraction-watch-database-user-guide/retraction-watch-database-user-guide-appendix-b-reasons/).
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+# Install the local library with: devtools::install("retractionwatch")
+# or load it during development with: devtools::load_all("retractionwatch")
+# At the moment we are using the development version
+devtools::install("retractionwatch")
+devtools::load_all("retractionwatch")
+# Once the package is installed, you can load it with library(retractionwatch)
+# library(retractionwatch)
+library(plotly)
+
+source("checkpoints.R")
+checkpoint_version <- "library"
+
+# # Loading data
+
+sjr_country_counts <- build_sjr_country_counts("data/sjr_rankings")
+oecd_countries <- load_oecd_countries("data/oecd_countries.csv")
+retraction_data <- load_retraction_data("data/retraction_watch.csv")
+publication_counts <- publication_counts_by_class(sjr_country_counts, oecd_countries)
+retraction_data_nomass <- retraction_data[retraction_data$Mass_Retraction == "Other",]
+
+checkpoint(retraction_data, "01_retraction_data")
+checkpoint(sjr_country_counts, "02_sjr_country_counts")
+checkpoint(publication_counts, "03_publication_counts")
+
+# Clean retraction data
+#retraction_reason_conversion <- readr::read_csv(reason_groupings_path,
+#                                                show_col_types = FALSE)
+#retraction_data %>%
+#  clean_retraction_data(oecd_countries, retraction_reason_conversion) %>%
+#  add_country_class(oecd_countries)
+```
+
+Total number of retractions per year per publisher
+
+```{r}
+ggplotly(plot_number_of_retractions_per_year_per_publisher(retraction_data, yscale = "log"))
+```
+
+Retractions by the top 10 publishers
+
+```{r}
+ggplotly(plot_number_of_retractions_per_year_per_publisher(retraction_data, top_n = 10, show_legend = TRUE, yscale = "log"))
+```
+
+
+Removing the mass retractions
+
+```{r}
+ggplotly(plot_number_of_retractions_per_year_per_publisher(retraction_data_nomass, yscale = "log"))
+```
+
+Retractions by the top 10 publishers without the mass retractions
+
+```{r}
+ggplotly(plot_number_of_retractions_per_year_per_publisher(retraction_data_nomass, top_n = 10, show_legend = TRUE, yscale = "log" ))
+```
+
+Proportion of retractions for the top 10 publishers
+
+```{r}
+ggplotly(plot_proportion_of_total_retractions_per_publisher(retraction_data, top_n = 10))
+```
+
+Proportion of retractions for the top 10 publishers removing the mass retractions
+
+```{r}
+ggplotly(plot_proportion_of_total_retractions_per_publisher(retraction_data_nomass, top_n = 10))
+```
+
+Number of retracted papers without mass-retractions
+
+```{r}
+ggplotly(plot_number_of_total_retractions_per_year(retraction_data_nomass,
+year_limits = c(2000, 2026)))
+```
+
+
+```{r}
+ggplotly(plot_number_of_distinct_reasons_per_year(retraction_data, year_limits = c(1980, 2026), colour = "hotpink2") )
+```
+
+```{r}
+ggplotly(plot_first_year_occurrence_per_reason(retraction_data, year_limits = NULL, show_last = TRUE), height = 900)
+```
+
+```{r}
+reasons_not_reported_in_2026 <- find_reasons_not_reported_in_year(retraction_data, 2026)
+```
+
+```{r}
+ggplotly(plot_first_year_occurrence_per_reason(retraction_data, year_limits = NULL, show_last = TRUE, reason_list = reasons_not_reported_in_2026), height = 400) 
+```
+
+# Top 20 coocurrences of retraction reasons
+
+Coocurrences that happen most often.
+
+```{r}
+ggplotly(plot_reasons_coocurrence_matrix(retraction_data, year_limits = NULL, reasons_list = NULL, top_n = 20, proportion = TRUE))
+```
+
+# Top 20 coocurrences of retraction reasons from 2017 to 2026
+
+```{r}
+ggplotly(plot_reasons_coocurrence_matrix(retraction_data, year_limits = c(2017, 2026), reasons_list = NULL, top_n = 20, proportion = TRUE))
+```
+
+# Coocurrences among the top 20 reasons pre 2017
+
+Coocurrences of the top 20 most common reasons pre 2017
+
+```{r}
+top_20_reasons_pre2017 <- select_top_retraction_reasons(retraction_data_nomass, n_top = 20, year_limits = c(2017, 2026))
+print(top_20_reasons_pre2017)
+```
+
+```{r}
+ggplotly(plot_reasons_coocurrence_matrix(retraction_data_nomass, year_limits = c(0, 2016), reasons_list = top_20_reasons_pre2017))
+```
+
+# Coocurrences among the top 20 reasons post 2017
+
+Coocurrences of the top 20 most common reasons post 2017
+
+```{r}
+top_20_reasons_post2017 <- select_top_retraction_reasons(retraction_data_nomass, n_top = 20, year_limits = c(2017, 2026))
+print(top_20_reasons_post2017)
+```
+
+```{r}
+ggplotly(plot_reasons_coocurrence_matrix(retraction_data_nomass, year_limits = c(2017, 2026), reasons_list = top_20_reasons_post2017))
+```

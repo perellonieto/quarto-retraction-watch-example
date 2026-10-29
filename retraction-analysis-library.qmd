@@ -41,39 +41,7 @@ retraction_data_nomass <- retraction_data[retraction_data$Mass_Retraction == "Ot
 checkpoint(retraction_data, "01_retraction_data")
 checkpoint(sjr_country_counts, "02_sjr_country_counts")
 checkpoint(publication_counts, "03_publication_counts")
-
-# Clean retraction data
-#retraction_reason_conversion <- readr::read_csv(reason_groupings_path,
-#                                                show_col_types = FALSE)
-#retraction_data %>%
-#  clean_retraction_data(oecd_countries, retraction_reason_conversion) %>%
-#  add_country_class(oecd_countries)
 ```
-
-Number of retracted papers without mass-retractions
-
-```{r}
-ggplotly(plot_number_of_total_retractions_per_year(retraction_data_nomass,
-year_limits = c(2000, 2026)))
-```
-
-
-```{r}
-ggplotly(plot_number_of_distinct_reasons_per_year(retraction_data, year_limits = c(1980, 2026), colour = "hotpink2") )
-```
-
-```{r}
-ggplotly(plot_first_year_occurrence_per_reason(retraction_data, year_limits = NULL, show_last = TRUE), height = 900)
-```
-
-```{r}
-reasons_not_reported_in_2026 <- find_reasons_not_reported_in_year(retraction_data, 2026)
-```
-
-```{r}
-ggplotly(plot_first_year_occurrence_per_reason(retraction_data, year_limits = NULL, show_last = TRUE, reason_list = reasons_not_reported_in_2026), height = 400) 
-```
-
 
 # Top 2 retraction reasons of each year (2000-2025) in the OECD and UK
 
@@ -412,13 +380,14 @@ ggplotly(plot_reason_proportions_forest(
   retraction_data_oecd |> filter(Mass_Retraction == "Other"),
   reasons_list = selected_reasons,
   labels = c("UK", "OECD"),
-  year_limits = c(2017, 2026)))
+  year_limits = c(2017, 2026)), height = 400)
 ```
 
 ```{r}
 print(oecd_countries)
 print(retraction_data_oecd)
 ```
+
 # Top 10 OECD countries (without the UK) by number of retractions since 2017
 
 Excluding mass retractions
@@ -497,13 +466,18 @@ plot_reason_proportions_across_groups_by_year(significant_reasons_per_country_an
 ```{r}
 publisher_and_retractions <- count_number_of_retractions_per_column(
   retraction_data_nomass,
-  column_name = "Publisher")
+  column_name = "Publisher", year_limits = c(2017, 2026))
 
 
 top_10_publisher <- publisher_and_retractions |>
   dplyr::slice_head(n = 10)
 
 print(top_10_publisher)
+```
+
+
+```{r}
+ggplotly(plot_proportion_of_total_retractions_per_publisher(retraction_data_nomass, top_n = 10, year_limits = c(2017, 2026)))
 ```
 
 ```{r}
@@ -693,7 +667,7 @@ interactive = TRUE)
 Excluding mass retractions
 
 ```{r}
-top_5_reasons_UK_and_year <- calculate_proportion_of_retractions_per_year(
+top_10_reasons_UK_and_year <- calculate_proportion_of_retractions_per_year(
   retraction_data_nomass,
   country_list = c("United Kingdom"),
   reasons = top_10_reasons,
@@ -702,7 +676,7 @@ top_5_reasons_UK_and_year <- calculate_proportion_of_retractions_per_year(
 ```
 
 ```{r}
-plot_reason_proportions_across_groups_by_year(top_5_reasons_UK_and_year,
+plot_reason_proportions_across_groups_by_year(top_10_reasons_UK_and_year,
 interactive = TRUE)
 ```
 

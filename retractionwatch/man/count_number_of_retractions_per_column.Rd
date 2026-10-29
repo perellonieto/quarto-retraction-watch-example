@@ -4,12 +4,24 @@
 \alias{count_number_of_retractions_per_column}
 \title{Number of retracted papers per value of a column}
 \usage{
-count_number_of_retractions_per_column(retraction_data, column_name)
+count_number_of_retractions_per_column(
+  retraction_data,
+  column_name,
+  year_limits = NULL,
+  year_col = "retraction_year"
+)
 }
 \arguments{
 \item{retraction_data}{Output of \code{\link[=load_retraction_data]{load_retraction_data()}}.}
 
 \item{column_name}{Column to count by, e.g. \code{"Publisher"} or \code{"Journal"}.}
+
+\item{year_limits}{Optional length-2 vector with the first and last year
+(inclusive) of the retractions counted. Retractions without a year are
+then left out. All retractions if \code{NULL}.}
+
+\item{year_col}{Year column used by \code{year_limits}, \code{"retraction_year"} or
+\code{"publication_year"}.}
 }
 \value{
 A tibble with one row per value of \code{column_name} and a column

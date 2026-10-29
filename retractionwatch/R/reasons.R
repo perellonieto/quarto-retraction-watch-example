@@ -373,11 +373,23 @@ calculate_proportion_of_retractions_per_year_by_publisher <- function(retraction
 #'
 #' @param retraction_data Output of [load_retraction_data()].
 #' @param column_name Column to count by, e.g. `"Publisher"` or `"Journal"`.
+#' @param year_limits Optional length-2 vector with the first and last year
+#'   (inclusive) of the retractions counted. Retractions without a year are
+#'   then left out. All retractions if `NULL`.
+#' @param year_col Year column used by `year_limits`, `"retraction_year"` or
+#'   `"publication_year"`.
 #' @return A tibble with one row per value of `column_name` and a column
 #'   `retractions` with the number of distinct `Record ID`s, sorted from the
 #'   most to the least retractions.
 #' @export
-count_number_of_retractions_per_column <- function(retraction_data, column_name) {
+count_number_of_retractions_per_column <- function(retraction_data, column_name,
+                                                   year_limits = NULL,
+                                                   year_col = "retraction_year") {
+  if (!is.null(year_limits)) {
+    retraction_data <- retraction_data %>%
+      filter(.data[[year_col]] >= year_limits[1],
+             .data[[year_col]] <= year_limits[2])
+  }
   retraction_data %>%
     distinct(.data$`Record ID`, .data[[column_name]]) %>%
     count(.data[[column_name]], name = "retractions", sort = TRUE)
@@ -520,4 +532,53 @@ find_reasons_not_reported_in_year <- function(retraction_data,
                                         exclude_reasons)$reason_counts
   sort(setdiff(unique(reason_counts$Reason),
                reason_counts$Reason[reason_counts$year == year]))
+}
+
+#' One-hot encoding of the retraction reasons, one row per paper
+#'
+#' Builds a modelling table with one row per retracted paper (`Record ID`),
+#' its country class and one 0/1 integer column per retraction reason (1 if
+#' the paper cites the reason). Reasons are split and cleaned as in
+#' [compute_top_reasons_over_time()], and their column names are made
+#' syntactic with [janitor::make_clean_names()] (e.g. `"Paper Mill"` becomes
+#' `paper_mill`) so that they can be used in model formulas. Papers without
+#' any reason have 0 in every reason column.
+#'
+#' @param retraction_data Output of [load_retraction_data()], or a subset of
+#'   it (e.g. without mass retractions).
+#' @param country_col Column with the class of each paper. It must have a
+#'   single value per paper, as `country_class` does (see
+#'   [add_paper_country_class()]).
+#' @return A tibble with columns `Record ID`, `country_col` and one column
+#'   per reason, sorted alphabetically. The `"reasons"` attribute maps each
+#'   column name to its reason text.
+#' @export
+one_hot_encoding_reasons_and_country_type <- function(retraction_data,
+                                                      country_col = "country_class") {
+  papers <- distinct(retraction_data, `Record ID`, .data[[country_col]])
+  if (anyDuplicated(papers$`Record ID`)) {
+    stop("`", country_col, "` has several values for some papers; ",
+         "use a column with one value per paper, such as `country_class`.")
+  }
+
+  paper_reasons <- retraction_data %>%
+    distinct(`Record ID`, Reason) %>%
+    separate_rows(Reason, sep = ";") %>%
+    mutate(Reason = str_trim(Reason)) %>%
+    filter(!is.na(Reason), Reason != "") %>%
+    distinct()
+  reasons <- sort(unique(paper_reasons$Reason))
+  column_names <- stats::setNames(janitor::make_clean_names(reasons), reasons)
+
+  encoded <- paper_reasons %>%
+    mutate(Reason = factor(column_names[Reason], levels = column_names),
+           value = 1L) %>%
+    pivot_wider(id_cols = `Record ID`, names_from = Reason, values_from = value,
+                values_fill = 0L, names_expand = TRUE)
+
+  result <- papers %>%
+    left_join(encoded, by = "Record ID") %>%
+    mutate(across(all_of(unname(column_names)), ~ coalesce(.x, 0L)))
+  attr(result, "reasons") <- stats::setNames(names(column_names), column_names)
+  result
 }

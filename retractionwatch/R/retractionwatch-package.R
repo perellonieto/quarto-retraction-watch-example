@@ -38,5 +38,10 @@ utils::globalVariables(c(
   "low_count", "sig_class", "diff", "group", "x", "y", "label", "n", ".",
   "year", "total", "proportion_a", "proportion_b", "difference",
   "mean_difference", "n_years", "error", "mean_proportion", "q25", "q75",
-  "n_groups", "reasons", "first_year", "last_year", "last_n", "line_end"
+  "n_groups", "reasons", "first_year", "last_year", "last_n", "line_end",
+  "is_other", "reason_a", "reason_b", "Reason_a", "Reason_b", "papers",
+  "share", "jaccard", "max_jaccard", "total_a", "total_b", "value",
+  "reason", "fpr", "tpr", "threshold", "tp", "fp", "column", "coefficient",
+  "std_error", "odds_ratio", "conf_low", "conf_high", "reliable", "favours",
+  "papers_a", "papers_b", "significant"
 ))
