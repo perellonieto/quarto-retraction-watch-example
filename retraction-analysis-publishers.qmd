@@ -90,10 +90,10 @@ publisher_and_retractions <- count_number_of_retractions_per_column(
   column_name = "Publisher", year_limits = c(2017, 2026))
 
 
-top_10_publisher <- publisher_and_retractions |>
+top_10_publishers <- publisher_and_retractions |>
   dplyr::slice_head(n = 10)
 
-print(top_10_publisher)
+print(top_10_publishers)
 ```
 
 
@@ -102,7 +102,7 @@ ggplotly(plot_proportion_of_total_retractions_per_publisher(retraction_data_noma
 ```
 
 ```{r}
-ggplotly(ggplot(top_10_publisher,
+ggplotly(ggplot(top_10_publishers,
        aes(x = retractions, y = reorder(Publisher, retractions))) +
   geom_col(fill = "#1b9e77", orientation = "y") +
   scale_x_continuous(labels = scales::comma) +
@@ -116,7 +116,7 @@ ggplotly(ggplot(top_10_publisher,
 ```{r}
 significant_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_year_by_publisher(
   retraction_data_nomass,
-  publisher_list = top_10_publisher,
+  publisher_list = top_10_publishers,
   reasons = selected_reasons,
   yearmin = 2017,
   yearmax = 2026)
@@ -143,7 +143,7 @@ htmltools::tagList(plots)
 ```{r}
 plots <- lapply(unique(significant_reasons_per_publisher_and_year$Reason), function(reason) {
   ggplotly(ggplot(significant_reasons_per_publisher_and_year |> filter(Reason == reason),
-       aes(x = factor(year), y = factor(Publisher, levels = rev(top_10_publisher$Publisher)),
+       aes(x = factor(year), y = factor(Publisher, levels = rev(top_10_publishers$Publisher)),
            fill = proportion)) +
   geom_tile(colour = "white") +
   geom_text(aes(label = scales::percent(proportion, accuracy = 1),
@@ -180,7 +180,7 @@ top_10_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 
 ```{r}
 top_10_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_year_by_publisher(
   retraction_data_nomass,
-  publisher_list = top_10_publisher,
+  publisher_list = top_10_publishers,
   reasons = top_10_reasons,
   yearmin = 2017,
   yearmax = 2026)
@@ -202,7 +202,7 @@ top_5_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 5
 ```{r}
 top_5_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_year_by_publisher(
   retraction_data_nomass,
-  publisher_list = top_10_publisher,
+  publisher_list = top_10_publishers,
   reasons = top_5_reasons,
   yearmin = 2017,
   yearmax = 2026)
@@ -224,7 +224,7 @@ ai_reasons <- c("Computer-Aided Content or Computer-Generated Content")
 ```{r}
 ai_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_year_by_publisher(
   retraction_data_nomass,
-  publisher_list = top_10_publisher,
+  publisher_list = top_10_publishers,
   reasons = ai_reasons,
   yearmin = 2017,
   yearmax = 2026)
@@ -238,7 +238,7 @@ interactive = TRUE)
 ```{r}
 ai_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_year_by_publisher(
   retraction_data_nomass,
-  publisher_list = top_10_publisher,
+  publisher_list = top_10_publishers,
   reasons = ai_reasons,
   yearmin = 2017,
   yearmax = 2026)
@@ -265,7 +265,7 @@ htmltools::tagList(plots)
 ggplotly(plot_reason_proportion_per_publisher(
     retraction_data_nomass,
     reason = "Computer-Aided Content or Computer-Generated Content",
-    publisher_list = top_10_publisher,
+    publisher_list = top_10_publishers,
     year_limits = c(2017, 2026),
     confidence_interval = TRUE),
     height = 300
@@ -281,7 +281,7 @@ plots <- lapply(top_10_reasons, function(reason) {
 ggplotly(plot_reason_proportion_per_publisher(
     retraction_data_nomass,
     reason = reason,
-    publisher_list = top_10_publisher,
+    publisher_list = top_10_publishers,
     year_limits = c(2017, 2026),
     confidence_interval = TRUE),
     height = 300
@@ -293,6 +293,8 @@ htmltools::tagList(plots)
 # Heterogeneity of the 10 publishers with most retractions
 
 ```{r}
-ggplotly(plot_reason_heterogeneity(retraction_data_nomass, top_10_publisher, top_10_reasons,
+print(top_10_publishers)
+
+ggplotly(plot_reason_heterogeneity(retraction_data_nomass, top_10_publishers, top_10_reasons,
                           group_col = "Publisher", year_limits = c(2017, 2026)))
 ```

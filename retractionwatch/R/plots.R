@@ -559,21 +559,22 @@ plot_reason_proportion_differences <- function(data_a,
     theme_bw()
 }
 
-#' Forest plot of the yearly proportions of retraction reasons in two datasets
+#' Forest plot of the proportions of retraction reasons in two datasets
 #'
-#' Summarises [plot_reason_proportion_differences()] with one row per reason
-#' in `reasons_list` and dataset: the point is the mean, across years, of the
-#' yearly proportion of the dataset's retractions citing the reason, and the
-#' whiskers span the interquartile range (25th to 75th percentile) of those
-#' yearly proportions. Proportions are computed as in
-#' [compute_top_reasons_over_time()], every year counts the same, whatever
-#' its number of retractions, and only years present in both datasets are
-#' used. Reasons are sorted by their mean proportion in `data_a`.
+#' One row per reason in `reasons_list` and dataset: the point is the
+#' proportion of the dataset's retracted papers citing the reason over the
+#' whole year interval (papers citing it divided by all papers retracted in
+#' `year_limits`, each paper counted once), and the whiskers its exact
+#' (Clopper-Pearson) binomial confidence interval. Reasons are split and
+#' cleaned as in [compute_top_reasons_over_time()] and sorted by their
+#' proportion in `data_a`.
 #'
 #' @inheritParams plot_reason_proportion_differences
+#' @param conf_level Confidence level of the intervals.
 #' @return A ggplot object. Its data has one row per reason and dataset with
-#'   columns `Reason`, `group` (from `labels`), `mean_proportion`, `q25`,
-#'   `q75`, `n_years` and `y` (the vertical position of the row).
+#'   columns `Reason`, `group` (from `labels`), `papers` (papers citing the
+#'   reason), `total` (papers retracted in the period), `proportion`,
+#'   `lower`, `upper` and `y` (the vertical position of the row).
 #' @export
 plot_reason_proportions_forest <- function(data_a,
                                            data_b,
@@ -581,59 +582,61 @@ plot_reason_proportions_forest <- function(data_a,
                                            labels = c("Group A", "Group B"),
                                            year_col = "retraction_year",
                                            year_limits = NULL,
-                                           min_retractions_per_year = 0) {
-  summary <- yearly_reason_proportion_differences(
-    data_a, data_b, reasons_list, year_col, year_limits,
-    min_retractions_per_year
-  ) %>%
-    select(year, Reason, proportion_a, proportion_b) %>%
-    pivot_longer(c(proportion_a, proportion_b), names_to = "group",
-                 values_to = "proportion") %>%
-    mutate(group = factor(ifelse(group == "proportion_a", labels[1], labels[2]),
-                          levels = labels)) %>%
-    group_by(Reason, group) %>%
-    summarise(
-      mean_proportion = mean(proportion),
-      q25 = stats::quantile(proportion, 0.25, names = FALSE),
-      q75 = stats::quantile(proportion, 0.75, names = FALSE),
-      n_years = n(),
-      .groups = "drop"
-    )
+                                           conf_level = 0.95) {
+  reasons_list <- as.character(unlist(reasons_list))
+  summarise_dataset <- function(data, label) {
+    counts <- yearly_reason_counts(data, year_col, min_retractions_per_year = 0,
+                                   year_limits, exclude_reasons = NULL)
+    citing <- counts$reason_counts %>%
+      group_by(Reason) %>%
+      summarise(papers = sum(n), .groups = "drop")
+    tibble(Reason = reasons_list, group = label,
+           total = sum(counts$totals$total)) %>%
+      left_join(citing, by = "Reason") %>%
+      mutate(papers = coalesce(papers, 0L))
+  }
+  summary <- bind_rows(summarise_dataset(data_a, labels[1]),
+                       summarise_dataset(data_b, labels[2])) %>%
+    mutate(group = factor(group, levels = labels),
+           proportion = papers / total,
+           lower = binomial_ci(papers, total, conf_level)$lower,
+           upper = binomial_ci(papers, total, conf_level)$upper)
 
   # One line per reason, the first dataset just above it and the second just
   # below. Positions are set by hand because ggplotly() does not convert a
   # vertical position_dodge()
   reason_order <- summary %>%
     filter(group == labels[1]) %>%
-    arrange(mean_proportion) %>%
+    arrange(proportion) %>%
     pull(Reason)
   summary <- summary %>%
     mutate(y = match(Reason, reason_order) +
              ifelse(group == labels[1], 0.15, -0.15))
+  ci_label <- paste0(round(100 * conf_level), "% CI")
 
-  print(summary)
-
-  ggplot(summary, aes(mean_proportion, y, colour = group)) +
+  ggplot(summary, aes(proportion, y, colour = group)) +
     # Points come first because ggplotly() builds the legend from the first
     # layer, and the whiskers would give legend entries without markers.
     # `text` is ignored by ggplot2 but shown in the ggplotly() hover text
     suppressWarnings(geom_point(aes(text = paste0(
-      Reason, "<br>", group, ": ", scales::percent(mean_proportion, 0.1),
-      " (IQR ", scales::percent(q25, 0.1), " - ", scales::percent(q75, 0.1),
-      ", ", n_years, " years)"
+      Reason, "<br>", group, ": ", scales::percent(proportion, 0.1),
+      " (", ci_label, " ", scales::percent(lower, 0.1), " - ",
+      scales::percent(upper, 0.1), ")<br>", scales::comma(papers), " of ",
+      scales::comma(total), " retractions"
     )), size = 2.5)) +
-    geom_errorbar(aes(xmin = q25, xmax = q75), width = 0.15,
+    geom_errorbar(aes(xmin = lower, xmax = upper), width = 0.15,
                   orientation = "y") +
     scale_x_continuous(labels = scales::label_percent()) +
     scale_y_continuous(breaks = seq_along(reason_order), labels = reason_order,
                        minor_breaks = NULL) +
     scale_colour_manual(values = stats::setNames(c("#1b9e77", "#d95f02"), labels)) +
     labs(
-      x = "Mean yearly proportion of retractions citing the reason (IQR band)",
+      x = paste0("Proportion of retractions citing the reason (", ci_label, ")"),
       y = NULL,
       colour = NULL,
       title = paste0("Retraction reasons: ", labels[1], " vs ", labels[2]),
-      caption = "Points: mean across years. Whiskers: interquartile range across years"
+      caption = paste0("Points: proportion over the whole period. Whiskers: exact binomial ",
+                       ci_label)
     ) +
     theme_bw() +
     theme(plot.title.position = "plot")

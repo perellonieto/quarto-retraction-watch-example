@@ -240,9 +240,20 @@ The mean proportions for the significant and with adequate count reasons across 
 
 ```{r}
 ggplotly(plot_reason_proportions_forest(
-  retraction_data_uk %>% filter(Mass_Retraction == "Other"),
-  retraction_data_oecd %>% filter(Mass_Retraction == "Other"),
+  retraction_data_uk_nomass,
+  retraction_data_oecd_nomass,
   reasons_list = selected_reasons,
+  year_col = "publication_year",
+  labels = c("UK", "Other OECD"),
+  year_limits = c(2017, 2026)), height = 300)
+```
+
+```{r}
+ggplotly(plot_reason_proportions_forest(
+  retraction_data_uk_nomass,
+  retraction_data_oecd_nomass,
+  reasons_list = selected_reasons,
+  year_col = "retraction_year",
   labels = c("UK", "Other OECD"),
   year_limits = c(2017, 2026)), height = 300)
 ```
@@ -289,17 +300,17 @@ Excluding mass retractions
 
 ```{r}
 # A paper with authors in several countries counts once for each of them
-top_10_oecd_countries <- retraction_data_nomass |>
-  filter(Country %in% oecd_countries$Name, Country != "United Kingdom") |>
+top_11_oecd_countries <- retraction_data_nomass %>%
+  filter(country_class != "Rest of World") |>
   distinct(`Record ID`, Country) |>
   count(Country, name = "retractions", sort = TRUE) |>
-  slice_head(n = 10)
+  slice_head(n = 11)
 
-print(top_10_oecd_countries)
+print(top_11_oecd_countries)
 ```
 
 ```{r}
-plot_all_scenarios(subset(retraction_ai_rates, Country %in% top_10_oecd_countries$Country),
+plot_all_scenarios(subset(retraction_ai_rates, Country %in% top_11_oecd_countries$Country),
                    x = "ai_retraction_share_pct",
                    xlab = "% of retractions that mention AI (pseudo-log scale, 95% CI)",
                    interactive = TRUE, ncol=2) # text to compile again
@@ -329,8 +340,7 @@ autorange_axes(ggplotly(plot_ai_ts(retraction_ai_prop_ts, "prop_ai", "AI Retract
 Not considering mass retractions.
 
 ```{r}
-reasons_compare_results_uk <- retraction_data_nomass |>
-  subset(country_class == "United Kingdom") |>
+reasons_compare_results_uk <- retraction_data_uk_nomass |>
   reason_flags("international") |>
   compare_reason_groups("international", FALSE, TRUE)
 checkpoint(reasons_compare_results_uk, "09_reasons_compare_results_uk")
@@ -412,9 +422,10 @@ Show the expected difference in proportion of retractions and error bars per yea
 
 ```{r}
 ggplotly(plot_reason_proportions_forest(
-  retraction_data_uk |> filter(Mass_Retraction == "Other"),
-  retraction_data_oecd |> filter(Mass_Retraction == "Other"),
+  retraction_data_uk_nomass,
+  retraction_data_oecd_nomass,
   reasons_list = selected_reasons,
+  year_col = "publication_year",
   labels = c("UK", "OECD"),
   year_limits = c(2017, 2026)), height = 400)
 ```
@@ -541,6 +552,15 @@ plot_reason_proportions_across_groups_by_year(top_10_reasons_UK_and_year,
 interactive = TRUE)
 ```
 
+```{r}
+ggplotly(plot_reason_proportions_forest(
+  retraction_data_uk_nomass,
+  retraction_data_oecd_nomass,
+  reasons_list = top_10_reasons,
+  labels = c("UK", "Other OECD"),
+  year_limits = c(2017, 2026)))
+```
+
 # Top 5 retraction reasons from 2017 to 2026 for top 10 OECD countries
 
 Excluding mass retractions
@@ -613,6 +633,8 @@ summarise_logistic_regressor_findings(logistic_regressor,
 # Heterogeneity of the 10 countries in the OECD with most retractions
 
 ```{r}
+print(top_10_oecd_countries)
+
 ggplotly(plot_reason_heterogeneity(retraction_data_nomass, top_10_oecd_countries, top_10_reasons,
                           group_col = "Country", year_limits = c(2017, 2026)))
 ```

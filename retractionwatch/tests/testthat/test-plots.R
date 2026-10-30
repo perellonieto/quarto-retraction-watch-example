@@ -18,9 +18,9 @@ test_that("plot_reason_proportion_differences() plots proportion_a - proportion_
   expect_equal(p$labels$y, "Proportion difference (A - B)")
 })
 
-test_that("plot_reason_proportions_forest() summarises each dataset's yearly proportions", {
-  # Yearly proportions (2020, 2021): A has R1 = (2/4, 1/2) and R2 = (1/4, 0);
-  # B has R1 = (1/4, 0) and R2 = (0, 0)
+test_that("plot_reason_proportions_forest() shows each dataset's proportion over the period", {
+  # A: R1 in 3 of 6 papers, R2 in 1; B: R1 in 1 of 6, R2 in none. The mean of
+  # the yearly proportions of R2 in A would be (1/4 + 0) / 2 = 1/8, not 1/6
   a <- tibble::tibble(`Record ID` = 1:6,
                       retraction_year = c(2020, 2020, 2020, 2020, 2021, 2021),
                       Reason = c("R1;", "R1;R2;", "R3;", "R3;", "R1;", "R3;"))
@@ -35,12 +35,20 @@ test_that("plot_reason_proportions_forest() summarises each dataset's yearly pro
   data <- dplyr::arrange(p$data, Reason, group)
   expect_equal(data$Reason, c("R1", "R1", "R2", "R2"))
   expect_equal(as.character(data$group), c("A", "B", "A", "B"))
-  expect_equal(data$n_years, c(2, 2, 2, 2))
-  expect_equal(data$mean_proportion, c(1 / 2, 1 / 8, 1 / 8, 0))
-  expect_equal(data$q25, c(1 / 2, 1 / 16, 1 / 16, 0))
-  expect_equal(data$q75, c(1 / 2, 3 / 16, 3 / 16, 0))
-  # Reasons sorted by their mean in A (R2 < R1), with A just above B
+  expect_equal(data$papers, c(3, 1, 1, 0))
+  expect_equal(data$total, c(6, 6, 6, 6))
+  expect_equal(data$proportion, c(3, 1, 1, 0) / 6)
+  # Exact binomial intervals
+  expect_equal(data$lower, c(stats::qbeta(0.025, c(3, 1, 1), c(4, 6, 6)), 0))
+  expect_equal(data$upper, stats::qbeta(0.975, c(4, 2, 2, 1), c(3, 5, 5, 6)))
+  # Reasons sorted by their proportion in A (R2 < R1), with A just above B
   expect_equal(data$y, c(2.15, 1.85, 1.15, 0.85))
+  expect_match(p$labels$x, "95% CI")
+
+  # Year limits: only 2021 is left
+  limited <- plot_reason_proportions_forest(a, b, "R1", labels = c("A", "B"),
+                                            year_limits = c(2021, 2021))
+  expect_equal(limited$data$proportion, c(1 / 2, 0))
 })
 
 test_that("plot_all_scenarios() combines the scenarios when ncol is given", {

@@ -2,7 +2,7 @@
 % Please edit documentation in R/plots.R
 \name{plot_reason_proportions_forest}
 \alias{plot_reason_proportions_forest}
-\title{Forest plot of the yearly proportions of retraction reasons in two datasets}
+\title{Forest plot of the proportions of retraction reasons in two datasets}
 \usage{
 plot_reason_proportions_forest(
   data_a,
@@ -11,7 +11,7 @@ plot_reason_proportions_forest(
   labels = c("Group A", "Group B"),
   year_col = "retraction_year",
   year_limits = NULL,
-  min_retractions_per_year = 0
+  conf_level = 0.95
 )
 }
 \arguments{
@@ -27,21 +27,20 @@ of it (e.g. one per country group).}
 
 \item{year_limits}{Optional length-2 vector with the first and last year.}
 
-\item{min_retractions_per_year}{Years with fewer retractions are dropped,
-as their top reasons are dominated by noise.}
+\item{conf_level}{Confidence level of the intervals.}
 }
 \value{
 A ggplot object. Its data has one row per reason and dataset with
-columns \code{Reason}, \code{group} (from \code{labels}), \code{mean_proportion}, \code{q25},
-\code{q75}, \code{n_years} and \code{y} (the vertical position of the row).
+columns \code{Reason}, \code{group} (from \code{labels}), \code{papers} (papers citing the
+reason), \code{total} (papers retracted in the period), \code{proportion},
+\code{lower}, \code{upper} and \code{y} (the vertical position of the row).
 }
 \description{
-Summarises \code{\link[=plot_reason_proportion_differences]{plot_reason_proportion_differences()}} with one row per reason
-in \code{reasons_list} and dataset: the point is the mean, across years, of the
-yearly proportion of the dataset's retractions citing the reason, and the
-whiskers span the interquartile range (25th to 75th percentile) of those
-yearly proportions. Proportions are computed as in
-\code{\link[=compute_top_reasons_over_time]{compute_top_reasons_over_time()}}, every year counts the same, whatever
-its number of retractions, and only years present in both datasets are
-used. Reasons are sorted by their mean proportion in \code{data_a}.
+One row per reason in \code{reasons_list} and dataset: the point is the
+proportion of the dataset's retracted papers citing the reason over the
+whole year interval (papers citing it divided by all papers retracted in
+\code{year_limits}, each paper counted once), and the whiskers its exact
+(Clopper-Pearson) binomial confidence interval. Reasons are split and
+cleaned as in \code{\link[=compute_top_reasons_over_time]{compute_top_reasons_over_time()}} and sorted by their
+proportion in \code{data_a}.
 }
