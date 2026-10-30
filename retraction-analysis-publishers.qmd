@@ -289,3 +289,10 @@ ggplotly(plot_reason_proportion_per_publisher(
 })
 htmltools::tagList(plots)
 ```
+
+# Heterogeneity of the 10 publishers with most retractions
+
+```{r}
+ggplotly(plot_reason_heterogeneity(retraction_data_nomass, top_10_publisher, top_10_reasons,
+                          group_col = "Publisher", year_limits = c(2017, 2026)))
+```

@@ -460,3 +460,50 @@ test_that("plot_reason_proportion_per_publisher() gives each publisher's share w
   expect_error(plot_reason_proportion_per_publisher(data, character(0), "P1"),
                "single reason")
 })
+
+test_that("proportion_heterogeneity() separates real differences from noise", {
+  # Same proportion in every group: no heterogeneity
+  same <- proportion_heterogeneity(c(100, 200, 50), c(1000, 2000, 500))
+  expect_equal(same$Q, 0)
+  expect_equal(same$I2, 0)
+  expect_equal(same$tau, 0)
+  expect_equal(same$p_value, 1)
+  # Very different proportions: I2 close to 1 and a significant Q test
+  different <- proportion_heterogeneity(c(100, 500, 900), c(1000, 1000, 1000))
+  expect_gt(different$I2, 0.99)
+  expect_lt(different$p_value, 1e-10)
+  expect_true(different$tau_lower <= different$tau && different$tau <= different$tau_upper)
+  expect_true(different$I2_lower <= different$I2 && different$I2 <= different$I2_upper)
+  # Fewer than two groups with retractions: nothing to compare
+  expect_true(is.na(proportion_heterogeneity(c(1, 0), c(10, 0))$I2))
+})
+
+test_that("plot_reason_heterogeneity() compares reasons among publishers or countries", {
+  # R1 is in half the papers of every publisher; R2 in all of P1's, none of P2's
+  data <- tibble::tibble(
+    `Record ID` = 1:40,
+    Publisher = rep(c("P1", "P2"), each = 20),
+    Country = rep(c("A", "B"), times = 20),
+    retraction_year = 2020,
+    Reason = c(rep(c("R1;R2;", "R2;"), 10), rep(c("R1;", "R3;"), 10))
+  )
+
+  p <- plot_reason_heterogeneity(data, c("P1", "P2"), c("R1", "R2"))
+  expect_s3_class(p, "ggplot")
+  expect_match(p$labels$x, "^\u03c4: SD of the true log-odds among publishers")
+  expect_match(plot_reason_heterogeneity(data, c("P1", "P2"), "R1", measure = "I2")$labels$x,
+               "^I\u00b2: variation among publishers")
+  result <- dplyr::arrange(p$data, as.character(Reason))
+  expect_equal(result$groups, c(2, 2))
+  expect_equal(result$I2[1], 0)
+  expect_gt(result$I2[2], 0.9)
+  expect_equal(c(result$min_proportion[2], result$max_proportion[2]), c(0, 1))
+  # Least heterogeneous reason first (at the bottom of the plot)
+  expect_equal(levels(p$data$Reason), c("R1", "R2"))
+  expect_match(p$labels$title, "among 2 publishers")
+
+  by_country <- plot_reason_heterogeneity(data, tibble::tibble(Country = c("A", "B")),
+                                          "R2", group_col = "Country")
+  expect_match(by_country$labels$title, "among 2 countries$")
+  expect_equal(by_country$labels$x, "\u03c4: SD of the true log-odds among countries (95% CI)")
+})

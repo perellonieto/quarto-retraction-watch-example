@@ -609,3 +609,10 @@ Analysis of results.
 summarise_logistic_regressor_findings(logistic_regressor,
                                       reason_names = attr(df_reasons_and_country, "reasons"))
 ```
+
+# Heterogeneity of the 10 countries in the OECD with most retractions
+
+```{r}
+ggplotly(plot_reason_heterogeneity(retraction_data_nomass, top_10_oecd_countries, top_10_reasons,
+                          group_col = "Country", year_limits = c(2017, 2026)))
+```

@@ -1361,3 +1361,189 @@ plot_reason_proportion_per_publisher <- function(retraction_data,
     ) +
     theme_minimal()
 }
+
+#' Heterogeneity of reason proportions among groups
+#'
+#' For every reason in `reason_list`, measures how much the proportion of
+#' retractions citing it varies among the groups in `group_list` (e.g.
+#' publishers or countries) beyond what sampling noise alone would give.
+#' Each group's proportion is taken on the log-odds scale, as in a
+#' random-effects meta-analysis of proportions, and summarised by:
+#'
+#' * `I2`: the share of the variation among groups that is real rather than
+#'   sampling noise (0 when all groups could share one true proportion,
+#'   close to 1 when they clearly differ).
+#' * `tau`: the standard deviation of the groups' true log-odds
+#'   (Paule-Mandel estimate, which always lies within its Q-profile
+#'   confidence interval).
+#' * `p_value`: Cochran's Q test of all groups having the same proportion.
+#'
+#' The plot shows `tau` by default. I2 depends on the group sizes: with
+#' hundreds of retractions per group almost any difference exceeds sampling
+#' noise, so I2 is close to 100% for every reason and does not tell them
+#' apart, while `tau` measures how large the differences are. Both are always
+#' in the plot data and in the hover text.
+#'
+#' Confidence intervals of `tau` and `I2` use the Q-profile method. Groups
+#' are counted per distinct `Record ID`, so with `group_col = "Country"` a
+#' paper with several countries counts once in each. Groups with no
+#' retractions in the period are left out, and a 0.5 continuity correction
+#' is added to proportions of exactly 0 or 1.
+#'
+#' @param retraction_data Output of [load_retraction_data()], or a subset of
+#'   it (e.g. without mass retractions).
+#' @param group_list Character vector of groups, or a data frame with a
+#'   `group_col` column (e.g. the output of
+#'   [count_number_of_retractions_per_column()]).
+#' @param reason_list Character vector (or list) of reasons.
+#' @param group_col Column defining the groups, e.g. `"Publisher"` or
+#'   `"Country"`.
+#' @param measure Value plotted: `"tau"` or `"I2"`.
+#' @param year_limits Optional length-2 vector with the first and last year
+#'   (inclusive) of the retractions used. All retractions if `NULL`.
+#' @param year_col Year column used by `year_limits`.
+#' @param conf_level Confidence level of the intervals.
+#' @param colour Colour of the points and intervals.
+#' @return A ggplot object. Its data has one row per reason with columns
+#'   `Reason`, `groups`, `Q`, `p_value`, `tau`, `tau_lower`, `tau_upper`,
+#'   `I2`, `I2_lower`, `I2_upper`, `min_proportion` and `max_proportion`.
+#' @export
+plot_reason_heterogeneity <- function(retraction_data,
+                                      group_list,
+                                      reason_list,
+                                      group_col = "Publisher",
+                                      measure = c("tau", "I2"),
+                                      year_limits = NULL,
+                                      year_col = "retraction_year",
+                                      conf_level = 0.95,
+                                      colour = "#1b9e77") {
+  measure <- match.arg(measure)
+  if (is.data.frame(group_list)) {
+    group_list <- group_list[[group_col]]
+  }
+  reason_list <- as.character(unlist(reason_list))
+
+  papers <- retraction_data %>%
+    filter(.data[[group_col]] %in% group_list) %>%
+    distinct(`Record ID`, group = .data[[group_col]], year = .data[[year_col]], Reason)
+  if (!is.null(year_limits)) {
+    papers <- papers %>%
+      filter(!is.na(year), year >= year_limits[1], year <= year_limits[2])
+  }
+  totals <- count(distinct(papers, `Record ID`, group), group, name = "total")
+  citing <- papers %>%
+    separate_rows(Reason, sep = ";") %>%
+    mutate(Reason = str_trim(Reason)) %>%
+    filter(Reason %in% reason_list) %>%
+    distinct(`Record ID`, group, Reason) %>%
+    count(group, Reason, name = "papers")
+  counts <- tidyr::crossing(totals, Reason = reason_list) %>%
+    left_join(citing, by = c("group", "Reason")) %>%
+    mutate(papers = coalesce(papers, 0L))
+
+  heterogeneity <- counts %>%
+    group_by(Reason) %>%
+    group_modify(function(d, key) {
+      as_tibble(c(proportion_heterogeneity(d$papers, d$total, conf_level),
+                  list(min_proportion = min(d$papers / d$total),
+                       max_proportion = max(d$papers / d$total))))
+    }) %>%
+    ungroup() %>%
+    arrange(.data[[measure]]) %>%
+    mutate(Reason = factor(Reason, levels = Reason))
+
+  # "Publisher" -> "publishers", "Country" -> "countries"
+  group_name <- sub("y$", "ie", tolower(group_col))
+  n_groups <- length(unique(counts$group))
+  value <- measure
+  lower <- paste0(measure, "_lower")
+  upper <- paste0(measure, "_upper")
+  ggplot(heterogeneity, aes(.data[[value]], Reason)) +
+    # Segments rather than error bars, as ggplotly() keeps their height
+    geom_segment(aes(x = .data[[lower]], xend = .data[[upper]], yend = Reason),
+                 colour = colour, alpha = 0.5, linewidth = 0.6) +
+    # `text` is ignored by ggplot2 but shown in the ggplotly() hover text
+    suppressWarnings(geom_point(aes(text = paste0(
+      Reason,
+      "<br>I2: ", scales::percent(I2, accuracy = 0.1), " (", round(100 * conf_level), "% CI ",
+      scales::percent(I2_lower, accuracy = 0.1), " - ", scales::percent(I2_upper, accuracy = 0.1), ")",
+      "<br>tau (log-odds): ", formatC(tau, format = "f", digits = 2), " (",
+      formatC(tau_lower, format = "f", digits = 2), " - ",
+      formatC(tau_upper, format = "f", digits = 2), ")",
+      "<br>Q test p-value: ", signif(p_value, 3),
+      "<br>Proportions from ", scales::percent(min_proportion, accuracy = 0.1),
+      " to ", scales::percent(max_proportion, accuracy = 0.1), " in ", groups, " groups"
+    )), colour = colour, size = 2.5)) +
+    scale_x_continuous(labels = if (measure == "I2") scales::label_percent() else waiver(),
+                       limits = if (measure == "I2") c(0, 1) else c(0, NA)) +
+    labs(
+      x = if (measure == "I2") {
+        paste0("I\u00b2: variation among ", group_name, "s beyond sampling noise (",
+               round(100 * conf_level), "% CI)")
+      } else {
+        paste0("\u03c4: SD of the true log-odds among ", group_name, "s (",
+               round(100 * conf_level), "% CI)")
+      },
+      y = NULL,
+      title = paste0("Heterogeneity of reason proportions among ", n_groups, " ",
+                     if (n_groups == 1) tolower(group_col) else paste0(group_name, "s"))
+    ) +
+    theme_minimal()
+}
+
+# Random-effects heterogeneity of k proportions papers / total on the
+# log-odds scale: Cochran's Q and its p-value, Paule-Mandel tau with a
+# Q-profile confidence interval, and I2 (tau^2 over tau^2 plus the typical
+# within-group variance) with the interval derived from tau's. Paule-Mandel
+# and the Q-profile solve the same equation, so the estimate is always within
+# its interval (DerSimonian-Laird can fall outside it).
+proportion_heterogeneity <- function(papers, total, conf_level = 0.95) {
+  keep <- total > 0
+  papers <- papers[keep]
+  total <- total[keep]
+  k <- length(papers)
+  if (k < 2) {
+    return(list(groups = k, Q = NA_real_, p_value = NA_real_, tau = NA_real_,
+                tau_lower = NA_real_, tau_upper = NA_real_, I2 = NA_real_,
+                I2_lower = NA_real_, I2_upper = NA_real_))
+  }
+  # 0.5 continuity correction for proportions of exactly 0 or 1
+  correction <- ifelse(papers == 0 | papers == total, 0.5, 0)
+  a <- papers + correction
+  b <- total - papers + correction
+  y <- log(a / b)
+  v <- 1 / a + 1 / b
+
+  generalised_q <- function(tau2) {
+    w <- 1 / (v + tau2)
+    sum(w * (y - sum(w * y) / sum(w))^2)
+  }
+  w <- 1 / v
+  q <- generalised_q(0)
+  df <- k - 1
+
+  # Value of tau^2 where the generalised Q statistic equals `target` (Q
+  # decreases as tau^2 grows): `df` gives the Paule-Mandel estimate and the
+  # chi-squared quantiles give the Q-profile confidence interval
+  alpha <- 1 - conf_level
+  solve_tau2 <- function(target) {
+    if (generalised_q(0) <= target) {
+      return(0)
+    }
+    upper <- max(1, 10 * stats::var(y))
+    while (generalised_q(upper) > target) {
+      upper <- upper * 10
+    }
+    stats::uniroot(function(t) generalised_q(t) - target, c(0, upper),
+                   tol = 1e-10)$root
+  }
+  tau2 <- solve_tau2(df)
+  tau2_lower <- solve_tau2(stats::qchisq(1 - alpha / 2, df))
+  tau2_upper <- solve_tau2(stats::qchisq(alpha / 2, df))
+
+  typical_variance <- df * sum(w) / (sum(w)^2 - sum(w^2))
+  i2 <- function(t2) t2 / (t2 + typical_variance)
+  list(groups = k, Q = q, p_value = stats::pchisq(q, df, lower.tail = FALSE),
+       tau = sqrt(tau2), tau_lower = sqrt(tau2_lower), tau_upper = sqrt(tau2_upper),
+       I2 = i2(tau2), I2_lower = i2(tau2_lower), I2_upper = i2(tau2_upper))
+}
