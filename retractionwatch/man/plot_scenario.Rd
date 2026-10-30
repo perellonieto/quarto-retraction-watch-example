@@ -8,12 +8,10 @@ plot_scenario(
   dat,
   scenario_name,
   x = "ai_retraction_rate_per_100k",
-  xlab = "AI Retractions per 100,000 papers (log scale)",
+  xlab = "AI retractions per 100,000 papers (pseudo-log scale, 95\% CI)",
   label_size = 2.5,
   label_gap = 2,
-  error_bars = TRUE,
-  count_col = "ai_retractions",
-  total_col = NULL
+  sigma = default_sigma(dat[[x]])
 )
 }
 \arguments{
@@ -23,29 +21,23 @@ plot_scenario(
 are ordered within each scenario and the plot has no title, ready to be
 faceted by \code{scenario} (as done by \code{\link[=plot_all_scenarios]{plot_all_scenarios()}}).}
 
-\item{x}{Column to plot on the (log) x axis.}
+\item{x}{Column to plot on the x axis. If the columns \verb{<x>_lower} and
+\verb{<x>_upper} exist they are drawn as confidence intervals. Rows where
+\code{x} is \code{NA} are dropped.}
 
 \item{xlab}{X axis label.}
 
 \item{label_size}{Size of the country labels, in mm (ggplot2 units).}
 
-\item{label_gap}{Number of spaces between each point and its label.}
+\item{label_gap}{Number of spaces between each point (or the end of its
+interval) and its label.}
 
-\item{error_bars}{If \code{TRUE}, draws for each country the binomial standard
-error of \code{x}: with \code{p = count / total}, \code{x} is proportional to \code{p}, so
-its standard error is \code{x * sqrt((1 - p) / count)}. On the log axis, a
-bar reaching zero or below (a single AI retraction) is cut at the left
-edge of the plot.}
-
-\item{count_col}{Column with the number of AI retractions.}
-
-\item{total_col}{Column with the number of trials of the binomial. By
-default \code{"retractions"} when \code{x} is a share of the retractions
-(\verb{ai_retraction_share*}) and \code{"total_papers"} otherwise.}
+\item{sigma}{Scale of the pseudo-log x axis: linear below \code{sigma} and
+logarithmic above, so that zeros can be shown. Defaults to the smallest
+positive value of \code{x} in \code{dat}, so all scenarios share the same axis.}
 }
 \value{
-A ggplot object. Its data has the standard error of each country
-in \code{std_error}.
+A ggplot object.
 }
 \description{
 Plot one value per country for one scenario, highlighting the UK

@@ -4,16 +4,24 @@
 \alias{compute_ai_proportion_ts}
 \title{Proportion of retractions mentioning AI per year, country class and scenario}
 \usage{
-compute_ai_proportion_ts(retraction_data, scenarios = default_scenarios())
+compute_ai_proportion_ts(
+  retraction_data,
+  scenarios = default_scenarios(),
+  conf_level = 0.95
+)
 }
 \arguments{
 \item{retraction_data}{Cleaned retraction data with \code{country_class}.}
 
 \item{scenarios}{Scenarios table, see \code{\link[=default_scenarios]{default_scenarios()}}.}
+
+\item{conf_level}{Confidence level of the exact Poisson intervals.}
 }
 \value{
-A tibble with \code{ai_retractions}, \code{total_retractions} and \code{prop_ai}.
+A tibble with \code{ai_retractions}, \code{total_retractions}, \code{prop_ai} and
+its exact binomial interval \code{prop_ai_lower} and \code{prop_ai_upper}.
 }
 \description{
-Proportion of retractions mentioning AI per year, country class and scenario
+Papers with no known country (no \code{country_class}) are left out. Years in
+which a class has retractions but none mentioning AI get a proportion of 0.
 }

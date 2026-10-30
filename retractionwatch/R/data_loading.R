@@ -2,7 +2,9 @@
 #'
 #' Reads every `scimagojr country rank <YEAR>.xlsx` file in `dir`, adds a
 #' `Year` column taken from the file name, writes the combined table to
-#' `output_csv` and returns it read back from that CSV.
+#' `output_csv` and returns it read back from that CSV. Country names are
+#' recoded to the names used by Retraction Watch (e.g. "Russian Federation"
+#' becomes "Russia").
 #'
 #' @param dir Directory with the yearly SCImago Excel files.
 #' @param output_csv Path of the combined CSV file to write.
@@ -20,10 +22,17 @@ build_sjr_country_counts <- function(dir = "data/sjr_rankings",
     year <- str_extract(basename(f), "\\d{4}")
     readxl::read_excel(f) %>%
       mutate(Year = as.integer(year))
-  })
+  }) %>%
+    recode_sjr_countries()
 
   readr::write_csv(sjr_country_counts, output_csv)
   readr::read_csv(output_csv, show_col_types = FALSE)
+}
+
+# Recodes SCImago country names to the names used by Retraction Watch
+recode_sjr_countries <- function(sjr_country_counts) {
+  mutate(sjr_country_counts,
+         Country = recode(.data$Country, !!!SJR_COUNTRY_RECODES))
 }
 
 #' Load the list of OECD countries
@@ -50,17 +59,24 @@ load_oecd_countries <- function(path = "data/oecd_countries.csv") {
 #' @param oecd_countries Output of [load_oecd_countries()].
 #' @param reason_groupings_path Path to the CSV mapping each retraction
 #'   reason to a reason group.
-#' @return The cleaned data (one row per paper and country) with a
-#'   `country_class` column added by [add_paper_country_class()], so all the
-#'   rows of a paper share the same class.
+#' @param publication_years Length-2 vector with the first and last
+#'   publication year kept. Defaults to the years covered by the SCImago
+#'   publication counts, so that every retraction has a denominator.
+#' @param retractions_only If `TRUE`, keeps only entries whose
+#'   `RetractionNature` is "Retraction" (dropping corrections, expressions of
+#'   concern and reinstatements).
+#' @return The cleaned data (one row per paper and country) with a per-paper
+#'   `country_class` column, see [add_paper_country_class()].
 #' @export
 load_retraction_data <- function(path = "data/retraction_watch.csv",
                                  oecd_countries = load_oecd_countries(),
-                                 reason_groupings_path = "data/retraction_reason_groupings.csv") {
+                                 reason_groupings_path = "data/retraction_reason_groupings.csv",
+                                 publication_years = c(1996, 2025),
+                                 retractions_only = FALSE) {
   retraction_data <- readr::read_csv(path, show_col_types = FALSE, col_types = RETRACTION_DATA_TYPES)
   retraction_reason_conversion <- readr::read_csv(reason_groupings_path,
                                                   show_col_types = FALSE, col_types = RETRACTION_REASON_GROUPINGS_TYPES)
-  retraction_data %>%
-    clean_retraction_data(oecd_countries, retraction_reason_conversion) %>%
-    add_paper_country_class(oecd_countries)
+  clean_retraction_data(retraction_data, oecd_countries, retraction_reason_conversion,
+                        publication_years = publication_years,
+                        retractions_only = retractions_only)
 }

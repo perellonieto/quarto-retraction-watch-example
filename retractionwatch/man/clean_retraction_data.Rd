@@ -14,7 +14,9 @@ clean_retraction_data(
   add_reason_groups = TRUE,
   add_retraction_delay = TRUE,
   add_international = TRUE,
-  add_mass_retraction = TRUE
+  add_mass_retraction = TRUE,
+  retractions_only = FALSE,
+  publication_years = NULL
 )
 }
 \arguments{
@@ -28,7 +30,8 @@ columns mapping each reason to a reason group. Only needed when
 \code{add_reason_groups = TRUE}.}
 
 \item{long_df_by_countries}{If \code{TRUE}, papers with several countries are
-split into one row per country and \code{oecd}/\code{UK} flags are added.}
+split into one row per country and a per-paper \code{country_class} is added
+(see \code{split_by_country()}).}
 
 \item{clean_reasons}{If \code{TRUE}, removes \code{+} characters from \code{Reason}.}
 
@@ -46,13 +49,20 @@ and a \code{ReasonGroups} column with the paper's groups separated by \verb{;}
 
 \item{add_mass_retraction}{If \code{TRUE}, adds the \code{Mass_Retraction} factor.
 Requires \code{publication_year} and \code{retraction_year}.}
+
+\item{retractions_only}{If \code{TRUE}, keeps only entries whose
+\code{RetractionNature} is "Retraction".}
+
+\item{publication_years}{Optional length-2 vector with the first and last
+publication year kept. Requires parsed dates.}
 }
 \value{
 The cleaned data frame.
 }
 \description{
 Cleans reasons and dates, adds one indicator column per reason group,
-retraction delay categories, OECD/UK flags, an \code{international} flag and a
-\code{Mass_Retraction} factor (IEEE 2009-2011 and Hindawi mass retractions).
-Each step can be switched off with its corresponding argument.
+retraction delay categories, a per-paper \code{country_class}, an
+\code{international} flag and a \code{Mass_Retraction} factor (IEEE 2009-2011 and
+Hindawi mass retractions). Each step can be switched off with its
+corresponding argument.
 }

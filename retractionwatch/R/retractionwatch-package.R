@@ -27,7 +27,7 @@
 
 # Column names used with non-standard evaluation
 utils::globalVariables(c(
-  "Country", "Documents", "Year", "Reason", "Publisher", "Record ID",
+  "Country", "Documents", "Year", "Reason", "Publisher", "Record ID", "RetractionNature",
   "RetractionDate", "OriginalPaperDate", "RetractionID", "Mass_Retraction",
   "international", "exclude_mass", "domestic_only", "publication_year",
   "country_class", "scenario", "retractions", "total_papers",
@@ -43,6 +43,9 @@ utils::globalVariables(c(
   "share", "jaccard", "max_jaccard", "total_a", "total_b", "value",
   "reason", "fpr", "tpr", "threshold", "tp", "fp", "column", "coefficient",
   "std_error", "odds_ratio", "conf_low", "conf_high", "reliable", "favours",
-  "papers_a", "papers_b", "significant", "error_low", "error_high",
-  "label_x"
+  "papers_a", "papers_b", "significant", "label_x", "is_uk", "prop_ai_lower",
+  "prop_ai_upper", "ai_retractions_lower", "ai_retractions_upper",
+  "ai_retraction_share_pct_lower", "ai_retraction_share_pct_upper",
+  "ai_retraction_rate_per_100k_lower", "ai_retraction_rate_per_100k_upper",
+  "domestic_only"
 ))

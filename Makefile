@@ -2,7 +2,7 @@
 
 download-data:
 	mkdir -p data
-	curl  --output-dir data -O https://gitlab.com/crossref/data/-/raw/main/retraction_watch.csv
+	curl -fL -o data/retraction_watch.csv https://api.labs.crossref.org/data/retractionwatch
 
 install-dependencies:
 	Rscript install_dependencies.R

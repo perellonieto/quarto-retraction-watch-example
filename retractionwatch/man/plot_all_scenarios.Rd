@@ -6,6 +6,7 @@
 \usage{
 plot_all_scenarios(
   dat,
+  x = "ai_retraction_rate_per_100k",
   ...,
   label_size = 2.5,
   interactive = FALSE,
@@ -14,6 +15,10 @@ plot_all_scenarios(
 }
 \arguments{
 \item{dat}{Output of \code{\link[=compute_ai_rates_by_country]{compute_ai_rates_by_country()}}.}
+
+\item{x}{Column to plot on the x axis. If the columns \verb{<x>_lower} and
+\verb{<x>_upper} exist they are drawn as confidence intervals. Rows where
+\code{x} is \code{NA} are dropped.}
 
 \item{...}{Passed to \code{\link[=plot_scenario]{plot_scenario()}}.}
 
@@ -32,7 +37,8 @@ its tallest scenario.}
 \value{
 A named list of ggplot objects, one per scenario, or a tagList of
 plotly widgets when \code{interactive = TRUE}. With \code{ncol}, a single ggplot or
-plotly figure.
+plotly figure. Scenarios where \code{x} is always \code{NA} (e.g. the rate in
+domestic-only scenarios) are left out.
 }
 \description{
 Plot every scenario with \code{\link[=plot_scenario]{plot_scenario()}}

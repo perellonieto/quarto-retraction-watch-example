@@ -4,16 +4,23 @@
 \alias{compute_ai_counts_ts}
 \title{AI retraction counts per year, country class and scenario}
 \usage{
-compute_ai_counts_ts(retraction_data, scenarios = default_scenarios())
+compute_ai_counts_ts(
+  retraction_data,
+  scenarios = default_scenarios(),
+  conf_level = 0.95
+)
 }
 \arguments{
 \item{retraction_data}{Cleaned retraction data with \code{country_class}.}
 
 \item{scenarios}{Scenarios table, see \code{\link[=default_scenarios]{default_scenarios()}}.}
+
+\item{conf_level}{Confidence level of the exact Poisson intervals.}
 }
 \value{
-A tibble with \code{ai_retractions} counts.
+A tibble with \code{ai_retractions} counts and their intervals
+\code{ai_retractions_lower} and \code{ai_retractions_upper}.
 }
 \description{
-AI retraction counts per year, country class and scenario
+Papers with no known country (no \code{country_class}) are left out.
 }

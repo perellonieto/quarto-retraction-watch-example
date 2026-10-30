@@ -13,7 +13,7 @@ classify_country(country, oecd_names)
 }
 \value{
 Character vector with values \code{"United Kingdom"}, \code{"Other OECD"}
-or \code{"Rest of World"}.
+or \code{"Rest of World"}, and \code{NA} for a missing country.
 }
 \description{
 Classify countries into UK, other OECD and rest of world

@@ -68,15 +68,67 @@ test_that("retraction delay is categorised", {
                c("Within 2 years", "After 2 years", "After 2 years", "Within 2 years"))
 })
 
-test_that("papers are split into one row per country", {
+test_that("papers are split into one row per country with a per-paper class", {
   data <- clean_fixture()
   paper_2 <- data[data$`Record ID` == 2, ]
 
   expect_equal(nrow(data), 5)
   expect_setequal(paper_2$Country, c("United Kingdom", "China"))
-  # Countries are classified per paper by add_paper_country_class() instead
-  # of the former per-row OECD and UK flags
+  # Both rows of the UK-China paper are in the UK class
+  expect_equal(paper_2$country_class, c("United Kingdom", "United Kingdom"))
+  # The former per-row OECD and UK flags are not added
   expect_false(any(c("oecd", "UK") %in% names(data)))
+  expect_equal(by_paper(data)$country_class,
+               c("United Kingdom", "United Kingdom", "Rest of World", "Other OECD"))
+})
+
+test_that("country classes follow UK > Other OECD > Rest of World per paper", {
+  raw <- read_fixture_retractions()
+  raw$Country <- c("France;United Kingdom", "China;France", "China;Brazil",
+                   "South Korea;Slovakia")
+  papers <- by_paper(clean_retraction_data(
+    raw, oecd_countries = read_fixture_oecd(),
+    retraction_reason_conversion = read_fixture_reason_groups()))
+
+  expect_equal(papers$country_class,
+               c("United Kingdom", "Other OECD", "Rest of World", "Other OECD"))
+})
+
+test_that("unknown countries are treated as missing", {
+  raw <- read_fixture_retractions()
+  raw$Country[1] <- "Unknown"
+  raw$Country[2] <- "Unknown;China"
+  data <- clean_retraction_data(raw, oecd_countries = read_fixture_oecd(),
+                                retraction_reason_conversion = read_fixture_reason_groups())
+
+  # A paper with no known country keeps one row, with no country or class
+  expect_equal(nrow(data[data$`Record ID` == 1, ]), 1)
+  expect_true(is.na(data$Country[data$`Record ID` == 1]))
+  expect_true(is.na(data$country_class[data$`Record ID` == 1]))
+  # Unknown is dropped from papers that also list a known country
+  expect_equal(data$Country[data$`Record ID` == 2], "China")
+  expect_equal(data$country_class[data$`Record ID` == 2], "Rest of World")
+  expect_false(data$international[data$`Record ID` == 2])
+  expect_equal(by_paper(data)$number_of_countries, c(0, 1, 1, 1))
+})
+
+test_that("retractions_only keeps only retractions", {
+  raw <- read_fixture_retractions()
+  raw$RetractionNature[2:3] <- c("Correction", "Expression of concern")
+
+  kept <- clean_fixture()
+  dropped <- clean_retraction_data(raw, oecd_countries = read_fixture_oecd(),
+                                   retraction_reason_conversion = read_fixture_reason_groups(),
+                                   retractions_only = TRUE)
+
+  expect_setequal(unique(kept$`Record ID`), 1:4)
+  expect_setequal(unique(dropped$`Record ID`), c(1, 4))
+})
+
+test_that("publication_years keeps papers published in that range", {
+  data <- clean_fixture(publication_years = c(2015, 2020))
+
+  expect_setequal(unique(data$`Record ID`), c(2, 4))
 })
 
 test_that("only papers with several countries are international", {
@@ -145,6 +197,7 @@ test_that("classify_country() and add_country_class() assign country classes", {
   expect_equal(classify_country(c("United Kingdom", "France", "China"),
                                 c("United Kingdom", "France")),
                c("United Kingdom", "Other OECD", "Rest of World"))
+  expect_true(is.na(classify_country(NA_character_, "France")))
 
   data <- add_country_class(data.frame(Country = c("France", "Brazil")),
                             read_fixture_oecd())

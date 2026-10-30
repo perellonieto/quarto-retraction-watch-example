@@ -2,26 +2,23 @@
 % Please edit documentation in R/preprocessing.R
 \name{add_paper_country_class}
 \alias{add_paper_country_class}
-\title{Add a \code{country_class} column with one class per paper}
+\title{Add a per-paper \code{country_class} column}
 \usage{
-add_paper_country_class(data, oecd_countries, id_col = "Record ID")
+add_paper_country_class(data, oecd_countries)
 }
 \arguments{
-\item{data}{Data frame with one row per paper and country (see
-\code{\link[=clean_retraction_data]{clean_retraction_data()}}).}
+\item{data}{Data frame with one row per paper and country, with
+\verb{Record ID} and \code{Country} columns.}
 
 \item{oecd_countries}{Data frame with a \code{Name} column of OECD countries.}
-
-\item{id_col}{Column identifying each paper.}
 }
 \value{
-\code{data} with a \code{country_class} column.
+\code{data} with a \code{country_class} column, equal on all rows of a paper.
 }
 \description{
-Gives every row of a paper the same class, taken from all of its
-countries in order of precedence: \code{"United Kingdom"} if any author is in
-the UK, otherwise \code{"Other OECD"} if any author is in another OECD
-country, otherwise \code{"Rest of World"}. Each paper therefore belongs to a
-single class, unlike \code{\link[=add_country_class]{add_country_class()}}, which classifies each row on
-its own country.
+Each paper gets a single class from all of its countries, by precedence:
+"United Kingdom" if any author is in the UK, otherwise "Other OECD" if
+any author is in another OECD country, otherwise "Rest of World". So
+every paper is in exactly one class and is never counted twice across
+classes. Papers with no known country get \code{NA}.
 }

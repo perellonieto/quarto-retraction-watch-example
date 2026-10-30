@@ -287,3 +287,19 @@ test_that("one_hot_encoding_reasons_and_country_type() has one row per paper", {
   expect_error(one_hot_encoding_reasons_and_country_type(data, country_col = "Country"),
                "several values")
 })
+
+test_that("top_reasons_overall() returns one list over all years in range", {
+  data <- rbind(
+    transform(make_retractions(c("R1;", "R1;", "R2;R3;"), 2018), `Record ID` = 1:3,
+              check.names = FALSE),
+    transform(make_retractions(c("R3;", "R3;", "R4;"), 2019), `Record ID` = 4:6,
+              check.names = FALSE),
+    transform(make_retractions(rep("R5;", 5), 2010), `Record ID` = 7:11,
+              check.names = FALSE)
+  )
+
+  # R5 is the most cited overall, but only before 2017
+  expect_equal(top_reasons_overall(data, n = 2, year_limits = c(2017, 2025)),
+               c("R3", "R1"))
+  expect_equal(top_reasons_overall(data, n = 1), "R5")
+})

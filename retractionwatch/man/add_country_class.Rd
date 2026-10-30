@@ -2,7 +2,7 @@
 % Please edit documentation in R/preprocessing.R
 \name{add_country_class}
 \alias{add_country_class}
-\title{Add a \code{country_class} column based on the \code{Country} column}
+\title{Add a per-country \code{country_class} column based on the \code{Country} column}
 \usage{
 add_country_class(data, oecd_countries)
 }
@@ -15,5 +15,6 @@ add_country_class(data, oecd_countries)
 \code{data} with a \code{country_class} column (see \code{\link[=classify_country]{classify_country()}}).
 }
 \description{
-Add a \code{country_class} column based on the \code{Country} column
+Used for the SCImago publication counts, which are per country. For
+retraction data use \code{\link[=add_paper_country_class]{add_paper_country_class()}} instead.
 }

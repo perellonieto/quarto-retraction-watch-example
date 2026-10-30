@@ -32,13 +32,15 @@ retraction_data_nomass <- retraction_data[retraction_data$Mass_Retraction == "Ot
 #  subset(Country == "United Kingdom")
 #ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = c(2000, 2026), n_top = 2, min_retractions_per_year = 20))
 
+# Country classes are per paper (UK > Other OECD > Rest of World), so the
+# two subsets below never share a paper
 retraction_data_uk <- retraction_data |>
-  subset(Country == "United Kingdom")
+  subset(country_class == "United Kingdom")
 retraction_data_uk_nomass <- retraction_data_uk |>
   subset(Mass_Retraction == "Other")
 
 retraction_data_oecd <- retraction_data |>
-  subset((Country %in% oecd_countries$Name) & (Country != "United Kingdom"))
+  subset(country_class == "Other OECD")
 retraction_data_oecd_nomass <- retraction_data_oecd |>
   subset(Mass_Retraction == "Other")
 ```

@@ -49,10 +49,18 @@ test_that("load_retraction_data() returns cleaned data with a paper country clas
   # Paper 2 has two countries, so it is split into two rows
   expect_equal(nrow(data), 5)
   expect_setequal(unique(data$`Record ID`), 1:4)
-  # One class per paper: both rows of paper 2 (United Kingdom;China) are UK
-  classes <- dplyr::arrange(dplyr::distinct(data, `Record ID`, country_class),
-                            `Record ID`)
-  expect_equal(classes$`Record ID`, 1:4)
-  expect_equal(classes$country_class,
-               c("United Kingdom", "United Kingdom", "Rest of World", "Other OECD"))
+  expect_equal(
+    unique(data$country_class[data$Country == "United Kingdom"]), "United Kingdom"
+  )
+  expect_equal(unique(data$country_class[data$Country == "France"]), "Other OECD")
+  # China appears alone (Rest of World) and with the UK (United Kingdom)
+  expect_setequal(data$country_class[data$Country == "China"],
+                  c("United Kingdom", "Rest of World"))
+})
+
+test_that("SCImago country names are recoded to Retraction Watch names", {
+  counts <- recode_sjr_countries(
+    data.frame(Country = c("Russian Federation", "Viet Nam", "France")))
+
+  expect_equal(counts$Country, c("Russia", "Vietnam", "France"))
 })

@@ -19,10 +19,9 @@ default_scenarios <- function() {
 #'
 #' Replicates the data for every scenario, applies each scenario's filters and
 #' counts the distinct `RetractionID`s by the grouping columns. A paper with
-#' authors in several countries counts once for each value of the grouping
-#' columns among its rows: once per `Country`, but only once per
-#' `country_class`, as all its rows share one class (see
-#' [add_paper_country_class()]).
+#' authors in several countries counts once for each of its countries when
+#' grouping by `Country`, and once in total when grouping by the per-paper
+#' `country_class`.
 #'
 #' @param data Cleaned retraction data.
 #' @param ... Columns to count by (in addition to `scenario`, which should

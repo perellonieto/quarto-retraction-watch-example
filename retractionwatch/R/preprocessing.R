@@ -2,9 +2,10 @@
 #' Clean the raw Retraction Watch data
 #'
 #' Cleans reasons and dates, adds one indicator column per reason group,
-#' retraction delay categories, OECD/UK flags, an `international` flag and a
-#' `Mass_Retraction` factor (IEEE 2009-2011 and Hindawi mass retractions).
-#' Each step can be switched off with its corresponding argument.
+#' retraction delay categories, a per-paper `country_class`, an
+#' `international` flag and a `Mass_Retraction` factor (IEEE 2009-2011 and
+#' Hindawi mass retractions). Each step can be switched off with its
+#' corresponding argument.
 #'
 #' @param retraction_data Raw Retraction Watch data.
 #' @param oecd_countries Data frame with a `Name` column of OECD countries.
@@ -13,7 +14,12 @@
 #'   columns mapping each reason to a reason group. Only needed when
 #'   `add_reason_groups = TRUE`.
 #' @param long_df_by_countries If `TRUE`, papers with several countries are
-#'   split into one row per country and `oecd`/`UK` flags are added.
+#'   split into one row per country and a per-paper `country_class` is added
+#'   (see `split_by_country()`).
+#' @param retractions_only If `TRUE`, keeps only entries whose
+#'   `RetractionNature` is "Retraction".
+#' @param publication_years Optional length-2 vector with the first and last
+#'   publication year kept. Requires parsed dates.
 #' @param clean_reasons If `TRUE`, removes `+` characters from `Reason`.
 #' @param parse_dates If `TRUE`, parses `OriginalPaperDate` and
 #'   `RetractionDate` and adds `publication_year` and `retraction_year`.
@@ -36,13 +42,25 @@ clean_retraction_data <- function(retraction_data,
                                   add_reason_groups = TRUE,
                                   add_retraction_delay = TRUE,
                                   add_international = TRUE,
-                                  add_mass_retraction = TRUE) {
+                                  add_mass_retraction = TRUE,
+                                  retractions_only = FALSE,
+                                  publication_years = NULL) {
+  if (retractions_only) {
+    retraction_data <- filter(retraction_data, .data$RetractionNature == "Retraction")
+  }
   if (clean_reasons) {
     retraction_data <- clean_reason_strings(retraction_data)
   }
   retraction_data <- add_number_of_countries(retraction_data)
   if (parse_dates) {
     retraction_data <- parse_retraction_dates(retraction_data)
+  }
+  if (!is.null(publication_years)) {
+    require_columns(retraction_data, "publication_year", "publication_years")
+    year <- as.numeric(retraction_data$publication_year)
+    retraction_data <- retraction_data[!is.na(year) &
+                                         year >= publication_years[1] &
+                                         year <= publication_years[2], ]
   }
   if (add_reason_groups) {
     if (is.null(retraction_reason_conversion)) {
@@ -92,9 +110,12 @@ clean_reason_strings <- function(retraction_data) {
   retraction_data
 }
 
-# Number of countries involved in each article
+# Number of (known) countries involved in each article
 add_number_of_countries <- function(retraction_data) {
-  retraction_data$number_of_countries <- lengths(strsplit(retraction_data$Country, ';'))
+  retraction_data$number_of_countries <- vapply(
+    strsplit(retraction_data$Country, ';'),
+    function(countries) sum(!countries %in% UNKNOWN_COUNTRIES),
+    integer(1))
   retraction_data
 }
 
@@ -146,22 +167,21 @@ add_retraction_delay_flags <- function(retraction_data) {
   retraction_data
 }
 
-# One row per paper and country. Country classes are added afterwards, per
-# paper, by add_paper_country_class()
+# One row per paper and country, with a per-paper `country_class`.
+# Unknown countries are dropped from papers that list a known country; a
+# paper with no known country keeps a single row with `Country` set to NA
 split_by_country <- function(retraction_data, oecd_countries) {
   retraction_data$paper_index <- seq_len(nrow(retraction_data))
-  retraction_data <- retraction_data %>%
+  retraction_data %>%
     mutate(row = row_number()) %>%
-    separate_rows(Country, sep = ';')
-  # Country classes (UK / Other OECD / Rest of World) are assigned
-  # per paper after cleaning; see "Setting up the country groups"
-  #retraction_data$oecd <- case_when(
-  #  retraction_data$Country %in% oecd_countries$Name ~ 'OECD',
-  #  TRUE ~ 'Non-OECD')
-  #retraction_data$UK <- case_when(
-  #  retraction_data$Country == "United Kingdom" ~ 'UK',
-  #  TRUE ~ 'Non-UK')
-  retraction_data
+    separate_rows(Country, sep = ';') %>%
+    mutate(Country = if_else(.data$Country %in% UNKNOWN_COUNTRIES,
+                             NA_character_, .data$Country)) %>%
+    group_by(`Record ID`) %>%
+    filter(!is.na(Country) | all(is.na(Country))) %>%
+    distinct(Country, .keep_all = TRUE) %>%
+    ungroup() %>%
+    add_paper_country_class(oecd_countries)
 }
 
 # TRUE if the paper involves more than one country. Only meaningful after
@@ -196,17 +216,43 @@ add_mass_retraction_factor <- function(retraction_data) {
 #' @param country Character vector of country names.
 #' @param oecd_names Character vector of OECD country names.
 #' @return Character vector with values `"United Kingdom"`, `"Other OECD"`
-#'   or `"Rest of World"`.
+#'   or `"Rest of World"`, and `NA` for a missing country.
 #' @export
 classify_country <- function(country, oecd_names) {
   case_when(
+    is.na(country) ~ NA_character_,
     country == "United Kingdom" ~ "United Kingdom",
     country %in% oecd_names ~ "Other OECD",
     TRUE ~ "Rest of World"
   )
 }
 
-#' Add a `country_class` column based on the `Country` column
+#' Add a per-paper `country_class` column
+#'
+#' Each paper gets a single class from all of its countries, by precedence:
+#' "United Kingdom" if any author is in the UK, otherwise "Other OECD" if
+#' any author is in another OECD country, otherwise "Rest of World". So
+#' every paper is in exactly one class and is never counted twice across
+#' classes. Papers with no known country get `NA`.
+#'
+#' @param data Data frame with one row per paper and country, with
+#'   `Record ID` and `Country` columns.
+#' @param oecd_countries Data frame with a `Name` column of OECD countries.
+#' @return `data` with a `country_class` column, equal on all rows of a paper.
+#' @export
+add_paper_country_class <- function(data, oecd_countries) {
+  data %>%
+    group_by(`Record ID`) %>%
+    mutate(country_class = COUNTRY_CLASSES[suppressWarnings(min(
+      match(classify_country(.data$Country, oecd_countries$Name), COUNTRY_CLASSES),
+      na.rm = TRUE))]) %>%
+    ungroup()
+}
+
+#' Add a per-country `country_class` column based on the `Country` column
+#'
+#' Used for the SCImago publication counts, which are per country. For
+#' retraction data use [add_paper_country_class()] instead.
 #'
 #' @param data Data frame with a `Country` column.
 #' @param oecd_countries Data frame with a `Name` column of OECD countries.
@@ -215,29 +261,4 @@ classify_country <- function(country, oecd_names) {
 add_country_class <- function(data, oecd_countries) {
   data %>%
     mutate(country_class = classify_country(.data$Country, oecd_countries$Name))
-}
-
-#' Add a `country_class` column with one class per paper
-#'
-#' Gives every row of a paper the same class, taken from all of its
-#' countries in order of precedence: `"United Kingdom"` if any author is in
-#' the UK, otherwise `"Other OECD"` if any author is in another OECD
-#' country, otherwise `"Rest of World"`. Each paper therefore belongs to a
-#' single class, unlike [add_country_class()], which classifies each row on
-#' its own country.
-#'
-#' @param data Data frame with one row per paper and country (see
-#'   [clean_retraction_data()]).
-#' @param oecd_countries Data frame with a `Name` column of OECD countries.
-#' @param id_col Column identifying each paper.
-#' @return `data` with a `country_class` column.
-#' @export
-add_paper_country_class <- function(data, oecd_countries, id_col = "Record ID") {
-  precedence <- c("United Kingdom", "Other OECD", "Rest of World")
-  data %>%
-    group_by(.data[[id_col]]) %>%
-    mutate(country_class = precedence[min(match(
-      classify_country(.data$Country, oecd_countries$Name), precedence
-    ))]) %>%
-    ungroup()
 }

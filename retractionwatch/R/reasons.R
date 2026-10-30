@@ -21,7 +21,9 @@ reason_flags <- function(data, group_col = "country_class", split_year = 2017) {
     filter(Reason != "") %>%
     stats::na.omit() %>%
     mutate(value = TRUE) %>%
-    distinct(RetractionID, publication_year, Reason, .keep_all = TRUE) %>%
+    # Keep the group in the key, so a paper whose group differs between its
+    # rows is counted in each group rather than in its first-listed one
+    distinct(RetractionID, publication_year, across(all_of(group_col)), Reason, .keep_all = TRUE) %>%
     pivot_wider(
       id_cols = c(RetractionID, publication_year, all_of(group_col)),
       names_from = Reason,
@@ -267,6 +269,30 @@ compute_top_reasons_over_time <- function(retraction_data,
     left_join(counts$totals, by = "year") %>%
     mutate(proportion = n / total) %>%
     arrange(year, desc(proportion))
+}
+
+#' The most cited retraction reasons over a whole period
+#'
+#' Unlike the per-year selection of [compute_top_reasons_over_time()], this
+#' returns a single list: the `n` reasons cited by most retractions across
+#' all years in `year_limits` together. Each retraction counts once per
+#' reason, however many rows it has.
+#'
+#' @param n Number of reasons to return.
+#' @inheritParams compute_top_reasons_over_time
+#' @return A character vector of reasons, from most to least cited.
+#' @export
+top_reasons_overall <- function(retraction_data, n = 10,
+                                year_col = "retraction_year",
+                                year_limits = NULL,
+                                exclude_reasons = NULL) {
+  yearly_reason_counts(retraction_data, year_col, 0, year_limits,
+                       exclude_reasons)$reason_counts %>%
+    group_by(Reason) %>%
+    summarise(retractions = sum(.data$n), .groups = "drop") %>%
+    arrange(desc(retractions), Reason) %>%
+    pull(Reason) %>%
+    utils::head(n)
 }
 
 #' Yearly proportion of retractions citing each reason, per country

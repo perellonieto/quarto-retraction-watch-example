@@ -10,6 +10,7 @@ website:
       - retraction-analysis-overall.qmd
       - retraction-analysis-uk-oecd.qmd
       - retraction-analysis-publishers.qmd
+      - report-figures.qmd
       - href: retraction-analysis.qmd
         text: (Previous analysis)
       - href: retraction-analysis-library.qmd

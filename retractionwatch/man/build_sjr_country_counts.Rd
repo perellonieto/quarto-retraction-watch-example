@@ -20,5 +20,7 @@ A tibble with one row per country and year.
 \description{
 Reads every \verb{scimagojr country rank <YEAR>.xlsx} file in \code{dir}, adds a
 \code{Year} column taken from the file name, writes the combined table to
-\code{output_csv} and returns it read back from that CSV.
+\code{output_csv} and returns it read back from that CSV. Country names are
+recoded to the names used by Retraction Watch (e.g. "Russian Federation"
+becomes "Russia").
 }
