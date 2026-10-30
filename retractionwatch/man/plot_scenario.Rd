@@ -10,7 +10,10 @@ plot_scenario(
   x = "ai_retraction_rate_per_100k",
   xlab = "AI Retractions per 100,000 papers (log scale)",
   label_size = 2.5,
-  label_gap = 2
+  label_gap = 2,
+  error_bars = TRUE,
+  count_col = "ai_retractions",
+  total_col = NULL
 )
 }
 \arguments{
@@ -27,9 +30,22 @@ faceted by \code{scenario} (as done by \code{\link[=plot_all_scenarios]{plot_all
 \item{label_size}{Size of the country labels, in mm (ggplot2 units).}
 
 \item{label_gap}{Number of spaces between each point and its label.}
+
+\item{error_bars}{If \code{TRUE}, draws for each country the binomial standard
+error of \code{x}: with \code{p = count / total}, \code{x} is proportional to \code{p}, so
+its standard error is \code{x * sqrt((1 - p) / count)}. On the log axis, a
+bar reaching zero or below (a single AI retraction) is cut at the left
+edge of the plot.}
+
+\item{count_col}{Column with the number of AI retractions.}
+
+\item{total_col}{Column with the number of trials of the binomial. By
+default \code{"retractions"} when \code{x} is a share of the retractions
+(\verb{ai_retraction_share*}) and \code{"total_papers"} otherwise.}
 }
 \value{
-A ggplot object.
+A ggplot object. Its data has the standard error of each country
+in \code{std_error}.
 }
 \description{
 Plot one value per country for one scenario, highlighting the UK

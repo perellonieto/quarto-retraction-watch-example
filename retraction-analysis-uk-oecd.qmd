@@ -256,7 +256,8 @@ print(retraction_ai_rates)
 
 checkpoint(retraction_ai_rates, "06_retraction_ai_rates")
 
-plot_all_scenarios(retraction_ai_rates, interactive = TRUE)
+plot_all_scenarios(retraction_ai_rates, interactive = TRUE, error_bars = TRUE)
+# Check if this changes
 ```
 
 ###  AI retractions by country and scenario, filtered to countries with at least 10 retractions

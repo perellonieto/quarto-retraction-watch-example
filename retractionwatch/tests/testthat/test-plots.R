@@ -47,7 +47,9 @@ test_that("plot_all_scenarios() combines the scenarios when ncol is given", {
   dat <- tibble::tibble(
     scenario = rep(c("S1", "S2", "S3"), times = c(3, 3, 2)),
     Country = c("United Kingdom", "A", "B", "United Kingdom", "A", "B", "A", "B"),
-    ai_retraction_rate_per_100k = c(2, 1, 3, 1, 3, 2, 5, 4)
+    ai_retraction_rate_per_100k = c(2, 1, 3, 1, 3, 2, 5, 4),
+    ai_retractions = c(4, 2, 6, 2, 6, 4, 10, 8),
+    total_papers = 2e5
   )
 
   p <- plot_all_scenarios(dat, ncol = 2)
@@ -69,6 +71,38 @@ test_that("plot_all_scenarios() combines the scenarios when ncol is given", {
   # Without ncol, one plot per scenario as before
   expect_length(plot_all_scenarios(dat), 3)
   expect_equal(plot_scenario(dat, "S1")$labels$title, "S1")
+})
+
+test_that("plot_scenario() draws binomial standard errors", {
+  dat <- tibble::tibble(
+    scenario = "S1",
+    Country = c("United Kingdom", "A", "B"),
+    ai_retractions = c(4, 1, 100),
+    retractions = c(40, 10, 200),
+    total_papers = c(1e5, 1e5, 1e6)
+  ) %>%
+    dplyr::mutate(ai_retraction_rate_per_100k = 1e5 * ai_retractions / total_papers,
+                  ai_retraction_share_pct = 100 * ai_retractions / retractions)
+
+  p <- plot_scenario(dat, "S1")
+  data <- dplyr::arrange(p$data, as.character(Country))
+  # 100,000 * sqrt(p (1 - p) / n), with p = count / total_papers
+  p_hat <- data$ai_retractions / data$total_papers
+  expect_equal(data$std_error, 1e5 * sqrt(p_hat * (1 - p_hat) / data$total_papers))
+  # Country A has a single AI retraction: its bar is cut at half the smallest rate
+  expect_equal(data$error_low[data$Country == "A"], 1 / 2)
+  expect_equal(data$label_x, data$error_high)
+  expect_true(any(vapply(p$layers, function(l) inherits(l$geom, "GeomErrorbar"), logical(1))))
+
+  # For shares of retractions, the denominator is the number of retractions
+  share <- dplyr::arrange(plot_scenario(dat, "S1", x = "ai_retraction_share_pct")$data,
+                          as.character(Country))
+  p_share <- share$ai_retractions / share$retractions
+  expect_equal(share$std_error, 100 * sqrt(p_share * (1 - p_share) / share$retractions))
+
+  no_bars <- plot_scenario(dat, "S1", error_bars = FALSE)
+  expect_false(any(vapply(no_bars$layers, function(l) inherits(l$geom, "GeomErrorbar"), logical(1))))
+  expect_equal(no_bars$data$label_x, no_bars$data$ai_retraction_rate_per_100k)
 })
 
 test_that("ggplotly_free_space() sizes the panel rows like space = 'free_y'", {

@@ -43,5 +43,6 @@ utils::globalVariables(c(
   "share", "jaccard", "max_jaccard", "total_a", "total_b", "value",
   "reason", "fpr", "tpr", "threshold", "tp", "fp", "column", "coefficient",
   "std_error", "odds_ratio", "conf_low", "conf_high", "reliable", "favours",
-  "papers_a", "papers_b", "significant"
+  "papers_a", "papers_b", "significant", "error_low", "error_high",
+  "label_x"
 ))

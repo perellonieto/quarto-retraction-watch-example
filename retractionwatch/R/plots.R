@@ -197,18 +197,38 @@ plot_significant_reasons <- function(sig_long) {
 #' @param xlab X axis label.
 #' @param label_size Size of the country labels, in mm (ggplot2 units).
 #' @param label_gap Number of spaces between each point and its label.
-#' @return A ggplot object.
+#' @param error_bars If `TRUE`, draws for each country the binomial standard
+#'   error of `x`: with `p = count / total`, `x` is proportional to `p`, so
+#'   its standard error is `x * sqrt((1 - p) / count)`. On the log axis, a
+#'   bar reaching zero or below (a single AI retraction) is cut at the left
+#'   edge of the plot.
+#' @param count_col Column with the number of AI retractions.
+#' @param total_col Column with the number of trials of the binomial. By
+#'   default `"retractions"` when `x` is a share of the retractions
+#'   (`ai_retraction_share*`) and `"total_papers"` otherwise.
+#' @return A ggplot object. Its data has the standard error of each country
+#'   in `std_error`.
 #' @export
 plot_scenario <- function(dat, scenario_name,
                           x = "ai_retraction_rate_per_100k",
                           xlab = "AI Retractions per 100,000 papers (log scale)",
                           label_size = 2.5,
-                          label_gap = 2) {
+                          label_gap = 2,
+                          error_bars = TRUE,
+                          count_col = "ai_retractions",
+                          total_col = NULL) {
+  if (is.null(total_col)) {
+    total_col <- if (startsWith(x, "ai_retraction_share")) "retractions" else "total_papers"
+  }
   several <- length(scenario_name) > 1
   plot_dat <- dat %>%
     filter(scenario %in% scenario_name) %>%
     arrange(.data[[x]]) %>%
     mutate(is_uk = Country == "United Kingdom",
+           # Binomial standard error of x, which is proportional to
+           # p = count / total
+           std_error = .data[[x]] *
+             sqrt((1 - .data[[count_col]] / .data[[total_col]]) / .data[[count_col]]),
            # Non-breaking spaces keep a gap between the point and its label
            # (plotly collapses normal spaces and ignores nudges in pixels)
            label = paste0(strrep("\u00a0", label_gap), Country),
@@ -218,15 +238,34 @@ plot_scenario <- function(dat, scenario_name,
              factor(Country, levels = Country)
            })
 
+  # Lower ends at zero or below cannot be shown on the log axis, so they are
+  # cut at half the smallest value plotted
+  floor_x <- min(plot_dat[[x]][plot_dat[[x]] > 0], na.rm = TRUE) / 2
+  plot_dat <- plot_dat %>%
+    mutate(error_low = pmax(.data[[x]] - std_error, floor_x),
+           error_high = .data[[x]] + std_error,
+           # Labels start after the error bar, so that it does not cross them
+           label_x = if (error_bars) coalesce(error_high, .data[[x]]) else .data[[x]])
+
   uk_dat <- filter(plot_dat, is_uk)
   non_uk_dat <- filter(plot_dat, !is_uk)
 
-  ggplot(plot_dat, aes(x = .data[[x]], y = Country)) +
+  p <- ggplot(plot_dat, aes(x = .data[[x]], y = Country))
+  if (error_bars) {
+    # A single layer with the colour in the data: ggplotly() fails on an
+    # error bar layer without rows (e.g. a scenario without the UK)
+    p <- p +
+      geom_errorbar(aes(xmin = error_low, xmax = error_high,
+                        colour = ifelse(is_uk, "salmon", "grey75")),
+                    width = 0, orientation = "y") +
+      scale_colour_identity()
+  }
+  p +
     geom_point(colour = "grey40", size = 1) +
     geom_point(data = uk_dat, colour = "red", size = 1) +
-    geom_text(data = non_uk_dat, aes(label = label), colour = "grey40",
+    geom_text(data = non_uk_dat, aes(x = label_x, label = label), colour = "grey40",
               hjust = 0, vjust = 0.5, size = label_size) +
-    geom_text(data = uk_dat, aes(label = label), colour = "red",
+    geom_text(data = uk_dat, aes(x = label_x, label = label), colour = "red",
               hjust = 0, vjust = 0.5, fontface = "bold", size = label_size) +
     scale_x_log10(expand = expansion(mult = c(0.02, 0.2))) +
     labs(title = if (!several) scenario_name, x = xlab, y = NULL) +
