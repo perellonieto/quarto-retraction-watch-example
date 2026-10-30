@@ -428,3 +428,35 @@ test_that("plot_reasons_over_time_by_group() stacks one panel per group", {
   expect_equal(oecd_r1$proportion, 2 / 3)
   expect_equal(ggplot2::ggplot_build(p)$layout$layout$ROW, c(1, 2))
 })
+
+test_that("plot_reason_proportion_per_publisher() gives each publisher's share with a binomial CI", {
+  # P1: 2 of 4 papers cite R1 (paper 1 has two rows); P2: 1 of 2; P3 is not listed
+  data <- tibble::tibble(
+    `Record ID` = c(1, 1, 2, 3, 4, 5, 6, 7),
+    Publisher = c("P1", "P1", "P1", "P1", "P1", "P2", "P2", "P3"),
+    retraction_year = c(2020, 2020, 2020, 2021, 2010, 2020, 2021, 2020),
+    Reason = c("R1;R2;", "R1;R2;", "R1/b;", "R2;", "R1;", "R1;", "R3;", "R1;")
+  )
+
+  p <- plot_reason_proportion_per_publisher(data, "R1", publisher_list = c("P1", "P2"))
+  expect_s3_class(p, "ggplot")
+  shares <- dplyr::arrange(p$data, as.character(Publisher))
+  expect_equal(as.character(shares$Publisher), c("P1", "P2"))
+  # "R1/b" does not count as R1
+  expect_equal(shares$papers, c(2, 1))
+  expect_equal(shares$total, c(4, 2))
+  expect_equal(shares$lower, stats::qbeta(0.025, c(2, 1), c(3, 2)))
+  expect_equal(shares$upper, stats::qbeta(0.975, c(3, 2), c(2, 1)))
+  expect_equal(p$labels$title, "R1")
+
+  # Year limits leave out P1's 2010 paper
+  limited <- plot_reason_proportion_per_publisher(
+    data, "R1", tibble::tibble(Publisher = c("P1", "P2")), year_limits = c(2020, 2021)
+  )
+  expect_equal(dplyr::arrange(limited$data, as.character(Publisher))$proportion, c(1 / 3, 1 / 2))
+
+  no_ci <- plot_reason_proportion_per_publisher(data, "R1", "P1", confidence_interval = FALSE)
+  expect_false(any(vapply(no_ci$layers, function(l) inherits(l$geom, "GeomSegment"), logical(1))))
+  expect_error(plot_reason_proportion_per_publisher(data, character(0), "P1"),
+               "single reason")
+})

@@ -47,5 +47,5 @@ utils::globalVariables(c(
   "prop_ai_upper", "ai_retractions_lower", "ai_retractions_upper",
   "ai_retraction_share_pct_lower", "ai_retraction_share_pct_upper",
   "ai_retraction_rate_per_100k_lower", "ai_retraction_rate_per_100k_upper",
-  "domestic_only"
+  "domestic_only", "lower", "upper"
 ))

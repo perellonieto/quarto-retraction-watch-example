@@ -1268,3 +1268,96 @@ roc_curve <- function(score, is_positive) {
            fpr = cumsum(ordered$fp) / sum(!is_positive))
   )
 }
+
+#' Proportion of each publisher's retractions citing a reason
+#'
+#' For every publisher in `publisher_list`, plots one row with the proportion
+#' of its retracted papers (distinct `Record ID`s) that cite `reason`, and
+#' optionally its exact (Clopper-Pearson) binomial confidence interval.
+#' Rows are sorted from the highest to the lowest proportion. Reasons are
+#' split and cleaned as in [compute_top_reasons_over_time()] and matched
+#' exactly.
+#'
+#' @param retraction_data Output of [load_retraction_data()], or a subset of
+#'   it (e.g. without mass retractions).
+#' @param reason A single retraction reason.
+#' @param publisher_list Character vector of publishers, or a data frame with
+#'   a `Publisher` column (e.g. the output of
+#'   [count_number_of_retractions_per_column()] for `"Publisher"`).
+#' @param year_limits Optional length-2 vector with the first and last year
+#'   (inclusive) of the retractions used. All retractions if `NULL`.
+#' @param year_col Year column used by `year_limits`, `"retraction_year"` or
+#'   `"publication_year"`.
+#' @param confidence_interval If `TRUE`, draws the binomial confidence
+#'   interval of each proportion.
+#' @param conf_level Confidence level of the intervals.
+#' @param colour Colour of the points and intervals.
+#' @return A ggplot object. Its data has one row per publisher with columns
+#'   `Publisher`, `papers` (retractions citing the reason), `total`
+#'   (retractions of the publisher), `proportion`, `lower` and `upper`.
+#' @export
+plot_reason_proportion_per_publisher <- function(retraction_data,
+                                                 reason,
+                                                 publisher_list,
+                                                 year_limits = NULL,
+                                                 year_col = "retraction_year",
+                                                 confidence_interval = TRUE,
+                                                 conf_level = 0.95,
+                                                 colour = "#1b9e77") {
+  if (length(reason) != 1) {
+    stop("`reason` must be a single reason, got ", length(reason), ".")
+  }
+  if (is.data.frame(publisher_list)) {
+    publisher_list <- publisher_list$Publisher
+  }
+
+  papers <- retraction_data %>%
+    filter(Publisher %in% publisher_list) %>%
+    distinct(`Record ID`, Publisher, year = .data[[year_col]], Reason)
+  if (!is.null(year_limits)) {
+    papers <- papers %>%
+      filter(!is.na(year), year >= year_limits[1], year <= year_limits[2])
+  }
+  cites_reason <- papers %>%
+    separate_rows(Reason, sep = ";") %>%
+    filter(str_trim(Reason) == reason) %>%
+    distinct(`Record ID`) %>%
+    pull(`Record ID`)
+
+  proportions <- papers %>%
+    distinct(`Record ID`, Publisher) %>%
+    group_by(Publisher) %>%
+    summarise(papers = sum(`Record ID` %in% cites_reason),
+              total = n(), .groups = "drop") %>%
+    mutate(proportion = papers / total,
+           lower = binomial_ci(papers, total, conf_level)$lower,
+           upper = binomial_ci(papers, total, conf_level)$upper) %>%
+    arrange(proportion, desc(Publisher)) %>%
+    mutate(Publisher = factor(Publisher, levels = Publisher))
+
+  p <- ggplot(proportions, aes(proportion, Publisher))
+  if (confidence_interval) {
+    # Segments rather than error bars, as ggplotly() keeps their height
+    p <- p + geom_segment(aes(x = lower, xend = upper, yend = Publisher),
+                          colour = colour, alpha = 0.5, linewidth = 0.6)
+  }
+  p +
+    # `text` is ignored by ggplot2 but shown in the ggplotly() hover text
+    suppressWarnings(geom_point(aes(text = paste0(
+      Publisher, "<br>", scales::comma(papers), " of ", scales::comma(total),
+      " retractions (", scales::percent(proportion, accuracy = 0.1), ")",
+      if (confidence_interval) {
+        paste0("<br>", round(100 * conf_level), "% CI: ",
+               scales::percent(lower, accuracy = 0.1), " - ",
+               scales::percent(upper, accuracy = 0.1))
+      } else ""
+    )), colour = colour, size = 2.5)) +
+    scale_x_continuous(labels = scales::label_percent()) +
+    labs(
+      x = paste0("Proportion of the publisher's retractions",
+                 if (confidence_interval) paste0(" (", round(100 * conf_level), "% CI)") else ""),
+      y = NULL,
+      title = reason
+    ) +
+    theme_minimal()
+}

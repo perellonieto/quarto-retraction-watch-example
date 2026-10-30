@@ -260,3 +260,32 @@ ggplotly(ggplot(ai_reasons_per_publisher_and_year |> filter(Reason == reason),
 )})
 htmltools::tagList(plots)
 ```
+
+```{r}
+ggplotly(plot_reason_proportion_per_publisher(
+    retraction_data_nomass,
+    reason = "Computer-Aided Content or Computer-Generated Content",
+    publisher_list = top_10_publisher,
+    year_limits = c(2017, 2026),
+    confidence_interval = TRUE),
+    height = 300
+  )
+```
+
+## Heterogeneity among top 10 retracted reasons of publishers with most retractions
+
+```{r}
+top_10_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 10, year_limits = c(2017, 2026))
+
+plots <- lapply(top_10_reasons, function(reason) {
+ggplotly(plot_reason_proportion_per_publisher(
+    retraction_data_nomass,
+    reason = reason,
+    publisher_list = top_10_publisher,
+    year_limits = c(2017, 2026),
+    confidence_interval = TRUE),
+    height = 300
+  )
+})
+htmltools::tagList(plots)
+```
