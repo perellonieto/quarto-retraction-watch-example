@@ -7,11 +7,13 @@ website:
     left:
       - href: index.qmd
         text: Home
-      - retraction-dates.qmd
-      - retraction-analysis.qmd
-      - retraction-analysis-library.qmd
       - retraction-analysis-overall.qmd
       - retraction-analysis-uk-oecd.qmd
+      - retraction-analysis-publishers.qmd
+      - href: retraction-analysis.qmd
+        text: (Previous analysis)
+      - href: retraction-analysis-library.qmd
+        text: (Updated analysis)
       - about.qmd
 
 format:

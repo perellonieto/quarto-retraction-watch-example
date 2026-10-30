@@ -1,0 +1,249 @@
+---
+title: "Publishers"
+format:
+  html:
+    code-fold: true
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+# Install the local library with: devtools::install("retractionwatch")
+# or load it during development with: devtools::load_all("retractionwatch")
+# At the moment we are using the development version
+devtools::install("retractionwatch")
+devtools::load_all("retractionwatch")
+# Once the package is installed, you can load it with library(retractionwatch)
+# library(retractionwatch)
+library(plotly)
+
+# # Loading data
+
+sjr_country_counts <- build_sjr_country_counts("data/sjr_rankings")
+oecd_countries <- load_oecd_countries("data/oecd_countries.csv")
+retraction_data <- load_retraction_data("data/retraction_watch.csv")
+publication_counts <- publication_counts_by_class(sjr_country_counts, oecd_countries)
+retraction_data_nomass <- retraction_data[retraction_data$Mass_Retraction == "Other",]
+
+retraction_data_uk <- retraction_data |>
+  subset(Country == "United Kingdom")
+ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = c(2000, 2026), n_top = 2, min_retractions_per_year = 20))
+```
+
+# Retraction reasons of significant adequate counts
+
+```{r}
+alpha <- 0.05
+low_count <- 500
+
+reasons_compare_results <- retraction_data_nomass |>
+  reason_flags("country_class") |>
+  compare_reason_groups(group_col = "country_class", group_a = "United Kingdom", group_b = "Other OECD")
+ratios <- group_count_ratios(reasons_compare_results, "United Kingdom", "Other OECD")
+reasons_compare_results <- flag_low_counts(reasons_compare_results, ratios)
+
+sig_plot <- significant_reasons_long(reasons_compare_results,
+                                     p_col = "p_adj_filtered",
+                                     exclude_low_count = TRUE)
+plot_significant_reasons(sig_plot)
+
+print(sig_plot %>% filter(period == "Post-2017"))
+
+filtered_reasons <- reasons_compare_results %>%
+  filter(p_adj_filtered < alpha & !low_count, period == "Post-2017")
+
+print(filtered_reasons$flag)
+
+retraction_data_uk_post2017 <- retraction_data_uk %>%
+  filter(publication_year >= 2017 & Mass_Retraction == "Other")
+
+retraction_data_uk_post2017_significant <- retraction_data_uk_post2017 %>%
+  separate_rows(Reason, sep = ";") %>%
+  mutate(Reason = str_trim(Reason)) %>%
+  filter(Reason != "", Reason %in% filtered_reasons$flag)
+```
+
+```{r}
+selected_reasons <- filtered_reasons$flag
+```
+
+# Retractions for the top 10 publishers
+
+```{r}
+publisher_and_retractions <- count_number_of_retractions_per_column(
+  retraction_data_nomass,
+  column_name = "Publisher", year_limits = c(2017, 2026))
+
+
+top_10_publisher <- publisher_and_retractions |>
+  dplyr::slice_head(n = 10)
+
+print(top_10_publisher)
+```
+
+
+```{r}
+ggplotly(plot_proportion_of_total_retractions_per_publisher(retraction_data_nomass, top_n = 10, year_limits = c(2017, 2026)))
+```
+
+```{r}
+ggplotly(ggplot(top_10_publisher,
+       aes(x = retractions, y = reorder(Publisher, retractions))) +
+  geom_col(fill = "#1b9e77", orientation = "y") +
+  scale_x_continuous(labels = scales::comma) +
+  labs(title = "Top 10 publishers by number of retractions",
+       x = "Retractions (excluding mass retractions)",
+       y = NULL) +
+  theme_minimal()
+)
+```
+
+```{r}
+significant_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_year_by_publisher(
+  retraction_data_nomass,
+  publisher_list = top_10_publisher,
+  reasons = selected_reasons,
+  yearmin = 2017,
+  yearmax = 2026)
+```
+
+```{r}
+plots <- lapply(unique(significant_reasons_per_publisher_and_year$Reason), function(reason) {
+ggplotly(ggplot(significant_reasons_per_publisher_and_year |> filter(Reason == reason),
+       aes(x = year, y = proportion, colour = Publisher)) +
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = reason,
+       x = "Year",
+       y = "Proportion of retractions",
+       colour = "Publisher") +
+  theme_minimal()+
+  theme(panel.grid = element_blank())
+)})
+htmltools::tagList(plots)
+```
+
+
+```{r}
+plots <- lapply(unique(significant_reasons_per_publisher_and_year$Reason), function(reason) {
+  ggplotly(ggplot(significant_reasons_per_publisher_and_year |> filter(Reason == reason),
+       aes(x = factor(year), y = factor(Publisher, levels = rev(top_10_publisher$Publisher)),
+           fill = proportion)) +
+  geom_tile(colour = "white") +
+  geom_text(aes(label = scales::percent(proportion, accuracy = 1),
+                colour = ifelse(proportion > mean(range(proportion)), "white", "black")),
+            size = 3) +
+  scale_fill_viridis_c(labels = scales::percent, option = "magma", direction = -1) +
+  scale_colour_identity() +
+  labs(title = reason,
+       x = "Year",
+       y = "Publisher",
+       fill = "Proportion of\nretractions") +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
+  )})
+htmltools::tagList(plots)
+```
+
+Average proportion of retractions citing each reason across the top 10 publishers. The shaded bands show the interquartile range (25th to 75th percentile) across publishers. Each publisher counts the same, whatever its number of retractions, and publishers without retractions in a year are left out of that year.
+
+```{r}
+plot_reason_proportions_across_groups_by_year(significant_reasons_per_publisher_and_year,
+                                      interactive = TRUE)
+```
+
+
+# Top 10 retraction reasons from 2017 to 2026 for top 10 publishers
+
+Excluding mass retractions
+
+```{r}
+top_10_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 10, year_limits = c(2017, 2026))
+```
+
+```{r}
+top_10_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_year_by_publisher(
+  retraction_data_nomass,
+  publisher_list = top_10_publisher,
+  reasons = top_10_reasons,
+  yearmin = 2017,
+  yearmax = 2026)
+```
+
+```{r}
+plot_reason_proportions_across_groups_by_year(top_10_reasons_per_publisher_and_year,
+interactive = TRUE)
+```
+
+# Top 5 retraction reasons from 2017 to 2026 for top 10 publishers
+
+Excluding mass retractions
+
+```{r}
+top_5_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 5, year_limits = c(2017, 2026))
+```
+
+```{r}
+top_5_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_year_by_publisher(
+  retraction_data_nomass,
+  publisher_list = top_10_publisher,
+  reasons = top_5_reasons,
+  yearmin = 2017,
+  yearmax = 2026)
+```
+
+```{r}
+plot_reason_proportions_across_groups_by_year(top_5_reasons_per_publisher_and_year,
+interactive = TRUE)
+```
+
+# AI retraction reasons from 2017 to 2026 for top 10 publishers
+
+Excluding mass retractions
+
+```{r}
+ai_reasons <- c("Computer-Aided Content or Computer-Generated Content")
+```
+
+```{r}
+ai_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_year_by_publisher(
+  retraction_data_nomass,
+  publisher_list = top_10_publisher,
+  reasons = ai_reasons,
+  yearmin = 2017,
+  yearmax = 2026)
+```
+
+```{r}
+plot_reason_proportions_across_groups_by_year(ai_reasons_per_publisher_and_year,
+interactive = TRUE)
+```
+
+```{r}
+ai_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_year_by_publisher(
+  retraction_data_nomass,
+  publisher_list = top_10_publisher,
+  reasons = ai_reasons,
+  yearmin = 2017,
+  yearmax = 2026)
+```
+
+```{r}
+plots <- lapply(unique(ai_reasons), function(reason) {
+ggplotly(ggplot(ai_reasons_per_publisher_and_year |> filter(Reason == reason),
+       aes(x = year, y = proportion, colour = Publisher)) +
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = reason,
+       x = "Year",
+       y = "Proportion of retractions",
+       colour = "Publisher") +
+  theme_minimal()+
+  theme(panel.grid = element_blank())
+)})
+htmltools::tagList(plots)
+```
