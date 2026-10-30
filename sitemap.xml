@@ -1,16 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://perellonieto.github.io/quarto-retraction-watch-example/retractions-10-publishers.html</loc>
-    <lastmod>2026-10-01T12:33:10.441Z</lastmod>
+    <loc>https://perellonieto.github.io/quarto-retraction-watch-example/report-figures.html</loc>
+    <lastmod>2026-10-30T14:25:50.796Z</lastmod>
   </url>
   <url>
-    <loc>https://perellonieto.github.io/quarto-retraction-watch-example/index.html</loc>
-    <lastmod>2026-10-27T17:23:07.843Z</lastmod>
+    <loc>https://perellonieto.github.io/quarto-retraction-watch-example/about.html</loc>
+    <lastmod>2026-08-13T11:33:20.959Z</lastmod>
   </url>
   <url>
-    <loc>https://perellonieto.github.io/quarto-retraction-watch-example/retraction-analysis.html</loc>
-    <lastmod>2026-10-28T11:49:12.886Z</lastmod>
+    <loc>https://perellonieto.github.io/quarto-retraction-watch-example/retraction-dates.html</loc>
+    <lastmod>2026-10-08T15:48:46.143Z</lastmod>
+  </url>
+  <url>
+    <loc>https://perellonieto.github.io/quarto-retraction-watch-example/initial_exploration_example.html</loc>
+    <lastmod>2026-10-30T13:50:37.185Z</lastmod>
   </url>
   <url>
     <loc>https://perellonieto.github.io/quarto-retraction-watch-example/retraction-analysis-overall.html</loc>
@@ -18,22 +22,26 @@
   </url>
   <url>
     <loc>https://perellonieto.github.io/quarto-retraction-watch-example/retraction-analysis-uk-oecd.html</loc>
-    <lastmod>2026-10-29T14:40:57.685Z</lastmod>
+    <lastmod>2026-10-30T14:25:50.798Z</lastmod>
   </url>
   <url>
     <loc>https://perellonieto.github.io/quarto-retraction-watch-example/retraction-analysis-library.html</loc>
-    <lastmod>2026-10-29T12:16:26.855Z</lastmod>
+    <lastmod>2026-10-30T14:25:50.796Z</lastmod>
   </url>
   <url>
-    <loc>https://perellonieto.github.io/quarto-retraction-watch-example/initial_exploration_example.html</loc>
-    <lastmod>2026-10-09T10:00:35.175Z</lastmod>
+    <loc>https://perellonieto.github.io/quarto-retraction-watch-example/retraction-analysis-publishers.html</loc>
+    <lastmod>2026-10-30T14:25:50.797Z</lastmod>
   </url>
   <url>
-    <loc>https://perellonieto.github.io/quarto-retraction-watch-example/retraction-dates.html</loc>
-    <lastmod>2026-10-08T15:48:46.143Z</lastmod>
+    <loc>https://perellonieto.github.io/quarto-retraction-watch-example/retraction-analysis.html</loc>
+    <lastmod>2026-10-28T11:49:12.886Z</lastmod>
   </url>
   <url>
-    <loc>https://perellonieto.github.io/quarto-retraction-watch-example/about.html</loc>
-    <lastmod>2026-08-13T11:33:20.959Z</lastmod>
+    <loc>https://perellonieto.github.io/quarto-retraction-watch-example/index.html</loc>
+    <lastmod>2026-10-27T17:23:07.843Z</lastmod>
+  </url>
+  <url>
+    <loc>https://perellonieto.github.io/quarto-retraction-watch-example/retractions-10-publishers.html</loc>
+    <lastmod>2026-10-01T12:33:10.441Z</lastmod>
   </url>
 </urlset>
