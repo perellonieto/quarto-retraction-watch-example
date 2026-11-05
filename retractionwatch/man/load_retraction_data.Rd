@@ -29,8 +29,10 @@ publication counts, so that every retraction has a denominator.}
 concern and reinstatements).}
 }
 \value{
-The cleaned data (one row per paper and country) with a per-paper
-\code{country_class} column, see \code{\link[=add_paper_country_class]{add_paper_country_class()}}.
+The cleaned and anonymized data (one row per paper and country,
+with dates coarsened to years, see \code{\link[=anonymize_retraction_data]{anonymize_retraction_data()}} and
+\code{\link[=coarsen_retraction_dates]{coarsen_retraction_dates()}}) with a per-paper \code{country_class} column,
+see \code{\link[=add_paper_country_class]{add_paper_country_class()}}.
 }
 \description{
 Load and clean the Retraction Watch dataset

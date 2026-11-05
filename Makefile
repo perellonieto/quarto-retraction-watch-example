@@ -29,6 +29,8 @@ render:
 publish:
 	quarto publish gh-pages
 
+# Renders the original and library pages and compares their checkpoints, which
+# have no paper IDs (see checkpoints.R)
 run-comparison:
 	quarto render retraction-analysis.qmd
 	quarto render retraction-analysis-library.qmd

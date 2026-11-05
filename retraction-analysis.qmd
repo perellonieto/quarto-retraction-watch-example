@@ -152,7 +152,6 @@ clean_data <- function(retraction_data,
   
 }
 
-retraction_data <- readr::read_csv('data/retraction_watch.csv')
 oecd_countries <- read_csv("data/oecd_countries.csv") %>%
   mutate( # Rename mismatches
     Name = recode(
@@ -165,9 +164,16 @@ retraction_reason_conversion <- readr::read_csv('data/retraction_reason_grouping
 # reason_lookup <- read_csv("data/retraction_reason_groupings.csv") %>%
 #   filter(Group != "Ungrouped") %>%
 #   distinct(Reason, Group)
-retraction_data <- clean_data(retraction_data, oecd_countries, retraction_reason_conversion)
-
-head(retraction_data)
+# Load the data with the retractionwatch package, which removes titles,
+# authors, journals and identifiers and coarsens dates to years (and stops if
+# it cannot). The package is not attached, so the functions defined in this
+# page are not masked.
+pkgload::load_all("retractionwatch", attach = FALSE, quiet = TRUE)
+retraction_data <- retractionwatch::load_retraction_data(
+  "data/retraction_watch.csv",
+  oecd_countries = oecd_countries,
+  reason_groupings_path = "data/retraction_reason_groupings.csv"
+)
 ```
 
 Setting up the country groups of interest. These are defined **per paper**, once, here, and reused throughout:

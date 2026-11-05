@@ -65,8 +65,10 @@ load_oecd_countries <- function(path = "data/oecd_countries.csv") {
 #' @param retractions_only If `TRUE`, keeps only entries whose
 #'   `RetractionNature` is "Retraction" (dropping corrections, expressions of
 #'   concern and reinstatements).
-#' @return The cleaned data (one row per paper and country) with a per-paper
-#'   `country_class` column, see [add_paper_country_class()].
+#' @return The cleaned and anonymized data (one row per paper and country,
+#'   with dates coarsened to years, see [anonymize_retraction_data()] and
+#'   [coarsen_retraction_dates()]) with a per-paper `country_class` column,
+#'   see [add_paper_country_class()].
 #' @export
 load_retraction_data <- function(path = "data/retraction_watch.csv",
                                  oecd_countries = load_oecd_countries(),
@@ -74,9 +76,15 @@ load_retraction_data <- function(path = "data/retraction_watch.csv",
                                  publication_years = c(1996, 2025),
                                  retractions_only = FALSE) {
   retraction_data <- readr::read_csv(path, show_col_types = FALSE, col_types = RETRACTION_DATA_TYPES)
+  # Stops the execution if titles, authors, journals or identifiers cannot be
+  # removed
+  retraction_data <- anonymize_retraction_data(retraction_data)
   retraction_reason_conversion <- readr::read_csv(reason_groupings_path,
                                                   show_col_types = FALSE, col_types = RETRACTION_REASON_GROUPINGS_TYPES)
+  # Cleaning needs the exact dates (for the retraction delay), so they are
+  # coarsened to years afterwards; this also stops the execution if it fails
   clean_retraction_data(retraction_data, oecd_countries, retraction_reason_conversion,
                         publication_years = publication_years,
-                        retractions_only = retractions_only)
+                        retractions_only = retractions_only) %>%
+    coarsen_retraction_dates()
 }

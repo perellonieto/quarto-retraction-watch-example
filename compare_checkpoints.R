@@ -1,13 +1,12 @@
 # Compares, step by step, the data frames saved by retraction-analysis.qmd
 # ("original") and retraction-analysis-library.qmd ("library").
 #
-# 1. Render both pages so that they write their checkpoints:
-#      quarto render retraction-analysis.qmd
-#      quarto render retraction-analysis-library.qmd
-# 2. Run this script from the project root:
-#      Rscript compare_checkpoints.R
-#    or source() it in an R session to inspect the returned differences, e.g.
-#      View(differences[["04_retraction_rates"]])
+# Run it with `make run-comparison`, which renders both pages and then runs
+# this script. The checkpoints have no paper IDs (see checkpoint()), so the
+# two pages can be compared whatever IDs each render gave the papers. To
+# inspect the differences afterwards, source() this script in an R session,
+# e.g.
+#   View(differences[["04_retraction_rates"]])
 #
 # The first step with differing rows is where the library code departs from
 # the original one.
@@ -32,17 +31,16 @@ library_flags <- list(transform = function(df) {
   mutate(df, flag = clean[match(flag, reasons)])
 })
 
+row_columns <- c("Country", "country_class", "international", "Mass_Retraction",
+                 "publication_year", "retraction_year")
+
 differences <- list(
-  # One row per paper and country; the columns that the analysis relies on
+  # One row per paper and country, without paper IDs: identical rows are
+  # counted on each side, for the columns that the analysis relies on
   "01_retraction_data" = compare_step(
     "01_retraction_data",
-    keys = c("Record ID", "Country"),
-    original = list(keep = c("Record ID", "Country", "country_class",
-                             "international", "Mass_Retraction",
-                             "publication_year", "retraction_year")),
-    library = list(keep = c("Record ID", "Country", "country_class",
-                            "international", "Mass_Retraction",
-                            "publication_year", "retraction_year"))
+    original = list(keep = row_columns),
+    library = list(keep = row_columns)
   ),
   "02_sjr_country_counts" = compare_step(
     "02_sjr_country_counts", keys = c("Country", "Year")

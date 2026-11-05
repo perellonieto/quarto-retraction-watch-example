@@ -171,9 +171,9 @@ add_retraction_delay_flags <- function(retraction_data) {
 # Unknown countries are dropped from papers that list a known country; a
 # paper with no known country keeps a single row with `Country` set to NA
 split_by_country <- function(retraction_data, oecd_countries) {
-  retraction_data$paper_index <- seq_len(nrow(retraction_data))
+  # No row numbers are kept: they are the rows of the public Retraction Watch
+  # file, so they would identify each paper
   retraction_data %>%
-    mutate(row = row_number()) %>%
     separate_rows(Country, sep = ';') %>%
     mutate(Country = if_else(.data$Country %in% UNKNOWN_COUNTRIES,
                              NA_character_, .data$Country)) %>%

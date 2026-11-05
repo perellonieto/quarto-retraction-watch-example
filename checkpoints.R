@@ -10,16 +10,26 @@ library(dplyr)
 
 checkpoint_dir <- "checkpoints"
 
-# Saves `df` as checkpoints/<step>_<version>.rds. RDS keeps column types
-# (factors, integers, dates), which a CSV would lose.
+# Columns identifying papers, removed before saving: the anonymized IDs (which
+# differ between runs) and row numbers of the raw data (which identify papers)
+checkpoint_id_columns <- c("Record ID", "RetractionID", "retraction_id",
+                           "paper_index", "row")
+
+# Saves `df` as checkpoints/<step>_<version>.rds without the
+# `checkpoint_id_columns` and with its rows sorted by all the other columns,
+# so that checkpoints do not depend on the paper IDs nor on the row order. RDS
+# keeps column types (factors, integers), which a CSV would lose.
 checkpoint <- function(df, step, version = checkpoint_version) {
   dir.create(checkpoint_dir, showWarnings = FALSE)
-  saveRDS(df, file.path(checkpoint_dir, paste0(step, "_", version, ".rds")))
+  saved <- as_tibble(df[setdiff(names(df), checkpoint_id_columns)])
+  saved <- arrange(saved, across(everything()))
+  saveRDS(saved, file.path(checkpoint_dir, paste0(step, "_", version, ".rds")))
   invisible(df)
 }
 
 # Makes a data frame comparable with its counterpart from the other page:
-# * keep:      columns to keep (all if NULL); duplicated rows are then dropped.
+# * keep:      columns to keep (all if NULL). Duplicated rows are kept, as
+#              without paper IDs they are different papers.
 # * rename:    c(new_name = "old_name") to align column names.
 # * recode:    list(column = c(old_value = "new_value")) to align labels.
 # * transform: any other function applied to the data frame.
@@ -37,7 +47,7 @@ normalise <- function(df, keep = NULL, rename = NULL, recode = NULL,
     df[[col]] <- dplyr::recode(df[[col]], !!!as.list(recode[[col]]))
   }
   df <- transform(df)
-  if (!is.null(keep)) df <- distinct(select(df, any_of(keep)))
+  if (!is.null(keep)) df <- select(df, any_of(keep))
   df %>%
     mutate(across(where(is.factor), as.character),
            across(where(is.double), ~ round(.x, 10))) %>%
@@ -46,12 +56,14 @@ normalise <- function(df, keep = NULL, rename = NULL, recode = NULL,
 }
 
 # Compares the original and library checkpoints of `step`. Rows are matched by
-# `keys`, so their order does not matter. Prints the number of rows, the
+# `keys`, so their order does not matter. Without `keys` (e.g. for row-level
+# data, which has no paper IDs), identical rows are counted on each side and
+# the rows whose counts differ are reported. Prints the number of rows, the
 # columns present in only one page and the number of differing rows, and
 # returns (invisibly) the differing rows side by side, with suffixes .orig and
 # .lib. Arguments in `original` and `library` are passed to normalise() for
 # each page.
-compare_step <- function(step, keys, original = list(), library = list()) {
+compare_step <- function(step, keys = NULL, original = list(), library = list()) {
   read_step <- function(version, args) {
     path <- file.path(checkpoint_dir, paste0(step, "_", version, ".rds"))
     do.call(normalise, c(list(readRDS(path)), args))
@@ -67,6 +79,13 @@ compare_step <- function(step, keys, original = list(), library = list()) {
   if (length(only_b)) cat("Columns only in library: ", only_b, "\n")
 
   common <- intersect(names(a), names(b))
+  if (is.null(keys)) {
+    # Count identical rows on each side and compare the counts
+    keys <- common
+    a <- count(a[common], across(everything()), name = "rows")
+    b <- count(b[common], across(everything()), name = "rows")
+    common <- c(common, "rows")
+  }
   values <- setdiff(common, keys)
   joined <- full_join(a[common], b[common], by = keys,
                       suffix = c(".orig", ".lib"), relationship = "many-to-many")
