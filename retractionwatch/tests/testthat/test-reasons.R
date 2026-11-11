@@ -303,3 +303,36 @@ test_that("top_reasons_overall() returns one list over all years in range", {
                c("R3", "R1"))
   expect_equal(top_reasons_overall(data, n = 1), "R5")
 })
+
+test_that("remove_retraction_reasons() removes reasons but keeps the papers", {
+  data <- tibble::tibble(
+    Reason = c("A;B;C;", "B;", "C;A;", NA, "")
+  )
+  result <- remove_retraction_reasons(data, c("B", "C"))
+  expect_equal(result$Reason, c("A;", "", "A;", NA, ""))
+})
+
+test_that("reason_flags() keeps papers with no reasons left", {
+  data <- tibble::tibble(
+    RetractionID = 1:3,
+    publication_year = 2020,
+    country_class = "A",
+    Reason = c("Error in Data;Removed;", "Removed;", "Error in Data;"),
+    Mass_Retraction = "Other"
+  ) %>%
+    remove_retraction_reasons("Removed")
+
+  flags <- reason_flags(data, "country_class")
+  expect_equal(nrow(flags), 3)
+  expect_equal(sort(flags$`is_Error in Data`), c(FALSE, TRUE, TRUE))
+  expect_false("is_Removed" %in% names(flags))
+})
+
+test_that("reasons_in_group() returns the reasons of a group or of all the others", {
+  path <- tempfile(fileext = ".csv")
+  writeLines(c("Group,Reason,Count", "G1,A,3", "G1,B,2", "G2,C,1", "G3,D,1", "G3,B,1"), path)
+
+  expect_equal(reasons_in_group("G1", path), c("A", "B"))
+  expect_equal(reasons_in_group("G1", path, invert = TRUE), c("C", "D"))
+  expect_error(reasons_in_group("G4", path), "Unknown reason group")
+})

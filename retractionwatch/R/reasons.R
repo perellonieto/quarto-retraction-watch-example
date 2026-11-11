@@ -13,24 +13,32 @@
 #' @return A wide tibble of reason flags.
 #' @export
 reason_flags <- function(data, group_col = "country_class", split_year = 2017) {
-  data %>%
+  papers <- data %>%
     filter(Mass_Retraction == "Other") %>%
     select(RetractionID, publication_year, all_of(group_col), Reason) %>%
+    stats::na.omit()
+  id_cols <- c("RetractionID", "publication_year", group_col)
+  flags <- papers %>%
     separate_rows(Reason, sep = ";") %>%
     mutate(Reason = str_trim(Reason)) %>%
     filter(Reason != "") %>%
-    stats::na.omit() %>%
     mutate(value = TRUE) %>%
     # Keep the group in the key, so a paper whose group differs between its
     # rows is counted in each group rather than in its first-listed one
-    distinct(RetractionID, publication_year, across(all_of(group_col)), Reason, .keep_all = TRUE) %>%
+    distinct(across(all_of(id_cols)), Reason, .keep_all = TRUE) %>%
     pivot_wider(
-      id_cols = c(RetractionID, publication_year, all_of(group_col)),
+      id_cols = all_of(id_cols),
       names_from = Reason,
       values_from = value,
       values_fill = FALSE,
       names_prefix = "is_"
-    ) %>%
+    )
+  # Papers with no reason left (e.g. after remove_retraction_reasons()) are
+  # kept with every flag FALSE, so they still count in the totals
+  papers %>%
+    distinct(across(all_of(id_cols))) %>%
+    left_join(flags, by = id_cols) %>%
+    mutate(across(starts_with("is_"), ~ coalesce(.x, FALSE))) %>%
     rename(retraction_id = RetractionID) %>%
     mutate(
       period = if_else(
@@ -607,4 +615,57 @@ one_hot_encoding_reasons_and_country_type <- function(retraction_data,
     mutate(across(all_of(unname(column_names)), ~ coalesce(.x, 0L)))
   attr(result, "reasons") <- stats::setNames(names(column_names), column_names)
   result
+}
+
+#' Remove some retraction reasons, keeping the papers
+#'
+#' Deletes `reasons` from the `;`-separated `Reason` of every paper, so that
+#' they are not counted in any reason analysis, while the papers themselves
+#' are kept (and still count in the totals). A paper whose only reasons are
+#' in `reasons` is left with an empty `Reason`. Other columns derived from the
+#' reasons, such as the reason group flags and `ReasonGroups`, are not
+#' changed.
+#'
+#' @param retraction_data Output of [load_retraction_data()].
+#' @param reasons Character vector (or list) of reasons to remove.
+#' @return `retraction_data` with the same rows and the `reasons` removed
+#'   from `Reason`.
+#' @export
+remove_retraction_reasons <- function(retraction_data, reasons) {
+  reasons <- as.character(unlist(reasons))
+  retraction_data$Reason <- vapply(
+    strsplit(retraction_data$Reason, ";", fixed = TRUE),
+    function(paper_reasons) {
+      if (length(paper_reasons) == 1 && is.na(paper_reasons)) return(NA_character_)
+      kept <- paper_reasons[!str_trim(paper_reasons) %in% c(reasons, "")]
+      if (length(kept) == 0) "" else paste0(kept, ";", collapse = "")
+    },
+    character(1))
+  retraction_data
+}
+
+#' Reasons of a reason group
+#'
+#' @param group Name of the reason group (e.g. `"Mechanism"`).
+#' @param reason_groupings_path Path to the CSV mapping each retraction
+#'   reason to a reason group, as in [load_retraction_data()].
+#' @param invert If `TRUE`, returns instead the reasons of every other group,
+#'   leaving out any reason that is also in `group`.
+#' @return Character vector with the reasons of `group` (or, with
+#'   `invert = TRUE`, of all the other groups).
+#' @export
+reasons_in_group <- function(group,
+                             reason_groupings_path = "data/retraction_reason_groupings.csv",
+                             invert = FALSE) {
+  groupings <- readr::read_csv(reason_groupings_path, show_col_types = FALSE,
+                               col_types = RETRACTION_REASON_GROUPINGS_TYPES)
+  if (!group %in% groupings$Group) {
+    stop("Unknown reason group `", group, "`. Available groups: ",
+         paste(unique(groupings$Group), collapse = ", "))
+  }
+  group_reasons <- unique(groupings$Reason[groupings$Group == group])
+  if (invert) {
+    return(setdiff(unique(groupings$Reason), group_reasons))
+  }
+  group_reasons
 }

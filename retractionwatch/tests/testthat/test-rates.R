@@ -112,3 +112,16 @@ test_that("ai_rates_table() formats one scenario for the selected countries", {
   expect_match(table$`AI retractions per 100,000 papers (95% CI)`[2], "^0\\.00 \\(0\\.00–")
   expect_equal(ncol(table), 6)
 })
+
+test_that("publication_counts_by_country() can count only some years", {
+  sjr <- tibble::tibble(Country = c("A", "A", "A", "B"),
+                        Year = c(2015, 2018, 2020, 2018),
+                        Documents = c(10, 20, 30, 5))
+
+  all_years <- publication_counts_by_country(sjr)
+  expect_equal(all_years$total_papers[all_years$Country == "A"], 60)
+
+  limited <- publication_counts_by_country(sjr, year_limits = c(2016, 2019))
+  expect_equal(limited$Country, c("A", "B"))
+  expect_equal(limited$total_papers, c(20, 5))
+})

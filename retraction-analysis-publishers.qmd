@@ -24,6 +24,12 @@ library(plotly)
 sjr_country_counts <- build_sjr_country_counts("data/sjr_rankings")
 oecd_countries <- load_oecd_countries("data/oecd_countries.csv")
 retraction_data <- load_retraction_data("data/retraction_watch.csv")
+
+# Remove the reasons grouped as Mechanism (e.g. "Investigation by
+# Journal/Publisher") but keep their papers, which still count in the totals
+retraction_data <- retraction_data %>%
+  remove_retraction_reasons(reasons_in_group("Mechanism"))
+
 publication_counts <- publication_counts_by_class(sjr_country_counts, oecd_countries)
 retraction_data_nomass <- retraction_data[retraction_data$Mass_Retraction == "Other",]
 

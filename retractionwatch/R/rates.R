@@ -18,12 +18,18 @@ publication_counts_by_class <- function(sjr_country_counts, oecd_countries) {
     summarise(total_papers = sum(Documents, na.rm = TRUE), .groups = "drop")
 }
 
-#' Total publications per country (all years)
+#' Total publications per country
 #'
 #' @param sjr_country_counts SCImago counts, see [build_sjr_country_counts()].
+#' @param year_limits Optional length-2 vector with the first and last year
+#'   (inclusive) of the publications counted. All years if `NULL`.
 #' @return A tibble with `Country` and `total_papers`.
 #' @export
-publication_counts_by_country <- function(sjr_country_counts) {
+publication_counts_by_country <- function(sjr_country_counts, year_limits = NULL) {
+  if (!is.null(year_limits)) {
+    sjr_country_counts <- filter(sjr_country_counts,
+                                 Year >= year_limits[1], Year <= year_limits[2])
+  }
   sjr_country_counts %>%
     group_by(Country) %>%
     summarise(total_papers = sum(Documents, na.rm = TRUE), .groups = "drop")

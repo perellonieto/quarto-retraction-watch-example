@@ -2,16 +2,19 @@
 % Please edit documentation in R/rates.R
 \name{publication_counts_by_country}
 \alias{publication_counts_by_country}
-\title{Total publications per country (all years)}
+\title{Total publications per country}
 \usage{
-publication_counts_by_country(sjr_country_counts)
+publication_counts_by_country(sjr_country_counts, year_limits = NULL)
 }
 \arguments{
 \item{sjr_country_counts}{SCImago counts, see \code{\link[=build_sjr_country_counts]{build_sjr_country_counts()}}.}
+
+\item{year_limits}{Optional length-2 vector with the first and last year
+(inclusive) of the publications counted. All years if \code{NULL}.}
 }
 \value{
 A tibble with \code{Country} and \code{total_papers}.
 }
 \description{
-Total publications per country (all years)
+Total publications per country
 }
