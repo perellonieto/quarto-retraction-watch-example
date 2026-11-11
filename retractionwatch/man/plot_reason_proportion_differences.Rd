@@ -9,7 +9,7 @@ plot_reason_proportion_differences(
   data_b,
   reasons_list,
   labels = c("Group A", "Group B"),
-  year_col = "retraction_year",
+  year_col = "publication_year",
   year_limits = NULL,
   min_retractions_per_year = 0
 )
@@ -22,8 +22,8 @@ of it (e.g. one per country group).}
 
 \item{labels}{Names of the two datasets used in the axis label and title.}
 
-\item{year_col}{Year column to use, \code{"retraction_year"} or
-\code{"publication_year"}.}
+\item{year_col}{Year column to use, \code{"publication_year"} (the default) or
+\code{"retraction_year"}.}
 
 \item{year_limits}{Optional length-2 vector with the first and last year.}
 

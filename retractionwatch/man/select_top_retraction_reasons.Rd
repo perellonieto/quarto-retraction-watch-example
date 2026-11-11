@@ -8,7 +8,7 @@ select_top_retraction_reasons(
   retraction_data,
   n_top = 10,
   year_limits = NULL,
-  year_col = "retraction_year",
+  year_col = "publication_year",
   exclude_reasons = NULL
 )
 }
@@ -20,8 +20,8 @@ select_top_retraction_reasons(
 \item{year_limits}{Optional length-2 vector with the first and last year
 (inclusive). All years if \code{NULL}.}
 
-\item{year_col}{Year column to use, \code{"retraction_year"} or
-\code{"publication_year"}.}
+\item{year_col}{Year column to use, \code{"publication_year"} (the default) or
+\code{"retraction_year"}.}
 
 \item{exclude_reasons}{Optional character vector of reasons to ignore
 (e.g. administrative notices).}

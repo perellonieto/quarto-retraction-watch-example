@@ -7,7 +7,7 @@
 top_reasons_overall(
   retraction_data,
   n = 10,
-  year_col = "retraction_year",
+  year_col = "publication_year",
   year_limits = NULL,
   exclude_reasons = NULL
 )
@@ -18,8 +18,8 @@ de-duplicated by \verb{Record ID}, so the one-row-per-country format is fine.}
 
 \item{n}{Number of reasons to return.}
 
-\item{year_col}{Year column to use, \code{"retraction_year"} or
-\code{"publication_year"}.}
+\item{year_col}{Year column to use, \code{"publication_year"} (the default) or
+\code{"retraction_year"}.}
 
 \item{year_limits}{Optional length-2 vector with the first and last year.}
 

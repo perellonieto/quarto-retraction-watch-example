@@ -7,7 +7,7 @@
 find_reasons_not_reported_in_year(
   retraction_data,
   year,
-  year_col = "retraction_year",
+  year_col = "publication_year",
   exclude_reasons = NULL
 )
 }
@@ -16,8 +16,8 @@ find_reasons_not_reported_in_year(
 
 \item{year}{Year to check.}
 
-\item{year_col}{Year column to use, \code{"retraction_year"} or
-\code{"publication_year"}.}
+\item{year_col}{Year column to use, \code{"publication_year"} (the default) or
+\code{"retraction_year"}.}
 
 \item{exclude_reasons}{Optional character vector of reasons to ignore
 (e.g. administrative notices).}

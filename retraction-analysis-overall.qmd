@@ -59,7 +59,7 @@ checkpoint(publication_counts, "03_publication_counts")
 Total number of retractions per year per publisher
 
 ```{r}
-ggplotly(plot_number_of_retractions_per_year_per_publisher(retraction_data, yscale = "log"))
+ggplotly(plot_number_of_retractions_per_year_per_publisher(retraction_data, yscale = "log", year_col = "publication_year"))
 ```
 
 Retractions by the top 10 publishers

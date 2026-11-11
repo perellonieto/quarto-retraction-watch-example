@@ -8,7 +8,7 @@ find_top_overlapping_reasons(
   retraction_data_a,
   retraction_data_b,
   n_top = 3,
-  year_col = "retraction_year",
+  year_col = "publication_year",
   min_retractions_per_year = 100,
   year_limits = NULL,
   exclude_reasons = NULL
@@ -21,8 +21,8 @@ find_top_overlapping_reasons(
 \item{n_top}{Number of top reasons selected in each year, or \code{NULL} to
 keep every reason.}
 
-\item{year_col}{Year column to use, \code{"retraction_year"} or
-\code{"publication_year"}.}
+\item{year_col}{Year column to use, \code{"publication_year"} (the default) or
+\code{"retraction_year"}.}
 
 \item{min_retractions_per_year}{Years with fewer retractions are dropped,
 as their top reasons are dominated by noise.}

@@ -440,7 +440,7 @@ plot_ai_ts <- function(data, y = "ai_retractions",
 #' @return A ggplot object.
 #' @export
 plot_reasons_over_time_by_group <- function(data_list, reasons_list,
-                                            year_col = "retraction_year",
+                                            year_col = "publication_year",
                                             min_retractions_per_year = 0,
                                             year_limits = NULL) {
   min_retractions_per_year <- rep_len(min_retractions_per_year, length(data_list))
@@ -474,7 +474,7 @@ plot_reasons_over_time_by_group <- function(data_list, reasons_list,
 #' @export
 plot_retraction_reasons_over_time <- function(retraction_data,
                                               n_top = 3,
-                                              year_col = "retraction_year",
+                                              year_col = "publication_year",
                                               min_retractions_per_year = 100,
                                               year_limits = NULL,
                                               exclude_reasons = NULL,
@@ -493,15 +493,20 @@ plot_retraction_reasons_over_time <- function(retraction_data,
     retraction_data <- retraction_data[retraction_data$Mass_Retraction == "Other", ]
   }
 
-  compute_top_reasons_over_time(
+  proportions <- compute_top_reasons_over_time(
     retraction_data,
     n_top = n_top,
-    year_col = year_col,
     min_retractions_per_year = min_retractions_per_year,
+    year_col = year_col,
     year_limits = year_limits,
     exclude_reasons = exclude_reasons,
     reasons_list = reasons_list
-  ) %>%
+  )
+  if (nrow(proportions) == 0) {
+    return(empty_plot("No reasons or years to show", title))
+  }
+
+  proportions %>%
     ggplot(aes(year, proportion, colour = Reason)) +
     geom_line() +
     geom_point(size = 1) +
@@ -536,7 +541,7 @@ plot_reason_proportion_differences <- function(data_a,
                                                data_b,
                                                reasons_list,
                                                labels = c("Group A", "Group B"),
-                                               year_col = "retraction_year",
+                                               year_col = "publication_year",
                                                year_limits = NULL,
                                                min_retractions_per_year = 0) {
   differences <- yearly_reason_proportion_differences(
@@ -580,10 +585,13 @@ plot_reason_proportions_forest <- function(data_a,
                                            data_b,
                                            reasons_list,
                                            labels = c("Group A", "Group B"),
-                                           year_col = "retraction_year",
+                                           year_col = "publication_year",
                                            year_limits = NULL,
                                            conf_level = 0.95) {
   reasons_list <- as.character(unlist(reasons_list))
+  if (length(reasons_list) == 0) {
+    return(empty_plot("No reasons to show"))
+  }
   summarise_dataset <- function(data, label) {
     counts <- yearly_reason_counts(data, year_col, min_retractions_per_year = 0,
                                    year_limits, exclude_reasons = NULL)
@@ -734,8 +742,8 @@ plot_reason_proportions_across_groups_by_year <- function(proportions,
 #'
 #' @param retraction_data Output of [load_retraction_data()], or a subset of
 #'   it (e.g. without mass retractions).
-#' @param year_col Year column to use, `"retraction_year"` or
-#'   `"publication_year"`.
+#' @param year_col Year column to use, `"publication_year"` (the default) or
+#'   `"retraction_year"`.
 #' @param year_limits Optional length-2 vector with the first and last year
 #'   (inclusive).
 #' @param title Plot title.
@@ -743,7 +751,7 @@ plot_reason_proportions_across_groups_by_year <- function(proportions,
 #' @return A ggplot object. Its data has columns `year` and `retractions`.
 #' @export
 plot_number_of_total_retractions_per_year <- function(retraction_data,
-                                                      year_col = "retraction_year",
+                                                      year_col = "publication_year",
                                                       year_limits = NULL,
                                                       title = "Number of retractions per year",
                                                       colour = "#1b9e77") {
@@ -788,7 +796,7 @@ plot_number_of_total_retractions_per_year <- function(retraction_data,
 #'   `retractions`.
 #' @export
 plot_number_of_retractions_per_year_per_publisher <- function(retraction_data,
-                                                              year_col = "retraction_year",
+                                                              year_col = "publication_year",
                                                               year_limits = NULL,
                                                               top_n = NULL,
                                                               show_legend = FALSE,
@@ -855,7 +863,7 @@ plot_number_of_retractions_per_year_per_publisher <- function(retraction_data,
 #' @export
 plot_proportion_of_total_retractions_per_publisher <- function(retraction_data,
                                                                top_n = 10,
-                                                               year_col = "retraction_year",
+                                                               year_col = "publication_year",
                                                                year_limits = NULL,
                                                                other_label = "Other publishers",
                                                                colour = "#1b9e77",
@@ -930,8 +938,8 @@ plot_proportion_of_total_retractions_per_publisher <- function(retraction_data,
 #'   reason.
 #' @param proportion If `TRUE`, shows the Jaccard index of each pair instead
 #'   of the number of papers.
-#' @param year_col Year column used by `year_limits`, `"retraction_year"` or
-#'   `"publication_year"`.
+#' @param year_col Year column used by `year_limits`, `"publication_year"`
+#'   (the default) or `"retraction_year"`.
 #' @param title Plot title.
 #' @return A ggplot object. Its data has one row per pair of reasons cited
 #'   together, with columns `reason_a`, `reason_b`, `papers` (papers citing
@@ -944,7 +952,7 @@ plot_reasons_coocurrence_matrix <- function(retraction_data,
                                             reasons_list = NULL,
                                             top_n = NULL,
                                             proportion = FALSE,
-                                            year_col = "retraction_year",
+                                            year_col = "publication_year",
                                             title = "Co-occurrence of retraction reasons in the same paper") {
   papers <- retraction_data %>%
     distinct(`Record ID`, year = .data[[year_col]], Reason)
@@ -1048,7 +1056,7 @@ plot_reasons_coocurrence_matrix <- function(retraction_data,
 #' @return A ggplot object. Its data has columns `year` and `reasons`.
 #' @export
 plot_number_of_distinct_reasons_per_year <- function(retraction_data,
-                                                     year_col = "retraction_year",
+                                                     year_col = "publication_year",
                                                      year_limits = NULL,
                                                      exclude_reasons = NULL,
                                                      title = "Number of distinct retraction reasons per year",
@@ -1097,7 +1105,7 @@ plot_number_of_distinct_reasons_per_year <- function(retraction_data,
 #'   same for the last year it was cited) and `line_end` (end of the line).
 #' @export
 plot_first_year_occurrence_per_reason <- function(retraction_data,
-                                                  year_col = "retraction_year",
+                                                  year_col = "publication_year",
                                                   year_limits = NULL,
                                                   exclude_reasons = NULL,
                                                   colour = "#1b9e77",
@@ -1289,8 +1297,8 @@ roc_curve <- function(score, is_positive) {
 #'   [count_number_of_retractions_per_column()] for `"Publisher"`).
 #' @param year_limits Optional length-2 vector with the first and last year
 #'   (inclusive) of the retractions used. All retractions if `NULL`.
-#' @param year_col Year column used by `year_limits`, `"retraction_year"` or
-#'   `"publication_year"`.
+#' @param year_col Year column used by `year_limits`, `"publication_year"`
+#'   (the default) or `"retraction_year"`.
 #' @param confidence_interval If `TRUE`, draws the binomial confidence
 #'   interval of each proportion.
 #' @param conf_level Confidence level of the intervals.
@@ -1303,7 +1311,7 @@ plot_reason_proportion_per_publisher <- function(retraction_data,
                                                  reason,
                                                  publisher_list,
                                                  year_limits = NULL,
-                                                 year_col = "retraction_year",
+                                                 year_col = "publication_year",
                                                  confidence_interval = TRUE,
                                                  conf_level = 0.95,
                                                  colour = "#1b9e77") {
@@ -1417,7 +1425,7 @@ plot_reason_heterogeneity <- function(retraction_data,
                                       group_col = "Publisher",
                                       measure = c("tau", "I2"),
                                       year_limits = NULL,
-                                      year_col = "retraction_year",
+                                      year_col = "publication_year",
                                       conf_level = 0.95,
                                       colour = "#1b9e77") {
   measure <- match.arg(measure)
@@ -1549,4 +1557,13 @@ proportion_heterogeneity <- function(papers, total, conf_level = 0.95) {
   list(groups = k, Q = q, p_value = stats::pchisq(q, df, lower.tail = FALSE),
        tau = sqrt(tau2), tau_lower = sqrt(tau2_lower), tau_upper = sqrt(tau2_upper),
        I2 = i2(tau2), I2_lower = i2(tau2_lower), I2_upper = i2(tau2_upper))
+}
+
+# A plot with only `message`, returned when there is no data to plot, since
+# ggplotly() fails on plots whose layers are empty
+empty_plot <- function(message, title = NULL) {
+  ggplot() +
+    annotate("text", x = 0, y = 0, label = message) +
+    labs(x = NULL, y = NULL, title = title) +
+    theme_void()
 }

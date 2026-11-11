@@ -7,7 +7,7 @@
 plot_proportion_of_total_retractions_per_publisher(
   retraction_data,
   top_n = 10,
-  year_col = "retraction_year",
+  year_col = "publication_year",
   year_limits = NULL,
   other_label = "Other publishers",
   colour = "#1b9e77",
@@ -20,8 +20,8 @@ it (e.g. without mass retractions).}
 
 \item{top_n}{Number of publishers shown separately.}
 
-\item{year_col}{Year column to use, \code{"retraction_year"} or
-\code{"publication_year"}.}
+\item{year_col}{Year column to use, \code{"publication_year"} (the default) or
+\code{"retraction_year"}.}
 
 \item{year_limits}{Optional length-2 vector with the first and last year
 (inclusive).}

@@ -10,7 +10,7 @@ plot_reasons_coocurrence_matrix(
   reasons_list = NULL,
   top_n = NULL,
   proportion = FALSE,
-  year_col = "retraction_year",
+  year_col = "publication_year",
   title = "Co-occurrence of retraction reasons in the same paper"
 )
 }
@@ -31,8 +31,8 @@ reason.}
 \item{proportion}{If \code{TRUE}, shows the Jaccard index of each pair instead
 of the number of papers.}
 
-\item{year_col}{Year column used by \code{year_limits}, \code{"retraction_year"} or
-\code{"publication_year"}.}
+\item{year_col}{Year column used by \code{year_limits}, \code{"publication_year"}
+(the default) or \code{"retraction_year"}.}
 
 \item{title}{Plot title.}
 }

@@ -8,7 +8,7 @@ count_number_of_retractions_per_column(
   retraction_data,
   column_name,
   year_limits = NULL,
-  year_col = "retraction_year"
+  year_col = "publication_year"
 )
 }
 \arguments{
@@ -20,8 +20,8 @@ count_number_of_retractions_per_column(
 (inclusive) of the retractions counted. Retractions without a year are
 then left out. All retractions if \code{NULL}.}
 
-\item{year_col}{Year column used by \code{year_limits}, \code{"retraction_year"} or
-\code{"publication_year"}.}
+\item{year_col}{Year column used by \code{year_limits}, \code{"publication_year"}
+(the default) or \code{"retraction_year"}.}
 }
 \value{
 A tibble with one row per value of \code{column_name} and a column

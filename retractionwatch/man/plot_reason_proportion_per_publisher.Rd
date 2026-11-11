@@ -9,7 +9,7 @@ plot_reason_proportion_per_publisher(
   reason,
   publisher_list,
   year_limits = NULL,
-  year_col = "retraction_year",
+  year_col = "publication_year",
   confidence_interval = TRUE,
   conf_level = 0.95,
   colour = "#1b9e77"
@@ -28,8 +28,8 @@ a \code{Publisher} column (e.g. the output of
 \item{year_limits}{Optional length-2 vector with the first and last year
 (inclusive) of the retractions used. All retractions if \code{NULL}.}
 
-\item{year_col}{Year column used by \code{year_limits}, \code{"retraction_year"} or
-\code{"publication_year"}.}
+\item{year_col}{Year column used by \code{year_limits}, \code{"publication_year"}
+(the default) or \code{"retraction_year"}.}
 
 \item{confidence_interval}{If \code{TRUE}, draws the binomial confidence
 interval of each proportion.}

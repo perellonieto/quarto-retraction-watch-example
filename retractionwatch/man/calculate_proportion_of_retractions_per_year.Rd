@@ -10,7 +10,7 @@ calculate_proportion_of_retractions_per_year(
   reasons = NULL,
   yearmin = NULL,
   yearmax = NULL,
-  year_col = "retraction_year"
+  year_col = "publication_year"
 )
 }
 \arguments{
@@ -24,8 +24,8 @@ for every reason. A reason never cited gets a proportion of 0.}
 
 \item{yearmin, yearmax}{First and last year (inclusive).}
 
-\item{year_col}{Year column to use, \code{"retraction_year"} or
-\code{"publication_year"}.}
+\item{year_col}{Year column to use, \code{"publication_year"} (the default) or
+\code{"retraction_year"}.}
 }
 \value{
 A tibble with columns \code{Country}, \code{year}, \code{Reason}, \code{n}

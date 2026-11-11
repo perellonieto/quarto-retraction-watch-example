@@ -6,7 +6,7 @@
 \usage{
 plot_number_of_distinct_reasons_per_year(
   retraction_data,
-  year_col = "retraction_year",
+  year_col = "publication_year",
   year_limits = NULL,
   exclude_reasons = NULL,
   title = "Number of distinct retraction reasons per year",
@@ -17,8 +17,8 @@ plot_number_of_distinct_reasons_per_year(
 \item{retraction_data}{Output of \code{\link[=load_retraction_data]{load_retraction_data()}}, or a subset of
 it (e.g. without mass retractions).}
 
-\item{year_col}{Year column to use, \code{"retraction_year"} or
-\code{"publication_year"}.}
+\item{year_col}{Year column to use, \code{"publication_year"} (the default) or
+\code{"retraction_year"}.}
 
 \item{year_limits}{Optional length-2 vector with the first and last year
 (inclusive).}

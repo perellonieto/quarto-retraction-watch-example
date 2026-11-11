@@ -101,3 +101,11 @@ test_that("load_retraction_data() returns anonymized data with years", {
   expect_true("retracted_within_year" %in% names(data))
   expect_equal(data$retraction_year, data$RetractionDate)
 })
+
+test_that("anonymize_retraction_data() never keeps all the original IDs", {
+  # With two papers, half of the permutations would keep the original IDs
+  data <- tibble::tibble(`Record ID` = 1:2, Reason = "R1;")
+  for (seed in 1:20) {
+    expect_false(identical(anonymize_retraction_data(data, seed = seed)$`Record ID`, 1:2))
+  }
+})

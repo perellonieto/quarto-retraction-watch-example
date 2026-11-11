@@ -11,7 +11,7 @@ plot_reason_heterogeneity(
   group_col = "Publisher",
   measure = c("tau", "I2"),
   year_limits = NULL,
-  year_col = "retraction_year",
+  year_col = "publication_year",
   conf_level = 0.95,
   colour = "#1b9e77"
 )

@@ -233,8 +233,8 @@ significant_reasons_long <- function(results, group_a = "United Kingdom",
 #'   de-duplicated by `Record ID`, so the one-row-per-country format is fine.
 #' @param n_top Number of top reasons selected in each year, or `NULL` to
 #'   keep every reason.
-#' @param year_col Year column to use, `"retraction_year"` or
-#'   `"publication_year"`.
+#' @param year_col Year column to use, `"publication_year"` (the default) or
+#'   `"retraction_year"`.
 #' @param min_retractions_per_year Years with fewer retractions are dropped,
 #'   as their top reasons are dominated by noise.
 #' @param year_limits Optional length-2 vector with the first and last year.
@@ -247,7 +247,7 @@ significant_reasons_long <- function(results, group_a = "United Kingdom",
 #' @export
 compute_top_reasons_over_time <- function(retraction_data,
                                           n_top = 3,
-                                          year_col = "retraction_year",
+                                          year_col = "publication_year",
                                           min_retractions_per_year = 100,
                                           year_limits = NULL,
                                           exclude_reasons = NULL,
@@ -291,7 +291,7 @@ compute_top_reasons_over_time <- function(retraction_data,
 #' @return A character vector of reasons, from most to least cited.
 #' @export
 top_reasons_overall <- function(retraction_data, n = 10,
-                                year_col = "retraction_year",
+                                year_col = "publication_year",
                                 year_limits = NULL,
                                 exclude_reasons = NULL) {
   yearly_reason_counts(retraction_data, year_col, 0, year_limits,
@@ -329,7 +329,7 @@ calculate_proportion_of_retractions_per_year <- function(retraction_data,
                                                          reasons = NULL,
                                                          yearmin = NULL,
                                                          yearmax = NULL,
-                                                         year_col = "retraction_year") {
+                                                         year_col = "publication_year") {
   if (is.data.frame(country_list)) {
     country_list <- country_list$Country
   }
@@ -377,7 +377,7 @@ calculate_proportion_of_retractions_per_year_by_publisher <- function(retraction
                                                                       n_top_reasons = NULL,
                                                                       yearmin = NULL,
                                                                       yearmax = NULL,
-                                                                      year_col = "retraction_year") {
+                                                                      year_col = "publication_year") {
   if (is.data.frame(publisher_list)) {
     publisher_list <- publisher_list$Publisher
   }
@@ -410,15 +410,15 @@ calculate_proportion_of_retractions_per_year_by_publisher <- function(retraction
 #' @param year_limits Optional length-2 vector with the first and last year
 #'   (inclusive) of the retractions counted. Retractions without a year are
 #'   then left out. All retractions if `NULL`.
-#' @param year_col Year column used by `year_limits`, `"retraction_year"` or
-#'   `"publication_year"`.
+#' @param year_col Year column used by `year_limits`, `"publication_year"`
+#'   (the default) or `"retraction_year"`.
 #' @return A tibble with one row per value of `column_name` and a column
 #'   `retractions` with the number of distinct `Record ID`s, sorted from the
 #'   most to the least retractions.
 #' @export
 count_number_of_retractions_per_column <- function(retraction_data, column_name,
                                                    year_limits = NULL,
-                                                   year_col = "retraction_year") {
+                                                   year_col = "publication_year") {
   if (!is.null(year_limits)) {
     retraction_data <- retraction_data %>%
       filter(.data[[year_col]] >= year_limits[1],
@@ -448,7 +448,7 @@ count_number_of_retractions_per_column <- function(retraction_data, column_name,
 find_top_overlapping_reasons <- function(retraction_data_a,
                                          retraction_data_b,
                                          n_top = 3,
-                                         year_col = "retraction_year",
+                                         year_col = "publication_year",
                                          min_retractions_per_year = 100,
                                          year_limits = NULL,
                                          exclude_reasons = NULL) {
@@ -529,7 +529,7 @@ top_reasons_per_year <- function(reason_counts, n_top) {
 select_top_retraction_reasons <- function(retraction_data,
                                           n_top = 10,
                                           year_limits = NULL,
-                                          year_col = "retraction_year",
+                                          year_col = "publication_year",
                                           exclude_reasons = NULL) {
   counts <- yearly_reason_counts(retraction_data, year_col,
                                  min_retractions_per_year = 0, year_limits,
@@ -558,7 +558,7 @@ select_top_retraction_reasons <- function(retraction_data,
 #' @export
 find_reasons_not_reported_in_year <- function(retraction_data,
                                               year,
-                                              year_col = "retraction_year",
+                                              year_col = "publication_year",
                                               exclude_reasons = NULL) {
   reason_counts <- yearly_reason_counts(retraction_data, year_col,
                                         min_retractions_per_year = 0,

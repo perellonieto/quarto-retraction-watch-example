@@ -51,6 +51,13 @@ anonymize_retraction_data <- function(retraction_data, seed = anonymization_seed
   original_ids <- retraction_data$`Record ID`
   papers <- unique(original_ids)
   new_ids <- with_seed(seed, sample.int(length(papers)))
+  # With few papers the permutation can leave every paper with its original
+  # ID; shifting it by one then gives every paper a different ID
+  if (length(papers) > 1 &&
+      identical(as.numeric(new_ids[match(original_ids, papers)]),
+                suppressWarnings(as.numeric(original_ids)))) {
+    new_ids <- c(new_ids[-1], new_ids[1])
+  }
 
   anonymized <- retraction_data[setdiff(names(retraction_data), IDENTIFYING_COLUMNS)]
   anonymized$`Record ID` <- new_ids[match(original_ids, papers)]

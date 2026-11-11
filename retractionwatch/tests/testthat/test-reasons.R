@@ -1,7 +1,7 @@
 # One retraction per element of `reasons`, all retracted in `year`
 make_retractions <- function(reasons, year = 2020) {
   tibble::tibble(`Record ID` = seq_along(reasons),
-                 retraction_year = year,
+                 publication_year = year,
                  Reason = reasons)
 }
 
@@ -182,7 +182,7 @@ test_that("calculate_proportion_of_retractions_per_year_by_publisher() splits by
 
   result <- calculate_proportion_of_retractions_per_year_by_publisher(
     data, publisher_list = tibble::tibble(Publisher = c("P1", "P2")),
-    reasons = c("R1", "R2"), yearmin = 2015, yearmax = 2021
+    reasons = c("R1", "R2"), yearmin = 2015, yearmax = 2021, year_col = "publication_year"
   ) %>%
     dplyr::arrange(Publisher, year, Reason)
 
@@ -217,7 +217,8 @@ test_that("count_number_of_retractions_per_column() can count only some years", 
 
   # 2017-2020 leaves out paper 1 (2015) and paper 5 (no year)
   result <- count_number_of_retractions_per_column(data, "Publisher",
-                                                   year_limits = c(2017, 2020))
+                                                   year_limits = c(2017, 2020),
+                                                   year_col = "retraction_year")
   expect_equal(result$Publisher, c("P2", "P1"))
   expect_equal(result$retractions, c(2, 1))
 

@@ -7,7 +7,7 @@
 plot_reasons_over_time_by_group(
   data_list,
   reasons_list,
-  year_col = "retraction_year",
+  year_col = "publication_year",
   min_retractions_per_year = 0,
   year_limits = NULL
 )
@@ -19,8 +19,8 @@ panel titles.}
 
 \item{reasons_list}{Character vector of reasons to plot.}
 
-\item{year_col}{Year column to use, \code{"retraction_year"} or
-\code{"publication_year"}.}
+\item{year_col}{Year column to use, \code{"publication_year"} (the default) or
+\code{"retraction_year"}.}
 
 \item{min_retractions_per_year}{Years with fewer retractions are dropped.
 Either one value or one per group.}
