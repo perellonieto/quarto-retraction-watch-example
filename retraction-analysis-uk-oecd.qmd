@@ -503,7 +503,8 @@ ggplotly(plot_reason_proportion_differences(
   reasons_list = selected_reasons,
   labels = c("UK", "OECD"),
   year_limits = c(2017, 2026),
-  show_separated = TRUE))
+  show_separated = TRUE,
+  show_confidence_intervals = TRUE))
 ```
 Showing only the difference between UK and the rest of the OECD
 
@@ -513,7 +514,8 @@ ggplotly(plot_reason_proportion_differences(
   retraction_data_oecd,
   reasons_list = selected_reasons,
   labels = c("UK", "OECD"),
-  year_limits = c(2017, 2026)))
+  year_limits = c(2017, 2026),
+  show_confidence_intervals = TRUE))
 ```
 
 
@@ -528,7 +530,8 @@ ggplotly(plot_reason_proportion_differences(
   reasons_list = selected_reasons,
   labels = c("UK", "OECD"),
   year_limits = c(2017, 2026),
-  show_separated = TRUE))
+  show_separated = TRUE,
+  show_confidence_intervals = TRUE))
 ```
 
 Showing only the difference between UK and the rest of the OECD
@@ -539,7 +542,8 @@ ggplotly(plot_reason_proportion_differences(
   retraction_data_oecd |> filter(Mass_Retraction == "Other"),
   reasons_list = selected_reasons,
   labels = c("UK", "OECD"),
-  year_limits = c(2017, 2026)))
+  year_limits = c(2017, 2026),
+  show_confidence_intervals = TRUE))
 ```
 
 Show the expected difference in proportion of retractions and error bars per year.
@@ -551,7 +555,8 @@ ggplotly(plot_reason_proportions_forest(
   reasons_list = selected_reasons,
   year_col = publication_year_col,
   labels = c("UK", "OECD"),
-  year_limits = c(2017, 2026)), height = 400)
+  year_limits = c(2017, 2026)),
+  height = 400)
 ```
 
 ## Compared only against the top 10 OECD countries (without the UK) by number of publications
@@ -566,9 +571,10 @@ ggplotly(plot_reason_proportion_differences(
     filter(Mass_Retraction == "Other",
     Country %in% top_10_oecd_countries_by_documents$Country),
   reasons_list = selected_reasons,
-  labels = c("UK", "OECD"),
+  labels = c("UK", "Top 10 OECD"),
   year_limits = c(2017, 2026),
-  show_separated = TRUE))
+  show_separated = TRUE,
+  show_confidence_intervals = TRUE))
 ```
 
 Showing only the difference between UK and the top 10 OECD countries in number of publications since 2017 excluding mass retractions and the UK.
@@ -581,8 +587,9 @@ ggplotly(plot_reason_proportion_differences(
     filter(Mass_Retraction == "Other",
     Country %in% top_10_oecd_countries_by_documents$Country),
   reasons_list = selected_reasons,
-  labels = c("UK", "OECD"),
-  year_limits = c(2017, 2026)))
+  labels = c("UK", "Top 10 OECD"),
+  year_limits = c(2017, 2026),
+  show_confidence_intervals = TRUE))
 ```
 
 Show the expected difference in proportion of retractions and error bars per year for the UK and the top 10 OECD countries (wihtout the UK) and no mass retractions.

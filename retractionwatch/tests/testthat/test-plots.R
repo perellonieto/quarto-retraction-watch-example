@@ -556,3 +556,37 @@ test_that("plot_reason_proportion_differences() can show both proportions", {
   expect_equal(data$proportion, c(2 / 4, 1 / 4, 2 / 4, 0))
   expect_s3_class(plotly::ggplotly(p), "plotly")
 })
+
+test_that("plot_reason_proportion_differences() can show binomial confidence intervals", {
+  # 2020: R1 in 2/4 of `a` and 1/4 of `b`
+  a <- tibble::tibble(`Record ID` = 1:4, publication_year = 2020,
+                      Reason = c("R1;", "R1;R2;", "R2;", "R3;"))
+  b <- tibble::tibble(`Record ID` = 1:4, publication_year = 2020,
+                      Reason = c("R1;", "R3;", "R3;", "R3;"))
+  ci_a <- binomial_ci(2, 4)
+  ci_b <- binomial_ci(1, 4)
+
+  p <- plot_reason_proportion_differences(a, b, reasons_list = "R1",
+                                          labels = c("A", "B"),
+                                          show_confidence_intervals = TRUE)
+  expect_true(any(vapply(p$layers, function(l) inherits(l$geom, "GeomRibbon"), logical(1))))
+  expect_equal(p$data$lower_a, ci_a$lower)
+  expect_equal(p$data$upper_b, ci_b$upper)
+  # Newcombe's interval of the difference
+  expect_equal(p$data$lower, 1 / 4 - sqrt((2 / 4 - ci_a$lower)^2 + (ci_b$upper - 1 / 4)^2))
+  expect_equal(p$data$upper, 1 / 4 + sqrt((ci_a$upper - 2 / 4)^2 + (1 / 4 - ci_b$lower)^2))
+  expect_s3_class(plotly::ggplotly(p), "plotly")
+
+  separated <- plot_reason_proportion_differences(a, b, reasons_list = "R1",
+                                                  labels = c("A", "B"),
+                                                  show_separated = TRUE,
+                                                  show_confidence_intervals = TRUE)
+  data <- dplyr::arrange(separated$data, group)
+  expect_equal(data$lower, c(ci_a$lower, ci_b$lower))
+  expect_equal(data$upper, c(ci_a$upper, ci_b$upper))
+  expect_s3_class(plotly::ggplotly(separated), "plotly")
+
+  # No bands by default
+  plain <- plot_reason_proportion_differences(a, b, reasons_list = "R1")
+  expect_false(any(vapply(plain$layers, function(l) inherits(l$geom, "GeomRibbon"), logical(1))))
+})

@@ -12,7 +12,9 @@ plot_reason_proportion_differences(
   year_col = "publication_year",
   year_limits = NULL,
   min_retractions_per_year = 0,
-  show_separated = FALSE
+  show_separated = FALSE,
+  show_confidence_intervals = FALSE,
+  conf_level = 0.95
 )
 }
 \arguments{
@@ -33,12 +35,18 @@ as their top reasons are dominated by noise.}
 
 \item{show_separated}{If \code{TRUE}, plots the yearly proportion of each
 dataset rather than their difference.}
+
+\item{show_confidence_intervals}{If \code{TRUE}, draws the confidence interval
+of each yearly proportion (or difference) as a shaded band.}
+
+\item{conf_level}{Confidence level of the intervals.}
 }
 \value{
 A ggplot object. Its data has one row per year and reason with
-\code{proportion_a}, \code{proportion_b} and \code{difference} or, with
+\code{n_a}, \code{total_a}, \code{proportion_a}, \code{lower_a}, \code{upper_a} (and the same
+for \verb{_b}), \code{difference}, \code{lower} and \code{upper} or, with
 \code{show_separated = TRUE}, one row per year, reason and dataset with
-\code{group} (from \code{labels}) and \code{proportion}.
+\code{group} (from \code{labels}), \code{proportion}, \code{lower} and \code{upper}.
 }
 \description{
 For each reason in \code{reasons_list}, plots the proportion of \code{data_a}
@@ -53,4 +61,10 @@ shown.
 With \code{show_separated = TRUE}, the two proportions are plotted instead of
 their difference: one colour per reason, with a solid line for \code{data_a}
 and a dotted line for \code{data_b}.
+
+With \code{show_confidence_intervals = TRUE}, shaded bands show the confidence
+interval of each yearly value. Each proportion gets its exact
+(Clopper-Pearson) binomial interval from \code{\link[=binomial_ci]{binomial_ci()}}. The difference
+gets Newcombe's interval, which combines the binomial intervals of the
+two proportions: from \code{difference - sqrt((proportion_a - lower_a)^2 + (upper_b - proportion_b)^2)} to \code{difference + sqrt((upper_a - proportion_a)^2 + (proportion_b - lower_b)^2)}.
 }

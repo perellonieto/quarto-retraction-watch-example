@@ -534,17 +534,29 @@ plot_retraction_reasons_over_time <- function(retraction_data,
 #' their difference: one colour per reason, with a solid line for `data_a`
 #' and a dotted line for `data_b`.
 #'
+#' With `show_confidence_intervals = TRUE`, shaded bands show the confidence
+#' interval of each yearly value. Each proportion gets its exact
+#' (Clopper-Pearson) binomial interval from [binomial_ci()]. The difference
+#' gets Newcombe's interval, which combines the binomial intervals of the
+#' two proportions: from `difference - sqrt((proportion_a - lower_a)^2 +
+#' (upper_b - proportion_b)^2)` to `difference + sqrt((upper_a -
+#' proportion_a)^2 + (proportion_b - lower_b)^2)`.
+#'
 #' @param data_a,data_b Two outputs of [load_retraction_data()], or subsets
 #'   of it (e.g. one per country group).
 #' @param reasons_list Character vector (or list) of the reasons to compare.
 #' @param labels Names of the two datasets used in the axis label and title.
 #' @param show_separated If `TRUE`, plots the yearly proportion of each
 #'   dataset rather than their difference.
+#' @param show_confidence_intervals If `TRUE`, draws the confidence interval
+#'   of each yearly proportion (or difference) as a shaded band.
+#' @param conf_level Confidence level of the intervals.
 #' @inheritParams compute_top_reasons_over_time
 #' @return A ggplot object. Its data has one row per year and reason with
-#'   `proportion_a`, `proportion_b` and `difference` or, with
+#'   `n_a`, `total_a`, `proportion_a`, `lower_a`, `upper_a` (and the same
+#'   for `_b`), `difference`, `lower` and `upper` or, with
 #'   `show_separated = TRUE`, one row per year, reason and dataset with
-#'   `group` (from `labels`) and `proportion`.
+#'   `group` (from `labels`), `proportion`, `lower` and `upper`.
 #' @export
 plot_reason_proportion_differences <- function(data_a,
                                                data_b,
@@ -553,29 +565,52 @@ plot_reason_proportion_differences <- function(data_a,
                                                year_col = "publication_year",
                                                year_limits = NULL,
                                                min_retractions_per_year = 0,
-                                               show_separated = FALSE) {
+                                               show_separated = FALSE,
+                                               show_confidence_intervals = FALSE,
+                                               conf_level = 0.95) {
   differences <- yearly_reason_proportion_differences(
     data_a, data_b, reasons_list, year_col, year_limits,
     min_retractions_per_year
-  )
+  ) %>%
+    mutate(
+      lower_a = binomial_ci(n_a, total_a, conf_level)$lower,
+      upper_a = binomial_ci(n_a, total_a, conf_level)$upper,
+      lower_b = binomial_ci(n_b, total_b, conf_level)$lower,
+      upper_b = binomial_ci(n_b, total_b, conf_level)$upper,
+      # Newcombe's interval for a difference of two proportions
+      lower = difference - sqrt((proportion_a - lower_a)^2 + (upper_b - proportion_b)^2),
+      upper = difference + sqrt((upper_a - proportion_a)^2 + (proportion_b - lower_b)^2)
+    )
+  # Drawn after the lines, as ggplotly() builds the legend from the first layer
+  ci_band <- function() {
+    if (show_confidence_intervals) {
+      geom_ribbon(aes(ymin = lower, ymax = upper, fill = Reason),
+                  alpha = 0.15, colour = NA)
+    }
+  }
 
   if (show_separated) {
-    proportions <- differences %>%
-      select(year, Reason, proportion_a, proportion_b) %>%
-      pivot_longer(c(proportion_a, proportion_b), names_to = "group",
-                   values_to = "proportion") %>%
-      mutate(group = factor(if_else(group == "proportion_a", labels[1], labels[2]),
-                            levels = labels))
+    side <- function(suffix, label) {
+      differences %>%
+        select(year, Reason, ends_with(suffix)) %>%
+        rename_with(~ sub(paste0(suffix, "$"), "", .x), ends_with(suffix)) %>%
+        mutate(group = label)
+    }
+    proportions <- bind_rows(side("_a", labels[1]), side("_b", labels[2])) %>%
+      mutate(group = factor(group, levels = labels))
     return(
-      ggplot(proportions, aes(year, proportion, colour = Reason, linetype = group)) +
+      ggplot(proportions, aes(year, proportion, colour = Reason, linetype = group,
+                              group = interaction(Reason, group))) +
         geom_line() +
         geom_point(size = 1) +
+        ci_band() +
         scale_linetype_manual(values = stats::setNames(c("solid", "dotted"), labels)) +
         scale_y_continuous(labels = scales::label_percent()) +
         labs(
           x = "Year",
           y = "Proportion of retractions citing the reason",
           colour = NULL,
+          fill = NULL,
           linetype = NULL,
           title = paste0("Yearly proportions of retraction reasons: ",
                          labels[1], " (solid) vs ", labels[2], " (dotted)")
@@ -588,11 +623,13 @@ plot_reason_proportion_differences <- function(data_a,
     geom_hline(yintercept = 0, linetype = "dashed", colour = "grey50") +
     geom_line() +
     geom_point(size = 1) +
+    ci_band() +
     scale_y_continuous(labels = scales::label_percent()) +
     labs(
       x = "Year",
       y = paste0("Proportion difference (", labels[1], " - ", labels[2], ")"),
       colour = NULL,
+      fill = NULL,
       title = paste0("Difference in yearly proportions of retraction reasons: ",
                      labels[1], " vs ", labels[2])
     ) +
@@ -1223,8 +1260,8 @@ plot_first_year_occurrence_per_reason <- function(retraction_data,
 
 # Yearly proportion of `data_a` retractions citing each reason minus that of
 # `data_b`, as in compute_top_reasons_over_time(). Returns columns year,
-# Reason, proportion_a, proportion_b and difference, for the years present
-# in both datasets.
+# Reason, n_a, total_a, proportion_a (and the same for _b) and difference,
+# for the years present in both datasets.
 yearly_reason_proportion_differences <- function(data_a, data_b, reasons_list,
                                                  year_col, year_limits,
                                                  min_retractions_per_year) {
@@ -1237,7 +1274,7 @@ yearly_reason_proportion_differences <- function(data_a, data_b, reasons_list,
       year_limits = year_limits,
       reasons_list = reasons_list
     ) %>%
-      select(year, Reason, proportion)
+      select(year, Reason, n, total, proportion)
   })
 
   # Only years present in both datasets can be compared
