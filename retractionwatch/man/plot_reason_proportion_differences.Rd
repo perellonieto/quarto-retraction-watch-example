@@ -11,7 +11,8 @@ plot_reason_proportion_differences(
   labels = c("Group A", "Group B"),
   year_col = "publication_year",
   year_limits = NULL,
-  min_retractions_per_year = 0
+  min_retractions_per_year = 0,
+  show_separated = FALSE
 )
 }
 \arguments{
@@ -29,9 +30,15 @@ of it (e.g. one per country group).}
 
 \item{min_retractions_per_year}{Years with fewer retractions are dropped,
 as their top reasons are dominated by noise.}
+
+\item{show_separated}{If \code{TRUE}, plots the yearly proportion of each
+dataset rather than their difference.}
 }
 \value{
-A ggplot object.
+A ggplot object. Its data has one row per year and reason with
+\code{proportion_a}, \code{proportion_b} and \code{difference} or, with
+\code{show_separated = TRUE}, one row per year, reason and dataset with
+\code{group} (from \code{labels}) and \code{proportion}.
 }
 \description{
 For each reason in \code{reasons_list}, plots the proportion of \code{data_a}
@@ -41,4 +48,9 @@ retractions citing it, year by year. Proportions are computed with
 retractions of the year in each dataset. Positive values mean the reason
 is cited more often in \code{data_a}. Only years present in both datasets are
 shown.
+}
+\details{
+With \code{show_separated = TRUE}, the two proportions are plotted instead of
+their difference: one colour per reason, with a solid line for \code{data_a}
+and a dotted line for \code{data_b}.
 }

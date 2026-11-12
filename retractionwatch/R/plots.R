@@ -530,12 +530,21 @@ plot_retraction_reasons_over_time <- function(retraction_data,
 #' is cited more often in `data_a`. Only years present in both datasets are
 #' shown.
 #'
+#' With `show_separated = TRUE`, the two proportions are plotted instead of
+#' their difference: one colour per reason, with a solid line for `data_a`
+#' and a dotted line for `data_b`.
+#'
 #' @param data_a,data_b Two outputs of [load_retraction_data()], or subsets
 #'   of it (e.g. one per country group).
 #' @param reasons_list Character vector (or list) of the reasons to compare.
 #' @param labels Names of the two datasets used in the axis label and title.
+#' @param show_separated If `TRUE`, plots the yearly proportion of each
+#'   dataset rather than their difference.
 #' @inheritParams compute_top_reasons_over_time
-#' @return A ggplot object.
+#' @return A ggplot object. Its data has one row per year and reason with
+#'   `proportion_a`, `proportion_b` and `difference` or, with
+#'   `show_separated = TRUE`, one row per year, reason and dataset with
+#'   `group` (from `labels`) and `proportion`.
 #' @export
 plot_reason_proportion_differences <- function(data_a,
                                                data_b,
@@ -543,11 +552,37 @@ plot_reason_proportion_differences <- function(data_a,
                                                labels = c("Group A", "Group B"),
                                                year_col = "publication_year",
                                                year_limits = NULL,
-                                               min_retractions_per_year = 0) {
+                                               min_retractions_per_year = 0,
+                                               show_separated = FALSE) {
   differences <- yearly_reason_proportion_differences(
     data_a, data_b, reasons_list, year_col, year_limits,
     min_retractions_per_year
   )
+
+  if (show_separated) {
+    proportions <- differences %>%
+      select(year, Reason, proportion_a, proportion_b) %>%
+      pivot_longer(c(proportion_a, proportion_b), names_to = "group",
+                   values_to = "proportion") %>%
+      mutate(group = factor(if_else(group == "proportion_a", labels[1], labels[2]),
+                            levels = labels))
+    return(
+      ggplot(proportions, aes(year, proportion, colour = Reason, linetype = group)) +
+        geom_line() +
+        geom_point(size = 1) +
+        scale_linetype_manual(values = stats::setNames(c("solid", "dotted"), labels)) +
+        scale_y_continuous(labels = scales::label_percent()) +
+        labs(
+          x = "Year",
+          y = "Proportion of retractions citing the reason",
+          colour = NULL,
+          linetype = NULL,
+          title = paste0("Yearly proportions of retraction reasons: ",
+                         labels[1], " (solid) vs ", labels[2], " (dotted)")
+        ) +
+        theme_bw()
+    )
+  }
 
   ggplot(differences, aes(year, difference, colour = Reason)) +
     geom_hline(yintercept = 0, linetype = "dashed", colour = "grey50") +

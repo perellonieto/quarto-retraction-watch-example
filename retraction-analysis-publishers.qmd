@@ -33,6 +33,11 @@ retraction_data <- retraction_data %>%
 publication_counts <- publication_counts_by_class(sjr_country_counts, oecd_countries)
 retraction_data_nomass <- retraction_data[retraction_data$Mass_Retraction == "Other",]
 
+# The data is filtered by publication year when loaded, but the publishers are
+# compared by retraction year, as this page looks at how their retraction
+# practices change over time
+publisher_year_col <- "retraction_year"
+
 # Check the years of the analysis below
 #retraction_data_uk <- retraction_data |>
 #  subset(Country == "United Kingdom")
@@ -93,7 +98,8 @@ selected_reasons <- filtered_reasons$flag
 ```{r}
 publisher_and_retractions <- count_number_of_retractions_per_column(
   retraction_data_nomass,
-  column_name = "Publisher", year_limits = c(2017, 2026))
+  column_name = "Publisher", year_limits = c(2017, 2026),
+  year_col = publisher_year_col)
 
 
 top_10_publishers <- publisher_and_retractions |>
@@ -104,7 +110,8 @@ print(top_10_publishers)
 
 
 ```{r}
-ggplotly(plot_proportion_of_total_retractions_per_publisher(retraction_data_nomass, top_n = 10, year_limits = c(2017, 2026)))
+ggplotly(plot_proportion_of_total_retractions_per_publisher(retraction_data_nomass, top_n = 10, year_limits = c(2017, 2026),
+                                                            year_col = publisher_year_col))
 ```
 
 ```{r}
@@ -125,7 +132,8 @@ significant_reasons_per_publisher_and_year <- calculate_proportion_of_retraction
   publisher_list = top_10_publishers,
   reasons = selected_reasons,
   yearmin = 2017,
-  yearmax = 2026)
+  yearmax = 2026,
+  year_col = publisher_year_col)
 ```
 
 ```{r}
@@ -136,7 +144,7 @@ ggplotly(ggplot(significant_reasons_per_publisher_and_year |> filter(Reason == r
   geom_point() +
   scale_y_continuous(labels = scales::percent) +
   labs(title = reason,
-       x = "Year",
+       x = "Retraction year",
        y = "Proportion of retractions",
        colour = "Publisher") +
   theme_minimal()+
@@ -158,7 +166,7 @@ plots <- lapply(unique(significant_reasons_per_publisher_and_year$Reason), funct
   scale_fill_viridis_c(labels = scales::percent, option = "magma", direction = -1) +
   scale_colour_identity() +
   labs(title = reason,
-       x = "Year",
+       x = "Retraction year",
        y = "Publisher",
        fill = "Proportion of\nretractions") +
   theme_minimal() +
@@ -180,7 +188,8 @@ plot_reason_proportions_across_groups_by_year(significant_reasons_per_publisher_
 Excluding mass retractions
 
 ```{r}
-top_10_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 10, year_limits = c(2017, 2026))
+top_10_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 10, year_limits = c(2017, 2026),
+                                               year_col = publisher_year_col)
 ```
 
 ```{r}
@@ -189,7 +198,8 @@ top_10_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per
   publisher_list = top_10_publishers,
   reasons = top_10_reasons,
   yearmin = 2017,
-  yearmax = 2026)
+  yearmax = 2026,
+  year_col = publisher_year_col)
 ```
 
 ```{r}
@@ -202,7 +212,8 @@ interactive = TRUE)
 Excluding mass retractions
 
 ```{r}
-top_5_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 5, year_limits = c(2017, 2026))
+top_5_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 5, year_limits = c(2017, 2026),
+                                               year_col = publisher_year_col)
 ```
 
 ```{r}
@@ -211,7 +222,8 @@ top_5_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_
   publisher_list = top_10_publishers,
   reasons = top_5_reasons,
   yearmin = 2017,
-  yearmax = 2026)
+  yearmax = 2026,
+  year_col = publisher_year_col)
 ```
 
 ```{r}
@@ -233,7 +245,8 @@ ai_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_yea
   publisher_list = top_10_publishers,
   reasons = ai_reasons,
   yearmin = 2017,
-  yearmax = 2026)
+  yearmax = 2026,
+  year_col = publisher_year_col)
 ```
 
 ```{r}
@@ -247,7 +260,8 @@ ai_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_yea
   publisher_list = top_10_publishers,
   reasons = ai_reasons,
   yearmin = 2017,
-  yearmax = 2026)
+  yearmax = 2026,
+  year_col = publisher_year_col)
 ```
 
 ```{r}
@@ -258,7 +272,7 @@ ggplotly(ggplot(ai_reasons_per_publisher_and_year |> filter(Reason == reason),
   geom_point() +
   scale_y_continuous(labels = scales::percent) +
   labs(title = reason,
-       x = "Year",
+       x = "Retraction year",
        y = "Proportion of retractions",
        colour = "Publisher") +
   theme_minimal()+
@@ -273,6 +287,7 @@ ggplotly(plot_reason_proportion_per_publisher(
     reason = "Computer-Aided Content or Computer-Generated Content",
     publisher_list = top_10_publishers,
     year_limits = c(2017, 2026),
+    year_col = publisher_year_col,
     confidence_interval = TRUE),
     height = 300
   )
@@ -281,7 +296,8 @@ ggplotly(plot_reason_proportion_per_publisher(
 ## Heterogeneity among top 10 retracted reasons of publishers with most retractions
 
 ```{r}
-top_10_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 10, year_limits = c(2017, 2026))
+top_10_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 10, year_limits = c(2017, 2026),
+                                               year_col = publisher_year_col)
 
 plots <- lapply(top_10_reasons, function(reason) {
 ggplotly(plot_reason_proportion_per_publisher(
@@ -289,6 +305,7 @@ ggplotly(plot_reason_proportion_per_publisher(
     reason = reason,
     publisher_list = top_10_publishers,
     year_limits = c(2017, 2026),
+    year_col = publisher_year_col,
     confidence_interval = TRUE),
     height = 300
   )
@@ -302,5 +319,6 @@ htmltools::tagList(plots)
 print(top_10_publishers)
 
 ggplotly(plot_reason_heterogeneity(retraction_data_nomass, top_10_publishers, top_10_reasons,
-                          group_col = "Publisher", year_limits = c(2017, 2026)))
+                          group_col = "Publisher", year_limits = c(2017, 2026),
+                          year_col = publisher_year_col))
 ```

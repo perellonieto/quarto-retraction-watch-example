@@ -535,3 +535,24 @@ test_that("plots with nothing to show return an empty plot that ggplotly accepts
     expect_s3_class(plotly::ggplotly(p), "plotly")
   }
 })
+
+test_that("plot_reason_proportion_differences() can show both proportions", {
+  # 2020: R1 in 2/4 of `a` and 1/4 of `b`; 2021 only exists in `a`
+  a <- tibble::tibble(`Record ID` = 1:5,
+                      publication_year = c(2020, 2020, 2020, 2020, 2021),
+                      Reason = c("R1;", "R1;R2;", "R2;", "R3;", "R1;"))
+  b <- tibble::tibble(`Record ID` = 1:4,
+                      publication_year = 2020,
+                      Reason = c("R1;", "R3;", "R3;", "R3;"))
+
+  p <- plot_reason_proportion_differences(a, b, reasons_list = c("R1", "R2"),
+                                          labels = c("A", "B"),
+                                          show_separated = TRUE)
+
+  expect_s3_class(p, "ggplot")
+  data <- dplyr::arrange(p$data, Reason, group)
+  expect_equal(as.character(data$group), c("A", "B", "A", "B"))
+  expect_equal(data$year, rep(2020, 4))
+  expect_equal(data$proportion, c(2 / 4, 1 / 4, 2 / 4, 0))
+  expect_s3_class(plotly::ggplotly(p), "plotly")
+})
