@@ -590,3 +590,49 @@ test_that("plot_reason_proportion_differences() can show binomial confidence int
   plain <- plot_reason_proportion_differences(a, b, reasons_list = "R1")
   expect_false(any(vapply(plain$layers, function(l) inherits(l$geom, "GeomRibbon"), logical(1))))
 })
+
+test_that("plot_reason_proportions_boxplot() draws Tukey boxplots with outliers", {
+  # Six publishers with two papers each in 2020; R1 is cited by 0, 1, 1, 1, 1
+  # and 2 of them: proportions 0, 1/2 x 4 and 1, so the IQR is 0 and both
+  # P1 (0) and P6 (1) are outliers. A 2010 paper of P1 is outside the years
+  r1_papers <- c(0, 1, 1, 1, 1, 2)
+  data <- tibble::tibble(
+    `Record ID` = 1:12,
+    Publisher = rep(paste0("P", 1:6), each = 2),
+    publication_year = 2020,
+    Reason = unlist(lapply(r1_papers, function(k) c(rep("R1;", k), rep("R2;", 2 - k))))
+  )
+  data <- dplyr::bind_rows(data, tibble::tibble(`Record ID` = 13, Publisher = "P1",
+                                                publication_year = 2010, Reason = "R1;"))
+
+  p <- plot_reason_proportions_boxplot(data, paste0("P", 1:6), "R1",
+                                       year_limits = c(2020, 2021))
+  expect_s3_class(p, "ggplot")
+  expect_equal(p$data$groups, 6)
+  expect_equal(c(p$data$min, p$data$q25, p$data$median, p$data$q75, p$data$max),
+               c(0, 0.5, 0.5, 0.5, 1))
+  expect_equal(c(p$data$lower_whisker, p$data$upper_whisker), c(0.5, 0.5))
+  expect_equal(p$data$outliers, 2)
+
+  outliers <- p$layers[[length(p$layers)]]
+  expect_equal(outliers$aes_params$shape, 8)
+  expect_equal(sort(outliers$data$group), c("P1", "P6"))
+  # Every other publisher is a point too, for its hover text
+  inliers <- p$layers[[length(p$layers) - 1]]
+  expect_s3_class(inliers$geom, "GeomPoint")
+  expect_equal(sort(inliers$data$group), paste0("P", 2:5))
+  expect_s3_class(plotly::ggplotly(p), "plotly")
+
+  # Without outliers the whiskers reach the minimum and maximum and there is
+  # no outlier layer; groups can be passed as a data frame
+  no_outliers <- plot_reason_proportions_boxplot(
+    data, tibble::tibble(Publisher = c("P2", "P6")), "R1", year_limits = c(2020, 2021))
+  expect_equal(c(no_outliers$data$lower_whisker, no_outliers$data$upper_whisker), c(0.5, 1))
+  expect_equal(no_outliers$data$outliers, 0)
+  points <- Filter(function(l) inherits(l$geom, "GeomPoint"), no_outliers$layers)
+  expect_length(points, 1)
+  expect_equal(sort(points[[1]]$data$group), c("P2", "P6"))
+  expect_s3_class(plotly::ggplotly(no_outliers), "plotly")
+
+  expect_s3_class(plot_reason_proportions_boxplot(data, "P9", "R1"), "ggplot")
+})

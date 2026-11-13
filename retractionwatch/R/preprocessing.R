@@ -262,3 +262,72 @@ add_country_class <- function(data, oecd_countries) {
   data %>%
     mutate(country_class = classify_country(.data$Country, oecd_countries$Name))
 }
+
+#' Merge publisher sub-branches into their parent publisher
+#'
+#' Some publishers are listed as sub-branches, with the parent publisher
+#' followed by `" - "` and the branch (e.g. "Springer - Nature Publishing
+#' Group"). Prints how many publisher names have the dash, with their
+#' retractions and the name each one gets, and replaces them by the parent
+#' name (the text before the first `" - "`).
+#'
+#' Some names have a dash without being a sub-branch (e.g. "ECS - The
+#' Electrochemical Society"). With `only_existing_publishers = TRUE` (the
+#' default), a name is only replaced when its parent is also a publisher in
+#' the data, so only real sub-branches are merged and the other names are
+#' kept whole.
+#'
+#' @param retraction_data Data frame with a `Publisher` column (e.g. the
+#'   output of [load_retraction_data()]).
+#' @param only_existing_publishers If `TRUE`, only replaces names whose
+#'   parent is also a publisher in the data. If `FALSE`, replaces every name
+#'   with a dash.
+#' @param verbose If `TRUE`, prints the summary.
+#' @return `retraction_data` with the sub-branches replaced by their parent
+#'   publisher. The table printed is attached as the `"sub_branches"`
+#'   attribute, with columns `Publisher`, `parent`, `retractions` and
+#'   `merged`.
+#' @export
+aggregate_publishers <- function(retraction_data,
+                                 only_existing_publishers = TRUE,
+                                 verbose = TRUE) {
+  require_columns(retraction_data, "Publisher", "aggregate_publishers")
+  publishers <- unique(stats::na.omit(retraction_data$Publisher))
+  with_dash <- publishers[grepl(" - ", publishers, fixed = TRUE)]
+  parents <- sub(" - .*$", "", with_dash)
+  merged <- if (only_existing_publishers) parents %in% publishers else rep(TRUE, length(parents))
+
+  # Retractions (distinct papers if there is a `Record ID`) per publisher name
+  papers <- if ("Record ID" %in% names(retraction_data)) {
+    distinct(retraction_data, `Record ID`, Publisher)
+  } else {
+    retraction_data["Publisher"]
+  }
+  retractions <- table(papers$Publisher)
+  sub_branches <- tibble(Publisher = with_dash, parent = parents,
+                         retractions = as.integer(retractions[with_dash]),
+                         merged = merged) %>%
+    arrange(desc(merged), parent, desc(retractions))
+
+  if (verbose) {
+    cat(length(with_dash), " of ", length(publishers), " publisher names contain \" - \".\n",
+        "Merged into their parent publisher: ", sum(merged), " (into ",
+        length(unique(parents[merged])), " parents)",
+        if (only_existing_publishers) ", those whose parent is also a publisher", "\n",
+        "Kept as they are: ", sum(!merged), "\n", sep = "")
+    if (any(merged)) {
+      cat("\nMerged into their parent publisher:\n")
+      print(select(filter(sub_branches, merged), -merged), n = Inf)
+    }
+    if (any(!merged)) {
+      cat("\nKept, as their parent is not a publisher in the data:\n")
+      print(select(filter(sub_branches, !merged), Publisher, retractions), n = Inf)
+    }
+  }
+
+  replace <- with_dash[merged]
+  index <- match(retraction_data$Publisher, replace)
+  retraction_data$Publisher[!is.na(index)] <- parents[merged][index[!is.na(index)]]
+  attr(retraction_data, "sub_branches") <- sub_branches
+  retraction_data
+}

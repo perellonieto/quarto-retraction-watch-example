@@ -215,3 +215,27 @@ test_that("add_paper_country_class() gives each paper its highest-precedence cla
   expect_equal(result$country_class,
                c(rep("United Kingdom", 3), rep("Other OECD", 2), "Rest of World"))
 })
+
+test_that("aggregate_publishers() merges sub-branches into existing parents", {
+  data <- tibble::tibble(
+    `Record ID` = c(1, 1, 2, 3, 4, 5, 6),
+    Publisher = c("Springer - Nature Publishing Group", "Springer - Nature Publishing Group",
+                  "Springer", "Springer - Biomed Central (BMC)",
+                  "ECS - The Electrochemical Society", "Elsevier", NA)
+  )
+
+  expect_output(result <- aggregate_publishers(data), "3 of 5 publisher names")
+  expect_equal(result$Publisher,
+               c("Springer", "Springer", "Springer", "Springer",
+                 "ECS - The Electrochemical Society", "Elsevier", NA))
+  sub_branches <- attr(result, "sub_branches")
+  expect_setequal(sub_branches$Publisher[sub_branches$merged],
+                  c("Springer - Biomed Central (BMC)", "Springer - Nature Publishing Group"))
+  # Paper 1 has two rows but counts once
+  expect_equal(sub_branches$retractions[sub_branches$merged], c(1L, 1L))
+
+  # Every name with a dash is cut when only_existing_publishers = FALSE
+  all_cut <- aggregate_publishers(data, only_existing_publishers = FALSE, verbose = FALSE)
+  expect_equal(all_cut$Publisher[5], "ECS")
+  expect_silent(aggregate_publishers(data, verbose = FALSE))
+})

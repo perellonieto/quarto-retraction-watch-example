@@ -25,6 +25,13 @@ sjr_country_counts <- build_sjr_country_counts("data/sjr_rankings")
 oecd_countries <- load_oecd_countries("data/oecd_countries.csv")
 retraction_data <- load_retraction_data("data/retraction_watch.csv")
 
+retraction_data <- aggregate_publishers(retraction_data)
+
+
+# Remove all reasons not grouped as Mechanism
+mechanisms_data <- retraction_data %>%
+  remove_retraction_reasons(reasons_in_group("Mechanism", invert = TRUE))
+
 # Remove the reasons grouped as Mechanism (e.g. "Investigation by
 # Journal/Publisher") but keep their papers, which still count in the totals
 retraction_data <- retraction_data %>%
@@ -56,43 +63,6 @@ retraction_data_oecd_nomass <- retraction_data_oecd |>
   subset(Mass_Retraction == "Other")
 ```
 
-# Retraction reasons of significant adequate counts
-
-```{r}
-alpha <- 0.05
-low_count <- 500
-
-reasons_compare_results <- retraction_data_nomass |>
-  reason_flags("country_class") |>
-  compare_reason_groups(group_col = "country_class", group_a = "United Kingdom", group_b = "Other OECD")
-ratios <- group_count_ratios(reasons_compare_results, "United Kingdom", "Other OECD")
-reasons_compare_results <- flag_low_counts(reasons_compare_results, ratios)
-
-sig_plot <- significant_reasons_long(reasons_compare_results,
-                                     p_col = "p_adj_filtered",
-                                     exclude_low_count = TRUE)
-plot_significant_reasons(sig_plot)
-
-print(sig_plot %>% filter(period == "Post-2017"))
-
-filtered_reasons <- reasons_compare_results %>%
-  filter(p_adj_filtered < alpha & !low_count, period == "Post-2017")
-
-print(filtered_reasons$flag)
-
-retraction_data_uk_post2017 <- retraction_data_uk %>%
-  filter(publication_year >= 2017 & Mass_Retraction == "Other")
-
-retraction_data_uk_post2017_significant <- retraction_data_uk_post2017 %>%
-  separate_rows(Reason, sep = ";") %>%
-  mutate(Reason = str_trim(Reason)) %>%
-  filter(Reason != "", Reason %in% filtered_reasons$flag)
-```
-
-```{r}
-selected_reasons <- filtered_reasons$flag
-```
-
 # Retractions for the top 10 publishers
 
 ```{r}
@@ -108,9 +78,8 @@ top_10_publishers <- publisher_and_retractions |>
 print(top_10_publishers)
 ```
 
-
 ```{r}
-ggplotly(plot_proportion_of_total_retractions_per_publisher(retraction_data_nomass, top_n = 10, year_limits = c(2017, 2026),
+ggplotly(plot_proportion_of_total_retractions_per_publisher(retraction_data_nomass, top_n = 20, year_limits = c(2017, 2026),
                                                             year_col = publisher_year_col))
 ```
 
@@ -126,60 +95,34 @@ ggplotly(ggplot(top_10_publishers,
 )
 ```
 
+# Retraction mechanisms change over time 
+
+### By retraction year
+
+However, the mechanisms are applied at the time of retractions, so the retraction year is also relevant to understand the changes in retraction practices over time.
+
+####  In all the data
+
 ```{r}
-significant_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_year_by_publisher(
-  retraction_data_nomass,
+mechanisms_per_publisher_and_year <- calculate_proportion_of_retractions_per_year_by_publisher(
+  mechanisms_data |> subset(Mass_Retraction == "Other"),
   publisher_list = top_10_publishers,
-  reasons = selected_reasons,
   yearmin = 2017,
   yearmax = 2026,
   year_col = publisher_year_col)
 ```
 
 ```{r}
-plots <- lapply(unique(significant_reasons_per_publisher_and_year$Reason), function(reason) {
-ggplotly(ggplot(significant_reasons_per_publisher_and_year |> filter(Reason == reason),
-       aes(x = year, y = proportion, colour = Publisher)) +
-  geom_line() +
-  geom_point() +
-  scale_y_continuous(labels = scales::percent) +
-  labs(title = reason,
-       x = "Retraction year",
-       y = "Proportion of retractions",
-       colour = "Publisher") +
-  theme_minimal()+
-  theme(panel.grid = element_blank())
-)})
-htmltools::tagList(plots)
-```
-
-
-```{r}
-plots <- lapply(unique(significant_reasons_per_publisher_and_year$Reason), function(reason) {
-  ggplotly(ggplot(significant_reasons_per_publisher_and_year |> filter(Reason == reason),
-       aes(x = factor(year), y = factor(Publisher, levels = rev(top_10_publishers$Publisher)),
-           fill = proportion)) +
-  geom_tile(colour = "white") +
-  geom_text(aes(label = scales::percent(proportion, accuracy = 1),
-                colour = ifelse(proportion > mean(range(proportion)), "white", "black")),
-            size = 3) +
-  scale_fill_viridis_c(labels = scales::percent, option = "magma", direction = -1) +
-  scale_colour_identity() +
-  labs(title = reason,
-       x = "Retraction year",
-       y = "Publisher",
-       fill = "Proportion of\nretractions") +
-  theme_minimal() +
-  theme(panel.grid = element_blank())
-  )})
-htmltools::tagList(plots)
+plot_reason_proportions_across_groups_by_year(mechanisms_per_publisher_and_year,
+interactive = TRUE,
+title = "Average proportion of retraction citing each mechanism across 10 publishers with most retractions")
 ```
 
 Average proportion of retractions citing each reason across the top 10 publishers. The shaded bands show the interquartile range (25th to 75th percentile) across publishers. Each publisher counts the same, whatever its number of retractions, and publishers without retractions in a year are left out of that year.
 
 ```{r}
-plot_reason_proportions_across_groups_by_year(significant_reasons_per_publisher_and_year,
-                                      interactive = TRUE)
+#plot_reason_proportions_across_groups_by_year(significant_reasons_per_publisher_and_year,
+#                                      interactive = TRUE)
 ```
 
 
@@ -321,4 +264,14 @@ print(top_10_publishers)
 ggplotly(plot_reason_heterogeneity(retraction_data_nomass, top_10_publishers, top_10_reasons,
                           group_col = "Publisher", year_limits = c(2017, 2026),
                           year_col = publisher_year_col))
+```
+
+Proportion of each publisher's retractions citing each reason from 2017 to 2026. The box goes from the first to the third quartile, the thick line is the median and the whiskers reach the most extreme publishers within 1.5 times the interquartile range from the box. Publishers beyond the whiskers are outliers, shown as asterisks; every other publisher is a small point. Hover over a point or asterisk to see the publisher and its counts.
+
+```{r}
+ggplotly(plot_reason_proportions_boxplot(retraction_data_nomass, top_10_publishers, top_10_reasons,
+                                         group_col = "Publisher", year_limits = c(2017, 2026),
+                                         year_col = publisher_year_col),
+         tooltip = "text")
+
 ```

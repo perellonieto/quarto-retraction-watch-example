@@ -38,6 +38,7 @@ utils::globalVariables(c(
   "low_count", "sig_class", "diff", "group", "x", "y", "label", "n", ".",
   "year", "total", "proportion_a", "proportion_b", "difference",
   "n_a", "n_b", "lower_a", "upper_a", "lower_b", "upper_b",
+  "parent", "merged", "median", "min", "max", "lower_whisker", "upper_whisker", "outliers", "is_outlier",
   "mean_difference", "n_years", "error", "mean_proportion", "q25", "q75",
   "n_groups", "reasons", "first_year", "last_year", "last_n", "line_end",
   "is_other", "reason_a", "reason_b", "Reason_a", "Reason_b", "papers",

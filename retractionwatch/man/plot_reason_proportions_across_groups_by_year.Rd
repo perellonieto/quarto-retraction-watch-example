@@ -8,7 +8,8 @@ plot_reason_proportions_across_groups_by_year(
   proportions,
   group_col = NULL,
   group_label = NULL,
-  interactive = FALSE
+  interactive = FALSE,
+  title = NULL
 )
 }
 \arguments{

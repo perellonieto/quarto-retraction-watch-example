@@ -869,3 +869,13 @@ print(top_10_oecd_countries_by_documents)
 ggplotly(plot_reason_heterogeneity(retraction_data_nomass, top_10_oecd_countries_by_documents$Country, top_10_reasons,
                           group_col = "Country", year_limits = c(2017, 2026)))
 ```
+
+
+Proportion of each country's retractions citing each reason from 2017 to 2026. The box goes from the first to the third quartile, the thick line is the median and the whiskers reach the most extreme countries within 1.5 times the interquartile range from the box. countries beyond the whiskers are outliers, shown as asterisks; every other country is a small point. Hover over a point or asterisk to see the country and its counts.
+
+```{r}
+ggplotly(plot_reason_proportions_boxplot(retraction_data_nomass, top_10_oecd_countries_by_documents$Country, top_10_reasons,
+                                         group_col = "Country", year_limits = c(2017, 2026),
+                                         year_col = publication_year_col,),
+         tooltip = "text")
+```

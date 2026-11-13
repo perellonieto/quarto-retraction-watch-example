@@ -748,7 +748,8 @@ plot_reason_proportions_forest <- function(data_a,
 plot_reason_proportions_across_groups_by_year <- function(proportions,
                                                   group_col = NULL,
                                                   group_label = NULL,
-                                                  interactive = FALSE) {
+                                                  interactive = FALSE,
+                                                  title = NULL) {
   if (is.null(group_col)) {
     group_col <- intersect(c("Publisher", "Country"), names(proportions))[1]
     if (is.na(group_col)) {
@@ -779,8 +780,12 @@ plot_reason_proportions_across_groups_by_year <- function(proportions,
     )))) +
     scale_y_continuous(labels = scales::label_percent()) +
     labs(
-      title = paste("Average proportion of retractions per reason across",
-                    group_label),
+      title = if (is.null(title)) {
+        paste("Average proportion of retractions per reason across",
+              group_label)
+      } else {
+        title
+      },
       x = "Year",
       y = "Mean proportion of retractions (IQR band)",
       colour = "Reason",
@@ -1501,28 +1506,8 @@ plot_reason_heterogeneity <- function(retraction_data,
                                       conf_level = 0.95,
                                       colour = "#1b9e77") {
   measure <- match.arg(measure)
-  if (is.data.frame(group_list)) {
-    group_list <- group_list[[group_col]]
-  }
-  reason_list <- as.character(unlist(reason_list))
-
-  papers <- retraction_data %>%
-    filter(.data[[group_col]] %in% group_list) %>%
-    distinct(`Record ID`, group = .data[[group_col]], year = .data[[year_col]], Reason)
-  if (!is.null(year_limits)) {
-    papers <- papers %>%
-      filter(!is.na(year), year >= year_limits[1], year <= year_limits[2])
-  }
-  totals <- count(distinct(papers, `Record ID`, group), group, name = "total")
-  citing <- papers %>%
-    separate_rows(Reason, sep = ";") %>%
-    mutate(Reason = str_trim(Reason)) %>%
-    filter(Reason %in% reason_list) %>%
-    distinct(`Record ID`, group, Reason) %>%
-    count(group, Reason, name = "papers")
-  counts <- tidyr::crossing(totals, Reason = reason_list) %>%
-    left_join(citing, by = c("group", "Reason")) %>%
-    mutate(papers = coalesce(papers, 0L))
+  counts <- group_reason_counts(retraction_data, group_list, reason_list,
+                                group_col, year_limits, year_col)
 
   heterogeneity <- counts %>%
     group_by(Reason) %>%
@@ -1572,6 +1557,163 @@ plot_reason_heterogeneity <- function(retraction_data,
                      if (n_groups == 1) tolower(group_col) else paste0(group_name, "s"))
     ) +
     theme_minimal()
+}
+
+# Papers of each group in `group_list` (column `group_col`) retracted within
+# `year_limits` (`total`) and those citing each reason in `reason_list`
+# (`papers`), with one row per group and reason. Papers are counted per
+# distinct `Record ID`; groups without papers in the period are left out.
+group_reason_counts <- function(retraction_data, group_list, reason_list,
+                                group_col, year_limits, year_col) {
+  if (is.data.frame(group_list)) {
+    group_list <- group_list[[group_col]]
+  }
+  reason_list <- as.character(unlist(reason_list))
+
+  papers <- retraction_data %>%
+    filter(.data[[group_col]] %in% group_list) %>%
+    distinct(`Record ID`, group = .data[[group_col]], year = .data[[year_col]], Reason)
+  if (!is.null(year_limits)) {
+    papers <- papers %>%
+      filter(!is.na(year), year >= year_limits[1], year <= year_limits[2])
+  }
+  totals <- count(distinct(papers, `Record ID`, group), group, name = "total")
+  citing <- papers %>%
+    separate_rows(Reason, sep = ";") %>%
+    mutate(Reason = str_trim(Reason)) %>%
+    filter(Reason %in% reason_list) %>%
+    distinct(`Record ID`, group, Reason) %>%
+    count(group, Reason, name = "papers")
+  tidyr::crossing(totals, Reason = reason_list) %>%
+    left_join(citing, by = c("group", "Reason")) %>%
+    mutate(papers = coalesce(papers, 0L))
+}
+
+#' Boxplots of the reason proportions among groups
+#'
+#' One row per reason in `reason_list` with a boxplot of the proportion of
+#' retractions citing the reason in each group of `group_list` (e.g. each
+#' publisher), over all the years in `year_limits` together (papers citing
+#' the reason divided by all the papers of the group retracted in the
+#' period). As in a standard (Tukey) boxplot, the box goes from the first
+#' to the third quartile, the thick line is the median and the whiskers reach
+#' the most extreme proportions within 1.5 times the interquartile range
+#' (IQR) from the box. Groups beyond the whiskers are outliers, drawn as
+#' asterisks; every other group is drawn as a small point, so that each
+#' group's name and counts can be seen in the ggplotly() hover text.
+#' Reasons are sorted by their median proportion. Proportions are counted as
+#' in [plot_reason_heterogeneity()].
+#'
+#' @inheritParams plot_reason_heterogeneity
+#' @param colour Colour of the boxes and outliers.
+#' @return A ggplot object. Its data has one row per reason with columns
+#'   `Reason`, `groups`, `min`, `q25`, `median`, `q75`, `max`,
+#'   `lower_whisker`, `upper_whisker`, `outliers` (number of outlier groups)
+#'   and `y` (the vertical position of the row). The other groups and the
+#'   outliers, one row per reason and group, are the data of its last two
+#'   layers (the outlier layer is left out when there are none).
+#' @export
+plot_reason_proportions_boxplot <- function(retraction_data,
+                                            group_list,
+                                            reason_list,
+                                            group_col = "Publisher",
+                                            year_limits = NULL,
+                                            year_col = "publication_year",
+                                            colour = "#1b9e77") {
+  counts <- group_reason_counts(retraction_data, group_list, reason_list,
+                                group_col, year_limits, year_col) %>%
+    mutate(proportion = papers / total)
+  if (nrow(counts) == 0) {
+    return(empty_plot("No retractions to show"))
+  }
+
+  summary <- counts %>%
+    group_by(Reason) %>%
+    summarise(groups = n(),
+              min = min(proportion),
+              q25 = stats::quantile(proportion, 0.25, names = FALSE),
+              median = stats::median(proportion),
+              q75 = stats::quantile(proportion, 0.75, names = FALSE),
+              max = max(proportion),
+              # Whiskers end at the most extreme proportions within 1.5 IQR
+              lower_whisker = min(proportion[proportion >= q25 - 1.5 * (q75 - q25)]),
+              upper_whisker = max(proportion[proportion <= q75 + 1.5 * (q75 - q25)]),
+              outliers = sum(proportion < lower_whisker | proportion > upper_whisker),
+              .groups = "drop") %>%
+    arrange(median, Reason) %>%
+    mutate(y = seq_len(n()))
+  counts <- counts %>%
+    left_join(select(summary, Reason, y, lower_whisker, upper_whisker), by = "Reason") %>%
+    mutate(is_outlier = proportion < lower_whisker | proportion > upper_whisker)
+  outliers <- filter(counts, is_outlier)
+  inliers <- filter(counts, !is_outlier)
+  hover <- function(group, Reason, proportion, papers, total, label = "") {
+    paste0(group, label, "<br>", Reason, "<br>", percent(proportion),
+           " (", papers, " of ", total, " retractions)")
+  }
+
+  # "Publisher" -> "publishers", "Country" -> "countries"
+  group_name <- sub("y$", "ie", tolower(group_col))
+  n_groups <- length(unique(counts$group))
+  percent <- function(x) scales::percent(x, accuracy = 0.1)
+  half_height <- 0.3
+  # Drawn from the summary rather than with geom_boxplot(), as ggplotly()
+  # recomputes boxplots with its own style (outliers as dots, no asterisks)
+  p <- ggplot(summary) +
+    geom_segment(aes(x = lower_whisker, xend = q25, y = y, yend = y),
+                 colour = colour, linewidth = 0.5) +
+    geom_segment(aes(x = q75, xend = upper_whisker, y = y, yend = y),
+                 colour = colour, linewidth = 0.5) +
+    geom_segment(aes(x = lower_whisker, xend = lower_whisker,
+                     y = y - half_height / 2, yend = y + half_height / 2),
+                 colour = colour, linewidth = 0.5) +
+    geom_segment(aes(x = upper_whisker, xend = upper_whisker,
+                     y = y - half_height / 2, yend = y + half_height / 2),
+                 colour = colour, linewidth = 0.5) +
+    # `text` is ignored by ggplot2 but shown in the ggplotly() hover text
+    suppressWarnings(geom_rect(aes(xmin = q25, xmax = q75,
+                                   ymin = y - half_height, ymax = y + half_height,
+                                   text = paste0(
+                                     Reason,
+                                     "<br>Minimum: ", percent(min),
+                                     "<br>Lower whisker: ", percent(lower_whisker),
+                                     "<br>First quartile: ", percent(q25),
+                                     "<br>Median: ", percent(median),
+                                     "<br>Third quartile: ", percent(q75),
+                                     "<br>Upper whisker: ", percent(upper_whisker),
+                                     "<br>Maximum: ", percent(max),
+                                     "<br>", groups, " ", group_name, "s, ",
+                                     outliers, " outlier", if_else(outliers == 1, "", "s"))),
+                               fill = colour, alpha = 0.25, colour = colour)) +
+    geom_segment(aes(x = median, xend = median, y = y - half_height, yend = y + half_height),
+                 colour = colour, linewidth = 1.2) +
+    # Every other group as a small point, for its hover text
+    suppressWarnings(geom_point(
+      data = inliers,
+      aes(proportion, y, text = hover(group, Reason, proportion, papers, total)),
+      colour = colour, alpha = 0.5, size = 1.2))
+  # Outliers as asterisks (shape 8); the layer is skipped when there are
+  # none, as ggplotly() fails on empty layers
+  if (nrow(outliers) > 0) {
+    p <- p + suppressWarnings(geom_point(
+      data = outliers,
+      aes(proportion, y, text = hover(group, Reason, proportion, papers, total,
+                                      " (outlier)")),
+      colour = colour, shape = 8, size = 2))
+  }
+  p +
+    scale_x_continuous(labels = scales::label_percent()) +
+    scale_y_continuous(breaks = summary$y, labels = summary$Reason,
+                       expand = expansion(add = 0.5)) +
+    labs(
+      x = paste0("Proportion of each ", tolower(group_col),
+                 "'s retractions citing the reason"),
+      y = NULL,
+      title = paste0("Reason proportions among ", n_groups, " ",
+                     if (n_groups == 1) tolower(group_col) else paste0(group_name, "s"))
+    ) +
+    theme_minimal() +
+    theme(panel.grid.minor.y = element_blank())
 }
 
 # Random-effects heterogeneity of k proportions papers / total on the
