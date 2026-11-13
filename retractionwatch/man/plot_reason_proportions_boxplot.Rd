@@ -11,7 +11,9 @@ plot_reason_proportions_boxplot(
   group_col = "Publisher",
   year_limits = NULL,
   year_col = "publication_year",
-  colour = "#1b9e77"
+  colour = "#1b9e77",
+  highlight = NULL,
+  highlight_colour = "red"
 )
 }
 \arguments{
@@ -33,6 +35,10 @@ it (e.g. without mass retractions).}
 \item{year_col}{Year column used by \code{year_limits}.}
 
 \item{colour}{Colour of the boxes and outliers.}
+
+\item{highlight}{Optional character vector of groups to highlight.}
+
+\item{highlight_colour}{Colour of the highlighted groups.}
 }
 \value{
 A ggplot object. Its data has one row per reason with columns
@@ -40,7 +46,8 @@ A ggplot object. Its data has one row per reason with columns
 \code{lower_whisker}, \code{upper_whisker}, \code{outliers} (number of outlier groups)
 and \code{y} (the vertical position of the row). The other groups and the
 outliers, one row per reason and group, are the data of its last two
-layers (the outlier layer is left out when there are none).
+layers (the outlier layer is left out when there are none), followed by
+the highlighted groups if any.
 }
 \description{
 One row per reason in \code{reason_list} with a boxplot of the proportion of
@@ -55,4 +62,11 @@ asterisks; every other group is drawn as a small point, so that each
 group's name and counts can be seen in the ggplotly() hover text.
 Reasons are sorted by their median proportion. Proportions are counted as
 in \code{\link[=plot_reason_heterogeneity]{plot_reason_heterogeneity()}}.
+}
+\details{
+Groups in \code{highlight} (e.g. \code{"United Kingdom"}) are drawn on every row as
+a diamond in \code{highlight_colour}, to compare them with the groups of the
+boxplot. A highlighted group not in \code{group_list} is not part of the box
+statistics; one that is in \code{group_list} is part of them and drawn as a
+diamond instead of a point or asterisk.
 }

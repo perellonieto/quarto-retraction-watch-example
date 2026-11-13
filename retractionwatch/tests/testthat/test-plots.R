@@ -636,3 +636,34 @@ test_that("plot_reason_proportions_boxplot() draws Tukey boxplots with outliers"
 
   expect_s3_class(plot_reason_proportions_boxplot(data, "P9", "R1"), "ggplot")
 })
+
+test_that("plot_reason_proportions_boxplot() highlights groups outside the boxplot", {
+  # P1-P3 in the boxplot (R1 in 0/2, 1/2, 2/2); UK only highlighted (R1 in 1/4)
+  data <- tibble::tibble(
+    `Record ID` = 1:10,
+    Country = c(rep(c("P1", "P2", "P3"), each = 2), rep("UK", 4)),
+    publication_year = 2020,
+    Reason = c("R2;", "R2;", "R1;", "R2;", "R1;", "R1;", "R1;", "R2;", "R2;", "R2;")
+  )
+
+  p <- plot_reason_proportions_boxplot(data, c("P1", "P2", "P3"), "R1",
+                                       group_col = "Country", highlight = "UK")
+  # The UK is not part of the box statistics
+  expect_equal(p$data$groups, 3)
+  expect_equal(c(p$data$min, p$data$median, p$data$max), c(0, 0.5, 1))
+  last <- p$layers[[length(p$layers)]]
+  expect_equal(last$data$group, "UK")
+  expect_equal(last$data$proportion, 1 / 4)
+  expect_equal(last$aes_params$colour, "red")
+  expect_equal(last$aes_params$shape, 18)
+  expect_match(p$labels$title, "red diamond: UK")
+  expect_s3_class(plotly::ggplotly(p, tooltip = "text"), "plotly")
+
+  # A highlighted group of the boxplot counts in it but is drawn as a diamond
+  inside <- plot_reason_proportions_boxplot(data, c("P1", "P2", "P3"), "R1",
+                                            group_col = "Country", highlight = "P3")
+  expect_equal(inside$data$groups, 3)
+  points <- Filter(function(l) inherits(l$geom, "GeomPoint"), inside$layers)
+  expect_false("P3" %in% unlist(lapply(points[-length(points)], function(l) l$data$group)))
+  expect_equal(points[[length(points)]]$data$group, "P3")
+})
