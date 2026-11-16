@@ -667,3 +667,82 @@ test_that("plot_reason_proportions_boxplot() highlights groups outside the boxpl
   expect_false("P3" %in% unlist(lapply(points[-length(points)], function(l) l$data$group)))
   expect_equal(points[[length(points)]]$data$group, "P3")
 })
+
+test_that("plot_publication_counts_and_retractions() shows documents and retractions per country", {
+  publications <- tibble::tibble(Country = c("A", "B", "C"), total_papers = c(1000, 50000, 200))
+  # Paper 1 has two rows in A and one in B; paper 5 is outside the years and
+  # D is not in the publication counts
+  retractions <- tibble::tibble(
+    `Record ID` = c(1, 1, 1, 2, 3, 4, 5, 6),
+    Country = c("A", "A", "B", "A", "B", "B", "A", "D"),
+    publication_year = c(2020, 2020, 2020, 2021, 2018, 2019, 2010, 2020)
+  )
+
+  p <- plot_publication_counts_and_retractions(publications, retractions,
+                                               year_limits = c(2017, 2026))
+  expect_s3_class(p, "ggplot")
+  # Sorted by documents, the largest at the top
+  expect_equal(p$data$Country, c("C", "A", "B"))
+  expect_equal(p$data$retractions, c(0, 2, 3))
+  expect_equal(p$data$retractions_per_100k, c(0, 200, 6))
+  expect_equal(p$scales$get_scales("x")$trans$name, "log-10")
+  # Layers: legend keys, documents bars, retractions bars (no highlighted
+  # countries, so no layers for them); C has no retractions, so no inner bar
+  expect_length(p$layers, 3)
+  expect_equal(p$layers[[2]]$data$Country, c("C", "A", "B"))
+  expect_equal(p$layers[[3]]$data$Country, c("A", "B"))
+  expect_s3_class(plotly::ggplotly(p, tooltip = "text"), "plotly")
+
+  # SCImago counts with a Year column are limited to the years
+  sjr <- tibble::tibble(Country = c("A", "A", "B"), Year = c(2010, 2020, 2020),
+                        Documents = c(999, 1000, 50000))
+  from_sjr <- plot_publication_counts_and_retractions(sjr, retractions,
+                                                      year_limits = c(2017, 2026))
+  expect_equal(from_sjr$data$total_papers, c(1000, 50000))
+})
+
+test_that("plot_publication_counts_and_retractions() highlights countries", {
+  publications <- tibble::tibble(Country = c("A", "UK"), total_papers = c(1000, 2000))
+  retractions <- tibble::tibble(`Record ID` = 1:3, Country = c("A", "UK", "UK"),
+                                publication_year = 2020)
+
+  p <- plot_publication_counts_and_retractions(publications, retractions,
+                                               highlight_countries = "UK")
+  expect_equal(p$data$highlighted, c(FALSE, TRUE))
+  built <- ggplot2::ggplot_build(p)
+  # Layers: legend keys, then documents and retractions of A (blue) and UK (red)
+  fills <- lapply(built$data[-1], function(d) d$fill)
+  expect_equal(fills, list(scales::alpha("steelblue", 0.35), scales::alpha("red", 0.35),
+                           "steelblue", "red"))
+  bar_countries <- unname(lapply(p$layers[-1], function(l) l$data$Country))
+  expect_equal(bar_countries, list("A", "UK", "A", "UK"))
+
+  # The legend only has the grey Documents and Retractions keys
+  fill_scale <- built$plot$scales$get_scales("fill")
+  expect_equal(fill_scale$get_limits(), c("Documents", "Retractions"))
+  expect_equal(unname(fill_scale$map(c("Documents", "Retractions"))), c("grey80", "grey45"))
+
+  widget <- plotly::plotly_build(plotly::ggplotly(p, tooltip = "text"))
+  shown <- vapply(widget$x$data, function(t) isTRUE(t$showlegend), logical(1))
+  expect_equal(vapply(widget$x$data[shown], function(t) t$name, ""), c("Documents", "Retractions"))
+})
+
+test_that("plot_publication_counts_and_retractions() can write the retraction ratio", {
+  # A: 2 of 3000 (0.067%); B: none; C: 4 of 10000 (0.040%, trailing zero kept)
+  publications <- tibble::tibble(Country = c("A", "B", "C"), total_papers = c(3000, 2000, 10000))
+  retractions <- tibble::tibble(`Record ID` = 1:6, Country = c("A", "A", "C", "C", "C", "C"),
+                                publication_year = 2020)
+
+  p <- plot_publication_counts_and_retractions(publications, retractions, show_ratio = TRUE)
+  expect_equal(p$data$retraction_ratio, c(0, 2 / 3000, 4 / 10000))
+  labels <- Filter(function(l) inherits(l$geom, "GeomText"), p$layers)
+  expect_length(labels, 1)
+  built <- ggplot2::ggplot_build(p)
+  text <- built$data[[which(vapply(p$layers, function(l) inherits(l$geom, "GeomText"), logical(1)))]]
+  expect_equal(text$label, c("0%", "0.067%", "0.040%"))
+  expect_s3_class(plotly::ggplotly(p, tooltip = "text"), "plotly")
+
+  # No labels by default
+  plain <- plot_publication_counts_and_retractions(publications, retractions)
+  expect_false(any(vapply(plain$layers, function(l) inherits(l$geom, "GeomText"), logical(1))))
+})

@@ -9,7 +9,8 @@ load_retraction_data(
   oecd_countries = load_oecd_countries(),
   reason_groupings_path = "data/retraction_reason_groupings.csv",
   publication_years = c(1996, 2025),
-  retractions_only = FALSE
+  retractions_only = FALSE,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -27,6 +28,10 @@ publication counts, so that every retraction has a denominator.}
 \item{retractions_only}{If \code{TRUE}, keeps only entries whose
 \code{RetractionNature} is "Retraction" (dropping corrections, expressions of
 concern and reinstatements).}
+
+\item{verbose}{If \code{TRUE}, prints a summary of the raw file that identifies
+its version before any row is removed, see
+\code{\link[=describe_retraction_data]{describe_retraction_data()}}.}
 }
 \value{
 The cleaned and anonymized data (one row per paper and country,

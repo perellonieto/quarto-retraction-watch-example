@@ -65,6 +65,9 @@ load_oecd_countries <- function(path = "data/oecd_countries.csv") {
 #' @param retractions_only If `TRUE`, keeps only entries whose
 #'   `RetractionNature` is "Retraction" (dropping corrections, expressions of
 #'   concern and reinstatements).
+#' @param verbose If `TRUE`, prints a summary of the raw file that identifies
+#'   its version before any row is removed, see
+#'   [describe_retraction_data()].
 #' @return The cleaned and anonymized data (one row per paper and country,
 #'   with dates coarsened to years, see [anonymize_retraction_data()] and
 #'   [coarsen_retraction_dates()]) with a per-paper `country_class` column,
@@ -74,8 +77,12 @@ load_retraction_data <- function(path = "data/retraction_watch.csv",
                                  oecd_countries = load_oecd_countries(),
                                  reason_groupings_path = "data/retraction_reason_groupings.csv",
                                  publication_years = c(1996, 2025),
-                                 retractions_only = FALSE) {
+                                 retractions_only = FALSE,
+                                 verbose = TRUE) {
   retraction_data <- readr::read_csv(path, show_col_types = FALSE, col_types = RETRACTION_DATA_TYPES)
+  if (verbose) {
+    describe_retraction_data(retraction_data, path)
+  }
   # Stops the execution if titles, authors, journals or identifiers cannot be
   # removed
   retraction_data <- anonymize_retraction_data(retraction_data)
@@ -87,4 +94,148 @@ load_retraction_data <- function(path = "data/retraction_watch.csv",
                         publication_years = publication_years,
                         retractions_only = retractions_only) %>%
     coarsen_retraction_dates()
+}
+
+#' Describe the version of a raw Retraction Watch file
+#'
+#' Prints aggregate statistics of the raw data, before it is anonymized or
+#' cleaned, which tell different downloads of the dataset apart: the MD5
+#' checksum and modification time of the file, its numbers of rows, columns
+#' and distinct records, the rows without a `Record ID` (usually lines the
+#' CSV parser could not read), the first and last original paper and retraction
+#' dates, and the number of entries of each `RetractionNature`. The last
+#' retraction date shows roughly when the data was exported. Nothing that
+#' identifies a paper is printed.
+#'
+#' @param retraction_data Raw Retraction Watch data, as read from the CSV.
+#' @param path Optional path of the CSV file, for its checksum and
+#'   modification time.
+#' @return Invisibly, a list with the statistics printed.
+#' @export
+describe_retraction_data <- function(retraction_data, path = NULL) {
+  # Raw dates look like "1/31/2024 0:00"
+  parse_dates <- function(x) {
+    suppressWarnings(mdy(sub(" .*$", "", x)))
+  }
+  date_range <- function(column) {
+    if (!column %in% names(retraction_data)) {
+      return(list(first = NA, last = NA, missing = NA_integer_))
+    }
+    dates <- parse_dates(retraction_data[[column]])
+    list(first = suppressWarnings(min(dates, na.rm = TRUE)),
+         last = suppressWarnings(max(dates, na.rm = TRUE)),
+         missing = sum(is.na(dates)))
+  }
+
+  info <- list(
+    file = path,
+    md5 = if (!is.null(path) && file.exists(path)) unname(tools::md5sum(path)) else NA_character_,
+    modified = if (!is.null(path) && file.exists(path)) file.mtime(path) else NA,
+    rows = nrow(retraction_data),
+    columns = ncol(retraction_data),
+    records = if ("Record ID" %in% names(retraction_data)) {
+      length(unique(retraction_data$`Record ID`))
+    } else {
+      NA_integer_
+    },
+    rows_without_id = if ("Record ID" %in% names(retraction_data)) {
+      sum(is.na(retraction_data$`Record ID`))
+    } else {
+      NA_integer_
+    },
+    publication_dates = date_range("OriginalPaperDate"),
+    retraction_dates = date_range("RetractionDate"),
+    nature = if ("RetractionNature" %in% names(retraction_data)) {
+      sort(table(retraction_data$RetractionNature, useNA = "ifany"), decreasing = TRUE)
+    } else {
+      NULL
+    }
+  )
+
+  format_range <- function(range) {
+    paste0(format(range$first), " to ", format(range$last),
+           " (", format(range$missing, big.mark = ","), " missing or unparsed)")
+  }
+  cat("Retraction Watch data", if (!is.null(path)) paste0("(", path, ")"), "\n")
+  if (!is.na(info$md5)) {
+    cat("  MD5 checksum:     ", info$md5, "\n")
+    cat("  File modified:    ", format(info$modified, "%Y-%m-%d %H:%M"), "\n")
+  }
+  cat("  Rows:             ", format(info$rows, big.mark = ","), "\n")
+  cat("  Columns:          ", info$columns, "\n")
+  cat("  Distinct records: ", format(info$records, big.mark = ","), "\n")
+  cat("  Rows without ID:  ", format(info$rows_without_id, big.mark = ","), "\n")
+  cat("  Publication dates:", format_range(info$publication_dates), "\n")
+  cat("  Retraction dates: ", format_range(info$retraction_dates), "\n")
+  if (!is.null(info$nature)) {
+    cat("  Retraction nature:",
+        # prettyNum() formats each count on its own, without padding
+        paste0(names(info$nature), " ", prettyNum(as.integer(info$nature), big.mark = ","),
+               collapse = "; "), "\n")
+  }
+  invisible(info)
+}
+
+#' Describe the cleaned Retraction Watch data
+#'
+#' The counterpart of [describe_retraction_data()] for the output of
+#' [load_retraction_data()] (or a subset of it), to see what the cleaning and
+#' filtering kept. Prints its numbers of rows (one per paper and country),
+#' columns and distinct records, the first and last publication and
+#' retraction years (the dates are coarsened to years by then) and the number
+#' of distinct records of each `RetractionNature`. Nothing that identifies a
+#' paper is printed.
+#'
+#' @param retraction_data Output of [load_retraction_data()], or a subset of
+#'   it.
+#' @return Invisibly, a list with the statistics printed.
+#' @export
+describe_cleaned_retraction_data <- function(retraction_data) {
+  year_range <- function(column) {
+    if (!column %in% names(retraction_data)) {
+      return(list(first = NA, last = NA, missing = NA_integer_))
+    }
+    years <- suppressWarnings(as.numeric(retraction_data[[column]]))
+    list(first = suppressWarnings(min(years, na.rm = TRUE)),
+         last = suppressWarnings(max(years, na.rm = TRUE)),
+         missing = sum(is.na(years)))
+  }
+  has_id <- "Record ID" %in% names(retraction_data)
+  papers <- if (has_id) {
+    distinct(retraction_data, `Record ID`, .keep_all = TRUE)
+  } else {
+    retraction_data
+  }
+
+  info <- list(
+    rows = nrow(retraction_data),
+    columns = ncol(retraction_data),
+    records = if (has_id) nrow(papers) else NA_integer_,
+    publication_years = year_range("publication_year"),
+    retraction_years = year_range("retraction_year"),
+    # Per distinct record, as papers with several countries have several rows
+    nature = if ("RetractionNature" %in% names(papers)) {
+      sort(table(papers$RetractionNature, useNA = "ifany"), decreasing = TRUE)
+    } else {
+      NULL
+    }
+  )
+
+  format_range <- function(range) {
+    paste0(range$first, " to ", range$last, " (",
+           prettyNum(range$missing, big.mark = ","), " rows missing)")
+  }
+  cat("Cleaned retraction data\n")
+  cat("  Rows:             ", prettyNum(info$rows, big.mark = ","),
+      "(one per paper and country)\n")
+  cat("  Columns:          ", info$columns, "\n")
+  cat("  Distinct records: ", prettyNum(info$records, big.mark = ","), "\n")
+  cat("  Publication years:", format_range(info$publication_years), "\n")
+  cat("  Retraction years: ", format_range(info$retraction_years), "\n")
+  if (!is.null(info$nature)) {
+    cat("  Retraction nature:",
+        paste0(names(info$nature), " ", prettyNum(as.integer(info$nature), big.mark = ","),
+               collapse = "; "), "(distinct records)\n")
+  }
+  invisible(info)
 }

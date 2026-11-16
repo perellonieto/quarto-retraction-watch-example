@@ -64,3 +64,64 @@ test_that("SCImago country names are recoded to Retraction Watch names", {
 
   expect_equal(counts$Country, c("Russia", "Vietnam", "France"))
 })
+
+test_that("describe_retraction_data() summarises the raw file without identifying papers", {
+  raw <- tibble::tibble(
+    `Record ID` = c(1L, 2L, 2L, 3L),
+    Title = c("Secret title A", "Secret title B", "Secret title B", "Secret title C"),
+    OriginalPaperDate = c("1/15/2001 0:00", "3/2/2010 0:00", "3/2/2010 0:00", "not a date"),
+    RetractionDate = c("6/30/2005 0:00", "12/31/2024 0:00", "12/31/2024 0:00", "2/1/2020 0:00"),
+    RetractionNature = c("Retraction", "Retraction", "Retraction", "Correction")
+  )
+
+  output <- capture.output(info <- describe_retraction_data(raw))
+  expect_equal(info$rows, 4)
+  expect_equal(info$columns, 5)
+  expect_equal(info$records, 3)
+  expect_equal(info$rows_without_id, 0)
+  expect_equal(info$publication_dates$first, as.Date("2001-01-15"))
+  expect_equal(info$publication_dates$last, as.Date("2010-03-02"))
+  expect_equal(info$publication_dates$missing, 1)
+  expect_equal(info$retraction_dates$last, as.Date("2024-12-31"))
+  expect_equal(as.integer(info$nature[["Retraction"]]), 3L)
+  expect_true(any(grepl("Retraction 3; Correction 1", output)))
+  expect_false(any(grepl("Secret", output)))
+
+  # With a file, its checksum is printed
+  path <- tempfile(fileext = ".csv")
+  readr::write_csv(raw, path)
+  output <- capture.output(info <- describe_retraction_data(raw, path))
+  expect_equal(info$md5, unname(tools::md5sum(path)))
+  expect_true(any(grepl(info$md5, output, fixed = TRUE)))
+})
+
+test_that("load_retraction_data() prints the description only when verbose", {
+  load <- function(verbose) {
+    load_retraction_data(fixture_path("retraction_watch.csv"),
+                         oecd_countries = read_fixture_oecd(),
+                         reason_groupings_path = fixture_path("retraction_reason_groupings.csv"),
+                         verbose = verbose)
+  }
+  expect_output(load(TRUE), "MD5 checksum")
+  expect_output(suppressMessages(load(FALSE)), NA)
+})
+
+test_that("describe_cleaned_retraction_data() summarises the cleaned data", {
+  cleaned <- tibble::tibble(
+    `Record ID` = c(1L, 2L, 2L, 3L),
+    Country = c("A", "A", "B", NA),
+    publication_year = c(2001, 2010, 2010, NA),
+    retraction_year = c(2005, 2024, 2024, 2020),
+    RetractionNature = c("Retraction", "Retraction", "Retraction", "Correction")
+  )
+
+  output <- capture.output(info <- describe_cleaned_retraction_data(cleaned))
+  expect_equal(info$rows, 4)
+  expect_equal(info$columns, 5)
+  expect_equal(info$records, 3)
+  expect_equal(unlist(info$publication_years), c(first = 2001, last = 2010, missing = 1))
+  expect_equal(unlist(info$retraction_years), c(first = 2005, last = 2024, missing = 0))
+  # Paper 2 has two rows but counts once
+  expect_equal(as.integer(info$nature[["Retraction"]]), 2L)
+  expect_true(any(grepl("Retraction 2; Correction 1", output)))
+})

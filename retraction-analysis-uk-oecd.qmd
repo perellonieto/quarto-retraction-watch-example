@@ -28,6 +28,8 @@ sjr_country_counts <- build_sjr_country_counts("data/sjr_rankings")
 oecd_countries <- load_oecd_countries("data/oecd_countries.csv")
 retraction_data <- load_retraction_data("data/retraction_watch.csv")
 
+describe_cleaned_retraction_data(retraction_data)
+
 # Remove all reasons not grouped as Mechanism
 mechanisms_data <- retraction_data %>%
   remove_retraction_reasons(reasons_in_group("Mechanism", invert = TRUE))
@@ -64,6 +66,21 @@ top_10_oecd_countries_by_documents <- publication_counts_country |>
 
 print("Top 10 OECD countries by number of documents (2017-2026)")
 print(top_10_oecd_countries_by_documents)
+```
+
+# Number of publications per country from 2017 to 2026
+
+```{r}
+ggplotly(plot_publication_counts_and_retractions(
+  publication_counts_country |> 
+    filter(Country %in% c(top_10_oecd_countries_by_documents$Country, "United Kingdom")),
+  retraction_data_nomass |> 
+    filter(Country %in% c(top_10_oecd_countries_by_documents$Country, "United Kingdom")), 
+  year_limits = c(2017, 2026), 
+  colour = "steelblue", 
+  year_col = publication_year_col,
+  highlight_countries = c("United Kingdom"),
+  show_ratio = TRUE))
 ```
 
 # Top 2 retraction reasons of each year (2000-2025) in the OECD and UK
@@ -307,6 +324,17 @@ filtered_reasons <- reasons_compare_results %>%
   filter(p_adj_filtered < alpha & !low_count, period == "Post-2017")
 
 print(filtered_reasons$flag)
+
+knitr::kable(filtered_reasons %>%
+  select(Reason = flag,
+         Prop.UK = `proportion_United Kingdom`,
+         `Prop.Other OECD` = `proportion_Other OECD`,
+         `p-value` = p_value,
+         `p-adj-filtered` = p_adj_filtered) %>%
+  mutate(across(c(`p-value`, `p-adj-filtered`), ~ formatC(.x, format = "e", digits = 1)),
+         across(starts_with("Prop."), ~ scales::percent(.x, accuracy = 0.1))),
+  align = "lrrrr"
+)
 
 selected_reasons_uk_vs_top_10_oecd <- filtered_reasons$flag
 ```

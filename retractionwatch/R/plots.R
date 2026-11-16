@@ -852,6 +852,136 @@ plot_number_of_total_retractions_per_year <- function(retraction_data,
     theme_minimal()
 }
 
+#' Bar plot of the publications and retractions of each country
+#'
+#' One horizontal bar per country with its number of published documents,
+#' and inside it a thinner bar with its number of retracted papers, both on
+#' a log scale. Countries are sorted by their number of documents. A paper
+#' with authors in several countries counts once for each of them, as in the
+#' SCImago counts. The ggplotly() hover text shows both counts and the
+#' retractions per 100,000 documents.
+#'
+#' @param publication_counts Publications per country: either the output of
+#'   [publication_counts_by_country()] (columns `Country` and
+#'   `total_papers`, already limited to the years wanted) or SCImago counts
+#'   (columns `Country`, `Year` and `Documents`, see
+#'   [build_sjr_country_counts()]), which are limited to `year_limits`.
+#' @param retraction_data Output of [load_retraction_data()], or a subset of
+#'   it. Only the countries in `publication_counts` are shown.
+#' @param year_limits Optional length-2 vector with the first and last year
+#'   (inclusive) of the retractions (and of SCImago counts with a `Year`
+#'   column) counted.
+#' @param year_col Year column of the retractions used by `year_limits`.
+#' @param colour Colour of the bars: lighter for the documents and solid for
+#'   the retractions.
+#' @param highlight_countries Optional character vector of countries whose
+#'   bars are drawn in `highlight_colour` instead of `colour` (e.g.
+#'   `"United Kingdom"`). The legend, in grey, only tells the documents
+#'   from the retractions, whatever the colour of the bars.
+#' @param highlight_colour Colour of the bars of `highlight_countries`.
+#' @param show_ratio If `TRUE`, writes the retractions as a percentage of
+#'   the documents (`retraction_ratio`, with two significant digits) to the
+#'   right of each retractions bar.
+#' @param title Plot title.
+#' @return A ggplot object. Its data has one row per country with columns
+#'   `Country`, `total_papers`, `retractions`, `retraction_ratio`,
+#'   `retractions_per_100k`, `highlighted` and `y` (the vertical position of
+#'   the bar).
+#' @export
+plot_publication_counts_and_retractions <- function(publication_counts,
+                                                    retraction_data,
+                                                    year_limits = NULL,
+                                                    year_col = "publication_year",
+                                                    colour = "steelblue",
+                                                    highlight_countries = NULL,
+                                                    highlight_colour = "red",
+                                                    show_ratio = FALSE,
+                                                    title = "Published documents and retractions per country") {
+  if (!"total_papers" %in% names(publication_counts)) {
+    require_columns(publication_counts, c("Country", "Year", "Documents"),
+                    "plot_publication_counts_and_retractions")
+    publication_counts <- publication_counts_by_country(publication_counts, year_limits)
+  }
+  papers <- retraction_data %>%
+    filter(Country %in% publication_counts$Country) %>%
+    distinct(`Record ID`, Country, year = .data[[year_col]])
+  if (!is.null(year_limits)) {
+    papers <- papers %>%
+      filter(!is.na(year), year >= year_limits[1], year <= year_limits[2])
+  }
+  retractions <- count(distinct(papers, `Record ID`, Country), Country,
+                       name = "retractions")
+
+  counts <- publication_counts %>%
+    select(Country, total_papers) %>%
+    left_join(retractions, by = "Country") %>%
+    mutate(retractions = coalesce(retractions, 0L),
+           retraction_ratio = retractions / total_papers,
+           retractions_per_100k = 100000 * retraction_ratio,
+           highlighted = Country %in% highlight_countries) %>%
+    arrange(total_papers) %>%
+    mutate(y = seq_len(n()))
+  if (nrow(counts) == 0) {
+    return(empty_plot("No countries to show", title))
+  }
+
+  hover <- paste0(counts$Country,
+                  "<br>Documents: ", scales::comma(counts$total_papers),
+                  "<br>Retractions: ", scales::comma(counts$retractions),
+                  "<br>Retractions per 100,000 documents: ",
+                  formatC(counts$retractions_per_100k, format = "f", digits = 1))
+  counts$hover <- hover
+  # Ratio labels to the right of the retractions bars. ggplotly() ignores
+  # hjust, so the labels are centred at 2.6 times the bar length (a fixed
+  # distance on the log scale) rather than left-aligned at its end
+  ratio_labels <- function() {
+    if (show_ratio) {
+      geom_text(data = counts,
+                aes(x = 2.6 * pmax(retractions, 1), y = y,
+                    # Two significant digits, keeping trailing zeros (0.040%)
+                    label = if_else(retraction_ratio == 0, "0%",
+                                    paste0(formatC(100 * retraction_ratio, digits = 2,
+                                                   format = "fg", flag = "#"), "%"))),
+                size = 3, hjust = 0.5)
+    }
+  }
+  # One layer per kind of bar and colour, with a fixed fill so that the bars
+  # are left out of the legend. Bars start at 1, as 0 is not on a log scale.
+  # Layers without rows are skipped, as ggplotly() fails on empty layers
+  bars <- function(data, xmax, half_height, fill) {
+    if (nrow(data) > 0) {
+      # `text` is ignored by ggplot2 but shown in the ggplotly() hover text
+      suppressWarnings(geom_rect(data = data,
+                                 aes(xmin = 1, xmax = .data[[xmax]],
+                                     ymin = y - half_height, ymax = y + half_height,
+                                     text = hover),
+                                 fill = fill))
+    }
+  }
+  # The legend comes from zero-size rectangles mapped to grey keys, so it
+  # does not depend on the colours of the bars (blue or highlighted)
+  legend_keys <- tibble(key = c("Documents", "Retractions"), y = counts$y[1])
+  retracted <- filter(counts, retractions > 0)
+  ggplot(counts) +
+    geom_rect(data = legend_keys,
+              aes(xmin = 1, xmax = 1, ymin = y, ymax = y, fill = key)) +
+    bars(filter(counts, !highlighted), "total_papers", 0.4, scales::alpha(colour, 0.35)) +
+    bars(filter(counts, highlighted), "total_papers", 0.4, scales::alpha(highlight_colour, 0.35)) +
+    # Countries without retractions have no inner bar
+    bars(filter(retracted, !highlighted), "retractions", 0.2, colour) +
+    bars(filter(retracted, highlighted), "retractions", 0.2, highlight_colour) +
+    ratio_labels() +
+    scale_fill_manual(values = c(Documents = "grey80", Retractions = "grey45")) +
+    scale_x_log10(labels = scales::label_comma(),
+                  breaks = scales::breaks_log(n = 8)) +
+    scale_y_continuous(breaks = counts$y, labels = counts$Country,
+                       expand = expansion(add = 0.5)) +
+    labs(x = "Count (log scale)", y = NULL, fill = NULL, title = title) +
+    theme_minimal() +
+    theme(panel.grid.major.y = element_blank(),
+          panel.grid.minor.y = element_blank())
+}
+
 #' Scatter plot of the number of retractions per year for each publisher
 #'
 #' Counts the distinct retracted papers (`Record ID`) of each publisher and
@@ -1604,14 +1734,23 @@ group_reason_counts <- function(retraction_data, group_list, reason_list,
 #' Reasons are sorted by their median proportion. Proportions are counted as
 #' in [plot_reason_heterogeneity()].
 #'
+#' Groups in `highlight` (e.g. `"United Kingdom"`) are drawn on every row as
+#' a diamond in `highlight_colour`, to compare them with the groups of the
+#' boxplot. A highlighted group not in `group_list` is not part of the box
+#' statistics; one that is in `group_list` is part of them and drawn as a
+#' diamond instead of a point or asterisk.
+#'
 #' @inheritParams plot_reason_heterogeneity
 #' @param colour Colour of the boxes and outliers.
+#' @param highlight Optional character vector of groups to highlight.
+#' @param highlight_colour Colour of the highlighted groups.
 #' @return A ggplot object. Its data has one row per reason with columns
 #'   `Reason`, `groups`, `min`, `q25`, `median`, `q75`, `max`,
 #'   `lower_whisker`, `upper_whisker`, `outliers` (number of outlier groups)
 #'   and `y` (the vertical position of the row). The other groups and the
 #'   outliers, one row per reason and group, are the data of its last two
-#'   layers (the outlier layer is left out when there are none).
+#'   layers (the outlier layer is left out when there are none), followed by
+#'   the highlighted groups if any.
 #' @export
 plot_reason_proportions_boxplot <- function(retraction_data,
                                             group_list,
@@ -1619,10 +1758,19 @@ plot_reason_proportions_boxplot <- function(retraction_data,
                                             group_col = "Publisher",
                                             year_limits = NULL,
                                             year_col = "publication_year",
-                                            colour = "#1b9e77") {
-  counts <- group_reason_counts(retraction_data, group_list, reason_list,
-                                group_col, year_limits, year_col) %>%
+                                            colour = "#1b9e77",
+                                            highlight = NULL,
+                                            highlight_colour = "red") {
+  if (is.data.frame(group_list)) {
+    group_list <- group_list[[group_col]]
+  }
+  all_counts <- group_reason_counts(retraction_data, union(group_list, highlight),
+                                    reason_list, group_col, year_limits, year_col) %>%
     mutate(proportion = papers / total)
+  # The highlighted groups only enter the box statistics if they are in
+  # `group_list`
+  counts <- filter(all_counts, group %in% group_list)
+  highlighted <- filter(all_counts, group %in% highlight)
   if (nrow(counts) == 0) {
     return(empty_plot("No retractions to show"))
   }
@@ -1645,8 +1793,9 @@ plot_reason_proportions_boxplot <- function(retraction_data,
   counts <- counts %>%
     left_join(select(summary, Reason, y, lower_whisker, upper_whisker), by = "Reason") %>%
     mutate(is_outlier = proportion < lower_whisker | proportion > upper_whisker)
-  outliers <- filter(counts, is_outlier)
-  inliers <- filter(counts, !is_outlier)
+  outliers <- filter(counts, is_outlier, !group %in% highlight)
+  inliers <- filter(counts, !is_outlier, !group %in% highlight)
+  highlighted <- inner_join(highlighted, select(summary, Reason, y), by = "Reason")
   hover <- function(group, Reason, proportion, papers, total, label = "") {
     paste0(group, label, "<br>", Reason, "<br>", percent(proportion),
            " (", papers, " of ", total, " retractions)")
@@ -1701,6 +1850,21 @@ plot_reason_proportions_boxplot <- function(retraction_data,
                                       " (outlier)")),
       colour = colour, shape = 8, size = 2))
   }
+  # Highlighted groups as diamonds (shape 18), drawn last so they are on top
+  if (nrow(highlighted) > 0) {
+    p <- p + suppressWarnings(geom_point(
+      data = highlighted,
+      aes(proportion, y, text = hover(group, Reason, proportion, papers, total)),
+      colour = highlight_colour, shape = 18, size = 3))
+  }
+  title <- paste0("Reason proportions among ", n_groups, " ",
+                  if (n_groups == 1) tolower(group_col) else paste0(group_name, "s"))
+  if (length(highlight) > 0) {
+    # ggplotly() drops subtitles, so the highlighted groups go in the title
+    title <- paste0(title, " (", highlight_colour, " diamond",
+                    if (length(highlight) > 1) "s", ": ",
+                    paste(highlight, collapse = ", "), ")")
+  }
   p +
     scale_x_continuous(labels = scales::label_percent()) +
     scale_y_continuous(breaks = summary$y, labels = summary$Reason,
@@ -1709,8 +1873,7 @@ plot_reason_proportions_boxplot <- function(retraction_data,
       x = paste0("Proportion of each ", tolower(group_col),
                  "'s retractions citing the reason"),
       y = NULL,
-      title = paste0("Reason proportions among ", n_groups, " ",
-                     if (n_groups == 1) tolower(group_col) else paste0(group_name, "s"))
+      title = title
     ) +
     theme_minimal() +
     theme(panel.grid.minor.y = element_blank())

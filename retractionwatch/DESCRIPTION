@@ -29,6 +29,7 @@ Imports:
     tibble,
     tidyr,
     tidytext,
+    tools,
     utils
 Suggests:
     covr,
