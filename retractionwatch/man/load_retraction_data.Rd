@@ -8,7 +8,8 @@ load_retraction_data(
   path = "data/retraction_watch.csv",
   oecd_countries = load_oecd_countries(),
   reason_groupings_path = "data/retraction_reason_groupings.csv",
-  publication_years = c(1996, 2025),
+  year_limits = c(1996, 2025),
+  year_col = "publication_year",
   retractions_only = FALSE,
   verbose = TRUE
 )
@@ -21,9 +22,13 @@ load_retraction_data(
 \item{reason_groupings_path}{Path to the CSV mapping each retraction
 reason to a reason group.}
 
-\item{publication_years}{Length-2 vector with the first and last
-publication year kept. Defaults to the years covered by the SCImago
-publication counts, so that every retraction has a denominator.}
+\item{year_limits}{Length-2 vector with the first and last year
+(inclusive) of the papers kept, by \code{year_col}. Defaults to the
+publication years covered by the SCImago publication counts, so that
+every retraction has a denominator. \code{NULL} keeps all years.}
+
+\item{year_col}{Year column used by \code{year_limits}: \code{"publication_year"}
+(the default) or \code{"retraction_year"}.}
 
 \item{retractions_only}{If \code{TRUE}, keeps only entries whose
 \code{RetractionNature} is "Retraction" (dropping corrections, expressions of

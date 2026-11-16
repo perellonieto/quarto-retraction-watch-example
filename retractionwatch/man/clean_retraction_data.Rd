@@ -16,7 +16,8 @@ clean_retraction_data(
   add_international = TRUE,
   add_mass_retraction = TRUE,
   retractions_only = FALSE,
-  publication_years = NULL
+  year_limits = NULL,
+  year_col = "publication_year"
 )
 }
 \arguments{
@@ -53,8 +54,12 @@ Requires \code{publication_year} and \code{retraction_year}.}
 \item{retractions_only}{If \code{TRUE}, keeps only entries whose
 \code{RetractionNature} is "Retraction".}
 
-\item{publication_years}{Optional length-2 vector with the first and last
-publication year kept. Requires parsed dates.}
+\item{year_limits}{Optional length-2 vector with the first and last year
+(inclusive) of the papers kept, by \code{year_col}. Papers without that year
+are dropped. Requires parsed dates.}
+
+\item{year_col}{Year column used by \code{year_limits}: \code{"publication_year"}
+(the default) or \code{"retraction_year"}.}
 }
 \value{
 The cleaned data frame.

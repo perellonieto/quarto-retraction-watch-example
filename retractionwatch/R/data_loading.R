@@ -59,9 +59,12 @@ load_oecd_countries <- function(path = "data/oecd_countries.csv") {
 #' @param oecd_countries Output of [load_oecd_countries()].
 #' @param reason_groupings_path Path to the CSV mapping each retraction
 #'   reason to a reason group.
-#' @param publication_years Length-2 vector with the first and last
-#'   publication year kept. Defaults to the years covered by the SCImago
-#'   publication counts, so that every retraction has a denominator.
+#' @param year_limits Length-2 vector with the first and last year
+#'   (inclusive) of the papers kept, by `year_col`. Defaults to the
+#'   publication years covered by the SCImago publication counts, so that
+#'   every retraction has a denominator. `NULL` keeps all years.
+#' @param year_col Year column used by `year_limits`: `"publication_year"`
+#'   (the default) or `"retraction_year"`.
 #' @param retractions_only If `TRUE`, keeps only entries whose
 #'   `RetractionNature` is "Retraction" (dropping corrections, expressions of
 #'   concern and reinstatements).
@@ -76,7 +79,8 @@ load_oecd_countries <- function(path = "data/oecd_countries.csv") {
 load_retraction_data <- function(path = "data/retraction_watch.csv",
                                  oecd_countries = load_oecd_countries(),
                                  reason_groupings_path = "data/retraction_reason_groupings.csv",
-                                 publication_years = c(1996, 2025),
+                                 year_limits = c(1996, 2025),
+                                 year_col = "publication_year",
                                  retractions_only = FALSE,
                                  verbose = TRUE) {
   retraction_data <- readr::read_csv(path, show_col_types = FALSE, col_types = RETRACTION_DATA_TYPES)
@@ -91,7 +95,8 @@ load_retraction_data <- function(path = "data/retraction_watch.csv",
   # Cleaning needs the exact dates (for the retraction delay), so they are
   # coarsened to years afterwards; this also stops the execution if it fails
   clean_retraction_data(retraction_data, oecd_countries, retraction_reason_conversion,
-                        publication_years = publication_years,
+                        year_limits = year_limits,
+                        year_col = year_col,
                         retractions_only = retractions_only) %>%
     coarsen_retraction_dates()
 }

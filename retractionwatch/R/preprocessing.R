@@ -18,8 +18,11 @@
 #'   (see `split_by_country()`).
 #' @param retractions_only If `TRUE`, keeps only entries whose
 #'   `RetractionNature` is "Retraction".
-#' @param publication_years Optional length-2 vector with the first and last
-#'   publication year kept. Requires parsed dates.
+#' @param year_limits Optional length-2 vector with the first and last year
+#'   (inclusive) of the papers kept, by `year_col`. Papers without that year
+#'   are dropped. Requires parsed dates.
+#' @param year_col Year column used by `year_limits`: `"publication_year"`
+#'   (the default) or `"retraction_year"`.
 #' @param clean_reasons If `TRUE`, removes `+` characters from `Reason`.
 #' @param parse_dates If `TRUE`, parses `OriginalPaperDate` and
 #'   `RetractionDate` and adds `publication_year` and `retraction_year`.
@@ -44,7 +47,8 @@ clean_retraction_data <- function(retraction_data,
                                   add_international = TRUE,
                                   add_mass_retraction = TRUE,
                                   retractions_only = FALSE,
-                                  publication_years = NULL) {
+                                  year_limits = NULL,
+                                  year_col = "publication_year") {
   if (retractions_only) {
     retraction_data <- filter(retraction_data, .data$RetractionNature == "Retraction")
   }
@@ -55,12 +59,12 @@ clean_retraction_data <- function(retraction_data,
   if (parse_dates) {
     retraction_data <- parse_retraction_dates(retraction_data)
   }
-  if (!is.null(publication_years)) {
-    require_columns(retraction_data, "publication_year", "publication_years")
-    year <- as.numeric(retraction_data$publication_year)
+  if (!is.null(year_limits)) {
+    require_columns(retraction_data, year_col, "year_limits")
+    year <- as.numeric(retraction_data[[year_col]])
     retraction_data <- retraction_data[!is.na(year) &
-                                         year >= publication_years[1] &
-                                         year <= publication_years[2], ]
+                                         year >= year_limits[1] &
+                                         year <= year_limits[2], ]
   }
   if (add_reason_groups) {
     if (is.null(retraction_reason_conversion)) {

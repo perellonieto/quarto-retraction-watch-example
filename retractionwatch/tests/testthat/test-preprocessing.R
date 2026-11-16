@@ -125,10 +125,24 @@ test_that("retractions_only keeps only retractions", {
   expect_setequal(unique(dropped$`Record ID`), c(1, 4))
 })
 
-test_that("publication_years keeps papers published in that range", {
-  data <- clean_fixture(publication_years = c(2015, 2020))
+test_that("year_limits keeps papers published in that range", {
+  data <- clean_fixture(year_limits = c(2015, 2020))
 
   expect_setequal(unique(data$`Record ID`), c(2, 4))
+})
+
+test_that("year_limits can keep papers by retraction year", {
+  all_papers <- clean_fixture()
+  years <- dplyr::distinct(all_papers, `Record ID`, retraction_year)
+  limits <- range(years$retraction_year)
+  # Keeps only the papers retracted in the first year present
+  data <- clean_fixture(year_limits = c(limits[1], limits[1]), year_col = "retraction_year")
+
+  expect_setequal(unique(data$`Record ID`),
+                  years$`Record ID`[years$retraction_year == limits[1]])
+  expect_true(all(data$retraction_year == limits[1]))
+  expect_error(clean_fixture(year_limits = c(2015, 2020), year_col = "no_such_year"),
+               "year_limits requires columns: no_such_year")
 })
 
 test_that("only papers with several countries are international", {

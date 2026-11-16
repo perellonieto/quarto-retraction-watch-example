@@ -23,10 +23,13 @@ library(plotly)
 
 sjr_country_counts <- build_sjr_country_counts("data/sjr_rankings")
 oecd_countries <- load_oecd_countries("data/oecd_countries.csv")
-retraction_data <- load_retraction_data("data/retraction_watch.csv")
+
+year_limits <- c(2017, 2025)
+year_col <- "retraction_year"
+
+retraction_data <- load_retraction_data("data/retraction_watch.csv", year_limits = year_limits, year_col = year_col)
 
 retraction_data <- aggregate_publishers(retraction_data)
-
 
 # Remove all reasons not grouped as Mechanism
 mechanisms_data <- retraction_data %>%
@@ -48,7 +51,7 @@ publisher_year_col <- "retraction_year"
 # Check the years of the analysis below
 #retraction_data_uk <- retraction_data |>
 #  subset(Country == "United Kingdom")
-#ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = c(2000, 2026), n_top = 2, min_retractions_per_year = 20))
+#ggplotly(plot_retraction_reasons_over_time(retraction_data_uk, year_limits = year_limits, n_top = 2, min_retractions_per_year = 20))
 
 # Country classes are per paper (UK > Other OECD > Rest of World), so the
 # two subsets below never share a paper
@@ -68,7 +71,7 @@ retraction_data_oecd_nomass <- retraction_data_oecd |>
 ```{r}
 publisher_and_retractions <- count_number_of_retractions_per_column(
   retraction_data_nomass,
-  column_name = "Publisher", year_limits = c(2017, 2026),
+  column_name = "Publisher", year_limits = year_limits,
   year_col = publisher_year_col)
 
 
@@ -79,7 +82,7 @@ print(top_10_publishers)
 ```
 
 ```{r}
-ggplotly(plot_proportion_of_total_retractions_per_publisher(retraction_data_nomass, top_n = 20, year_limits = c(2017, 2026),
+ggplotly(plot_proportion_of_total_retractions_per_publisher(retraction_data_nomass, top_n = 20, year_limits = year_limits,
                                                             year_col = publisher_year_col))
 ```
 
@@ -107,8 +110,8 @@ However, the mechanisms are applied at the time of retractions, so the retractio
 mechanisms_per_publisher_and_year <- calculate_proportion_of_retractions_per_year_by_publisher(
   mechanisms_data |> subset(Mass_Retraction == "Other"),
   publisher_list = top_10_publishers,
-  yearmin = 2017,
-  yearmax = 2026,
+  yearmin = year_limits[1],
+  yearmax = year_limits[2],
   year_col = publisher_year_col)
 ```
 
@@ -131,7 +134,7 @@ Average proportion of retractions citing each reason across the top 10 publisher
 Excluding mass retractions
 
 ```{r}
-top_10_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 10, year_limits = c(2017, 2026),
+top_10_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 10, year_limits = year_limits,
                                                year_col = publisher_year_col)
 ```
 
@@ -140,8 +143,8 @@ top_10_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per
   retraction_data_nomass,
   publisher_list = top_10_publishers,
   reasons = top_10_reasons,
-  yearmin = 2017,
-  yearmax = 2026,
+  yearmin = year_limits[1],
+  yearmax = year_limits[2],
   year_col = publisher_year_col)
 ```
 
@@ -155,7 +158,7 @@ interactive = TRUE)
 Excluding mass retractions
 
 ```{r}
-top_5_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 5, year_limits = c(2017, 2026),
+top_5_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 5, year_limits = year_limits,
                                                year_col = publisher_year_col)
 ```
 
@@ -164,8 +167,8 @@ top_5_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_
   retraction_data_nomass,
   publisher_list = top_10_publishers,
   reasons = top_5_reasons,
-  yearmin = 2017,
-  yearmax = 2026,
+  yearmin = year_limits[1],
+  yearmax = year_limits[2],
   year_col = publisher_year_col)
 ```
 
@@ -187,8 +190,8 @@ ai_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_yea
   retraction_data_nomass,
   publisher_list = top_10_publishers,
   reasons = ai_reasons,
-  yearmin = 2017,
-  yearmax = 2026,
+  yearmin = year_limits[1],
+  yearmax = year_limits[2],
   year_col = publisher_year_col)
 ```
 
@@ -202,8 +205,8 @@ ai_reasons_per_publisher_and_year <- calculate_proportion_of_retractions_per_yea
   retraction_data_nomass,
   publisher_list = top_10_publishers,
   reasons = ai_reasons,
-  yearmin = 2017,
-  yearmax = 2026,
+  yearmin = year_limits[1],
+  yearmax = year_limits[2],
   year_col = publisher_year_col)
 ```
 
@@ -229,7 +232,7 @@ ggplotly(plot_reason_proportion_per_publisher(
     retraction_data_nomass,
     reason = "Computer-Aided Content or Computer-Generated Content",
     publisher_list = top_10_publishers,
-    year_limits = c(2017, 2026),
+    year_limits = year_limits,
     year_col = publisher_year_col,
     confidence_interval = TRUE),
     height = 300
@@ -239,7 +242,7 @@ ggplotly(plot_reason_proportion_per_publisher(
 ## Heterogeneity among top 10 retracted reasons of publishers with most retractions
 
 ```{r}
-top_10_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 10, year_limits = c(2017, 2026),
+top_10_reasons <- select_top_retraction_reasons(retraction_data_nomass, n_top = 10, year_limits = year_limits,
                                                year_col = publisher_year_col)
 
 plots <- lapply(top_10_reasons, function(reason) {
@@ -247,7 +250,7 @@ ggplotly(plot_reason_proportion_per_publisher(
     retraction_data_nomass,
     reason = reason,
     publisher_list = top_10_publishers,
-    year_limits = c(2017, 2026),
+    year_limits = year_limits,
     year_col = publisher_year_col,
     confidence_interval = TRUE),
     height = 300
@@ -262,7 +265,7 @@ htmltools::tagList(plots)
 print(top_10_publishers)
 
 ggplotly(plot_reason_heterogeneity(retraction_data_nomass, top_10_publishers, top_10_reasons,
-                          group_col = "Publisher", year_limits = c(2017, 2026),
+                          group_col = "Publisher", year_limits = year_limits,
                           year_col = publisher_year_col))
 ```
 
@@ -270,7 +273,7 @@ Proportion of each publisher's retractions citing each reason from 2017 to 2026.
 
 ```{r}
 ggplotly(plot_reason_proportions_boxplot(retraction_data_nomass, top_10_publishers, top_10_reasons,
-                                         group_col = "Publisher", year_limits = c(2017, 2026),
+                                         group_col = "Publisher", year_limits = year_limits,
                                          year_col = publisher_year_col),
          tooltip = "text")
 
